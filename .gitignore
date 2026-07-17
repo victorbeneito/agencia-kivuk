@@ -1,0 +1,14 @@
+# App (Next.js)
+app/node_modules
+app/.next
+app/.env.local
+app/.env*.local
+
+# n8n
+n8n/.env
+n8n/workflows/*.json.bak
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
