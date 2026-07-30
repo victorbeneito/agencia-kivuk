@@ -1,0 +1,196 @@
+{
+  "name": "Voz - Vapi (adaptador)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "voz-vapi",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        300
+      ],
+      "id": "vz000001-0001-4001-8001-000000000001",
+      "name": "Entrada Vapi",
+      "webhookId": "c8f2d3e4-0001-4001-8001-b00000000001"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vapi manda el cuerpo de dos formas distintas segun el tipo de tool:\n//  - \"API Request\": JSON plano con los parametros + los Static Body Fields.\n//  - Custom tool clasico: { message: { toolCallList: [ { id, name, arguments } ] } }\n// Aceptamos las dos para no depender de cual se configure.\nconst raw = $json.body || $json || {};\nconst msg = raw.message || {};\nconst llamada = (msg.toolCallList || msg.toolCalls || [])[0] || {};\n\nlet args = llamada.arguments || (llamada.function && llamada.function.arguments) || null;\nif (typeof args === 'string') {\n  try { args = JSON.parse(args); } catch (e) { args = null; }\n}\n\nconst datos = args || raw;\nconst nombre = llamada.name || (llamada.function && llamada.function.name) || '';\n\n// Si Vapi no resuelve una plantilla Liquid, el valor llega literal como\n// \"{{ assistant.id }}\". Lo tratamos como vacío en vez de propagar la basura.\nconst limpio = (v) => {\n  const s = String(v == null ? '' : v).trim();\n  return s.includes('{{') ? '' : s;\n};\n\nreturn [{\n  json: {\n    tool_call_id: llamada.id || raw.tool_call_id || '',\n    herramienta: String(nombre).toLowerCase(),\n    accion_pedida: String(datos.accion || '').toLowerCase(),\n    // Identificamos al cliente por el assistant de Vapi que ha atendido la\n    // llamada: así las mismas tools sirven para todos los clientes.\n    assistant_id: limpio(datos.assistant_id) ||\n      limpio(msg.assistant && msg.assistant.id) ||\n      limpio(msg.call && msg.call.assistantId),\n    // Numero de quien llama, util para poner nombre a la cita.\n    telefono: limpio(datos.telefono) ||\n      limpio(msg.call && msg.call.customer && msg.call.customer.number),\n    client_id: limpio(datos.client_id),\n    fecha: datos.fecha || null,\n    hora: datos.hora || null,\n    email: datos.email || null,\n    nombre: limpio(datos.nombre),\n    motivo: limpio(datos.motivo),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        300
+      ],
+      "id": "vz000002-0002-4002-8002-000000000002",
+      "name": "Leer tool call"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.voice&active=eq.true&config->>vapi_assistant_id=eq.{{ $json.assistant_id }}&select=client_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        16,
+        300
+      ],
+      "id": "vz000003-0003-4003-8003-000000000003",
+      "name": "Buscar cliente por assistant",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Leer tool call').first().json;\n\n// El client_id explicito en los argumentos manda; si no, el que hemos buscado\n// por assistant_id en Supabase.\nconst encontrado = $input.first().json.client_id || '';\nconst clientId = d.client_id || encontrado;\n\nreturn [{\n  json: {\n    ...d,\n    client_id: clientId,\n    // La acción puede venir del nombre de la tool o de un static body field.\n    accion: (d.accion_pedida || d.herramienta).includes('reserv')\n      ? 'reservar'\n      : 'disponibilidad',\n    contacto: d.nombre || d.telefono || 'Llamada de voz',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        300
+      ],
+      "id": "vz000004-0004-4004-8004-000000000004",
+      "name": "Preparar llamada"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/agenda",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"client_id\": {{ JSON.stringify($json.client_id) }},\n  \"accion\": {{ JSON.stringify($json.accion) }},\n  \"fecha\": {{ JSON.stringify($json.fecha) }},\n  \"hora\": {{ JSON.stringify($json.hora) }},\n  \"email\": {{ JSON.stringify($json.email) }},\n  \"contacto\": {{ JSON.stringify($json.contacto) }},\n  \"motivo\": {{ JSON.stringify($json.motivo) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        432,
+        300
+      ],
+      "id": "vz000005-0005-4005-8005-000000000005",
+      "name": "Llamar a Agenda API",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pet = $('Preparar llamada').first().json;\nconst api = $input.first().json || {};\n\nlet texto = api.mensaje;\nlet ok = api.ok !== false;\n\nif (!pet.client_id) {\n  ok = false;\n  texto = 'No encuentro la configuración de este negocio. Avisa al administrador.';\n} else if (!texto) {\n  ok = false;\n  texto = 'Ahora mismo no puedo consultar la agenda. Inténtalo de nuevo en un momento.';\n}\n\n// Devolvemos las dos formas a la vez: \"mensaje\" plano para el tipo API Request\n// (que extrae variables del JSON) y el sobre \"results\" con el toolCallId, que\n// es lo que exige el custom tool clásico. Sobra una u otra, pero no estorban.\nreturn [{\n  json: {\n    ok,\n    mensaje: texto,\n    results: [{ toolCallId: pet.tool_call_id, result: texto }],\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ],
+      "id": "vz000006-0006-4006-8006-000000000006",
+      "name": "Respuesta para Vapi"
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        848,
+        300
+      ],
+      "id": "vz000007-0007-4007-8007-000000000007",
+      "name": "Responder"
+    }
+  ],
+  "connections": {
+    "Entrada Vapi": {
+      "main": [
+        [
+          {
+            "node": "Leer tool call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer tool call": {
+      "main": [
+        [
+          {
+            "node": "Buscar cliente por assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar cliente por assistant": {
+      "main": [
+        [
+          {
+            "node": "Preparar llamada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar llamada": {
+      "main": [
+        [
+          {
+            "node": "Llamar a Agenda API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Llamar a Agenda API": {
+      "main": [
+        [
+          {
+            "node": "Respuesta para Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta para Vapi": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

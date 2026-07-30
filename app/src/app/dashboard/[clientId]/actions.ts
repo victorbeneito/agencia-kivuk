@@ -157,6 +157,28 @@ export async function updateCalendarSchedule(formData: FormData) {
   revalidatePath(`/dashboard/${clientId}`);
 }
 
+/**
+ * Agente de voz (Vapi). El `vapi_assistant_id` es lo que permite que un único
+ * webhook de n8n sirva a todos los clientes: al recibir una llamada, se busca
+ * qué cliente tiene ese assistant asignado.
+ */
+export async function updateVoiceConfig(formData: FormData) {
+  const clientId = formData.get("client_id") as string;
+
+  const error = await mergeModuleConfig(clientId, "voice", {
+    vapi_assistant_id: (formData.get("vapi_assistant_id") as string)?.trim() ?? "",
+    vapi_phone_number: (formData.get("vapi_phone_number") as string)?.trim() ?? "",
+  });
+
+  if (error) {
+    throw new Error(
+      `No se pudo guardar la configuración del agente de voz: ${error.message}`
+    );
+  }
+
+  revalidatePath(`/dashboard/${clientId}`);
+}
+
 export async function updateEmailConfig(formData: FormData) {
   const clientId = formData.get("client_id") as string;
 

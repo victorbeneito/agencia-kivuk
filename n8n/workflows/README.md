@@ -9,7 +9,51 @@ el panel de la agencia escribe por cliente.
 | Archivo | Qué es |
 | --- | --- |
 | `whatsapp-bot.json` | Versión actual: WhatsApp + IA con memoria, disponibilidad real de agenda, Google Calendar y confirmación por email (Resend). |
+| `agenda-api.json` | API interna de agenda: consultar disponibilidad y reservar. La comparten el bot de WhatsApp y el agente de voz. |
 | `whatsapp-bot-v1-calendar.json` | Copia de seguridad de la primera versión (sin memoria, email ni disponibilidad). |
+
+## Agenda API
+
+Un solo sitio donde vive la lógica de agenda, para que cada canal (WhatsApp, voz,
+y lo que venga) no tenga su propia copia. Se llama por HTTP:
+
+```
+POST /webhook/agenda
+{ "client_id": "...", "accion": "disponibilidad", "fecha": "2026-08-04" }   ← fecha opcional
+{ "client_id": "...", "accion": "reservar", "fecha": "...", "hora": "12:30",
+  "email": "...", "contacto": "34600111222" }
+```
+
+Devuelve siempre un `mensaje` ya redactado, listo para leer en voz alta o enviar
+por WhatsApp, además de los datos estructurados (`dias`, `alternativas`).
+
+- `disponibilidad` agrupa las horas en rangos (`09:00-10:15, 12:15-13:00`). Con
+  paso de 15 minutos son decenas de horas sueltas: impronunciables por teléfono.
+- `reservar` comprueba el hueco **antes** de crear nada. Si está ocupado devuelve
+  `ok: false` con alternativas cercanas y no toca el calendario.
+- Acepta horas en formatos hablados (`12h30`, `12'30`) y las normaliza.
+
+Desde otro workflow de n8n se llama a `http://localhost:5678/webhook/agenda`
+(n8n hablando consigo mismo); desde fuera, por la URL pública.
+
+## Un solo motor de agenda
+
+WhatsApp y voz **no tienen cada uno su copia** de la lógica de citas: los dos
+llaman a `agenda-api.json`. Si mañana se añade un canal nuevo (Instagram, un
+formulario web), llama al mismo sitio y hereda todo: horario del cliente,
+detección de solapes, alternativas cercanas, creación del evento y email.
+
+```
+WhatsApp ─┐
+          ├─→ Agenda API ─→ Google Calendar + Resend
+Voz/Vapi ─┘
+```
+
+La lógica de cálculo de huecos vive además en un único fichero
+(`scratchpad/logica-huecos.js` en el generador), del que se inyecta el mismo
+código en los nodos que lo necesitan. Es a propósito: cuando esa lógica estaba
+duplicada, cada corrección había que hacerla dos veces y era cuestión de tiempo
+que divergieran.
 
 ## Cómo agenda el bot
 

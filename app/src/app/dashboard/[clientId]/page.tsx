@@ -6,6 +6,7 @@ import {
   updateCalendarConfig,
   updateCalendarSchedule,
   updateEmailConfig,
+  updateVoiceConfig,
   updateWhatsappConfig,
   type ModuleName,
 } from "./actions";
@@ -101,6 +102,8 @@ export default async function ClientBotPage({
   const emailConfig =
     (moduleByName.get("email")?.config as Record<string, string> | null) ??
     {};
+  const voiceConfig =
+    (moduleByName.get("voice")?.config as Record<string, string> | null) ?? {};
 
   // El horario vive en el mismo config que las credenciales de Calendar, así
   // que rellenamos con los valores por defecto lo que el cliente no haya tocado.
@@ -256,6 +259,44 @@ export default async function ClientBotPage({
           </CardContent>
           <CardFooter>
             <Button type="submit">Guardar credenciales</Button>
+          </CardFooter>
+        </form>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Agente de voz (Vapi)</CardTitle>
+          <CardDescription>
+            El ID del assistant es lo que identifica a este cliente cuando entra
+            una llamada, así que debe coincidir exactamente con el de Vapi.
+          </CardDescription>
+        </CardHeader>
+        <form key={JSON.stringify(voiceConfig)} action={updateVoiceConfig}>
+          <input type="hidden" name="client_id" value={clientId} />
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="vapi_assistant_id">Assistant ID de Vapi</Label>
+              <Input
+                id="vapi_assistant_id"
+                name="vapi_assistant_id"
+                placeholder="1a2b3c4d-..."
+                defaultValue={voiceConfig.vapi_assistant_id ?? ""}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="vapi_phone_number">
+                Número de teléfono <span className="text-muted-foreground">(opcional)</span>
+              </Label>
+              <Input
+                id="vapi_phone_number"
+                name="vapi_phone_number"
+                placeholder="+34..."
+                defaultValue={voiceConfig.vapi_phone_number ?? ""}
+              />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button type="submit">Guardar agente de voz</Button>
           </CardFooter>
         </form>
       </Card>
