@@ -1,0 +1,629 @@
+{
+  "name": "Whatsapp Bot - Cliente Prueba (v1 solo calendar)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp-kivuk",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "85aa53a8-3e2a-4c6d-9f85-95067616216b",
+      "name": "Webhook",
+      "webhookId": "efcbe156-4887-4a85-ae4d-dd9a38e72685"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "09580403-5fee-44f4-912e-7db4ab2a92f1",
+              "leftValue": "={{ $json.query['hub.verify_token'] }}",
+              "rightValue": "kivuk-secreto-2026",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "abd81e53-b8db-45b6-9001-4974444e0e78",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "fdea71bc-2a73-4e88-a710-040a45d0a098",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Forbidden",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        624,
+        96
+      ],
+      "id": "393cfcbf-320a-4773-bd3d-e4dfccde3ce7",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-kivuk",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        288
+      ],
+      "id": "e6ace6e5-bd91-483d-abc2-0dc268d2c676",
+      "name": "Webhook1",
+      "webhookId": "ce948c67-e4f7-4f63-bc12-767de9f6c6a9"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body;\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\n\n// Si no hay mensaje de texto (puede ser una actualización de estado u otro evento), paramos aquí.\nif (!message || message.type !== 'text') {\n  return [];\n}\n\nreturn [{\n  json: {\n    phone_number_id: value.metadata.phone_number_id,\n    from: message.from,\n    message_text: message.text.body,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        288
+      ],
+      "id": "d746ffb9-d9c2-4197-b806-e24cf2f0902c",
+      "name": "Extraer mensaje"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.whatsapp&config->>phone_number_id=eq.{{ $json.phone_number_id }}&select=client_id,config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -32,
+        288
+      ],
+      "id": "74b68236-fb84-49e8-9f6d-eb6160e1706c",
+      "name": "Buscar cliente Whatsapp"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/agent_configs?client_id=eq.{{ $json.client_id }}&select=system_prompt",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        288
+      ],
+      "id": "e46001eb-6494-4b25-ad4a-c1fb6aba3a87",
+      "name": "Buscar prompt del cliente"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    { \"role\": \"system\", \"content\": {{ JSON.stringify($('Buscar prompt del cliente').item.json.system_prompt) }} },\n    { \"role\": \"system\", \"content\": \"Hoy es {{ $now.toFormat('yyyy-MM-dd') }}. Responde SIEMPRE en JSON con esta forma exacta: {\\\"reply\\\": \\\"tu respuesta al usuario\\\", \\\"wants_appointment\\\": true o false, \\\"date\\\": \\\"YYYY-MM-DD\\\" o null, \\\"time\\\": \\\"HH:mm\\\" o null}. Pon wants_appointment en true SOLO si el usuario pide una cita indicando fecha y hora concretas. En reply confirma la cita de forma natural si la has detectado.\" },\n    { \"role\": \"user\", \"content\": {{ JSON.stringify($('Extraer mensaje').item.json.message_text) }} }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        288
+      ],
+      "id": "c81725b5-543b-4eaf-9245-d341101a519f",
+      "name": "Llamar a OpenAI"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Buscar cliente Whatsapp').item.json.config.phone_number_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Buscar cliente Whatsapp').item.json.config.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": {{ JSON.stringify($('Extraer mensaje').item.json.from) }},\n  \"type\": \"text\",\n  \"text\": { \"body\": {{ JSON.stringify($('Parsear respuesta IA').item.json.reply) }} }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        304
+      ],
+      "id": "e956314e-3cad-4061-a3af-7841c9a18385",
+      "name": "Responder por Whatsapp"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/conversations?on_conflict=client_id,channel,external_contact_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"client_id\": {{ JSON.stringify($('Buscar cliente Whatsapp').item.json.client_id) }},\n    \"channel\": \"whatsapp\",\n    \"external_contact_id\": {{ JSON.stringify($('Extraer mensaje').item.json.from) }}\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1744,
+        288
+      ],
+      "id": "53781a9f-5bcb-4874-b8a8-82951179373a",
+      "name": "Buscar o crear conversación"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=[\n  {\n    \"conversation_id\": {{ JSON.stringify($json.id) }},\n    \"role\": \"user\",\n    \"content\": {{ JSON.stringify($('Extraer mensaje').item.json.message_text) }}\n  },\n  {\n    \"conversation_id\": {{ JSON.stringify($json.id) }},\n    \"role\": \"assistant\",\n    \"content\": {{ JSON.stringify($('Parsear respuesta IA').item.json.reply) }}\n  }\n]",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1920,
+        288
+      ],
+      "id": "72253213-bfda-4c9c-97d8-7d0fad6d6d0d",
+      "name": "Guardar mensajes"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.calendar&active=eq.true&client_id=eq.{{ $('Buscar cliente Whatsapp').item.json.client_id }}&select=config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        288
+      ],
+      "id": "02bb7410-4214-4629-846a-c352e47385f8",
+      "name": "Buscar módulo calendar",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($json.choices[0].message.content);\nreturn [{ json: parsed }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        288
+      ],
+      "id": "5c44a541-2cf7-4c1c-8e62-85d0e5e30937",
+      "name": "Parsear respuesta IA"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1e2966f1-7127-4749-beb8-c89deb928d84",
+              "leftValue": "={{ $json.wants_appointment }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "ed700131-4f69-4aac-9183-b78a09a423cf",
+              "leftValue": "={{ $('Buscar módulo calendar').item.json.config?.calendar_id || \"\" }}",
+              "rightValue": "={{ $('Buscar módulo calendar').item.json.config?.calendar_id || \"\" }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        976,
+        288
+      ],
+      "id": "35e1fdad-fa16-4735-9ca6-ba201a1df45e",
+      "name": "¿Quiere cita?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oauth2.googleapis.com/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "={{ $('Buscar módulo calendar').item.json.config.google_client_id }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $('Buscar módulo calendar').item.json.config.google_client_secret }}"
+            },
+            {
+              "name": "refresh_token",
+              "value": "={{ $('Buscar módulo calendar').item.json.config.refresh_token }}"
+            },
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1184,
+        160
+      ],
+      "id": "76663333-75e8-47d9-805f-bf9a3f71ec4d",
+      "name": "Refrescar token Google"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($('Buscar módulo calendar').item.json.config.calendar_id) }}/events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.access_token }} y Content-Type = application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"summary\": {{ JSON.stringify(\"Cita - \" + $('Extraer mensaje').item.json.from) }},\n  \"description\": {{ JSON.stringify($('Extraer mensaje').item.json.message_text) }},\n  \"start\": {\n    \"dateTime\": \"{{ $('Parsear respuesta IA').item.json.date }}T{{ $('Parsear respuesta IA').item.json.time }}:00\",\n    \"timeZone\": \"Europe/Madrid\"\n  },\n  \"end\": {\n    \"dateTime\": \"{{ DateTime.fromISO($('Parsear respuesta IA').item.json.date + 'T' + $('Parsear respuesta IA').item.json.time).plus({ hours: 1 }).toFormat(`yyyy-MM-dd'T'HH:mm:ss`) }}\",\n    \"timeZone\": \"Europe/Madrid\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1344,
+        160
+      ],
+      "id": "e07a463e-b061-4f8d-b1ca-e23d16ecb3bc",
+      "name": "Crear evento"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer mensaje": {
+      "main": [
+        [
+          {
+            "node": "Buscar cliente Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar cliente Whatsapp": {
+      "main": [
+        [
+          {
+            "node": "Buscar prompt del cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar prompt del cliente": {
+      "main": [
+        [
+          {
+            "node": "Buscar módulo calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Llamar a OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Parsear respuesta IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder por Whatsapp": {
+      "main": [
+        [
+          {
+            "node": "Buscar o crear conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar o crear conversación": {
+      "main": [
+        [
+          {
+            "node": "Guardar mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar módulo calendar": {
+      "main": [
+        [
+          {
+            "node": "Llamar a OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear respuesta IA": {
+      "main": [
+        [
+          {
+            "node": "¿Quiere cita?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Quiere cita?": {
+      "main": [
+        [
+          {
+            "node": "Refrescar token Google",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder por Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refrescar token Google": {
+      "main": [
+        [
+          {
+            "node": "Crear evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear evento": {
+      "main": [
+        [
+          {
+            "node": "Responder por Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

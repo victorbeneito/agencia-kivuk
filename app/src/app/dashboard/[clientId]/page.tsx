@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   updateAgentConfig,
   updateCalendarConfig,
+  updateCalendarSchedule,
   updateEmailConfig,
   updateWhatsappConfig,
   type ModuleName,
@@ -29,6 +30,29 @@ const MODULE_LABELS: Record<ModuleName, string> = {
   calendar: "Agenda / Calendar",
   email: "Automatización de correos",
   instagram: "Instagram",
+};
+
+// 1 = lunes ... 7 = domingo (mismo criterio que el workflow de n8n).
+const DIAS_SEMANA = [
+  { valor: "1", etiqueta: "L" },
+  { valor: "2", etiqueta: "M" },
+  { valor: "3", etiqueta: "X" },
+  { valor: "4", etiqueta: "J" },
+  { valor: "5", etiqueta: "V" },
+  { valor: "6", etiqueta: "S" },
+  { valor: "7", etiqueta: "D" },
+];
+
+// Deben coincidir con los del nodo "Preparar contexto" en n8n, que aplica
+// estos mismos valores cuando el cliente todavía no ha guardado su horario.
+const HORARIO_POR_DEFECTO = {
+  dias_laborables: "1,2,3,4,5",
+  manana_inicio: "09:00",
+  manana_fin: "14:00",
+  tarde_inicio: "16:00",
+  tarde_fin: "20:00",
+  duracion_min: "60",
+  paso_min: "15",
 };
 
 const MODULE_ORDER: ModuleName[] = [
@@ -77,6 +101,24 @@ export default async function ClientBotPage({
   const emailConfig =
     (moduleByName.get("email")?.config as Record<string, string> | null) ??
     {};
+
+  // El horario vive en el mismo config que las credenciales de Calendar, así
+  // que rellenamos con los valores por defecto lo que el cliente no haya tocado.
+  const horario = {
+    dias_laborables:
+      calendarConfig.dias_laborables || HORARIO_POR_DEFECTO.dias_laborables,
+    manana_inicio:
+      calendarConfig.manana_inicio ?? HORARIO_POR_DEFECTO.manana_inicio,
+    manana_fin: calendarConfig.manana_fin ?? HORARIO_POR_DEFECTO.manana_fin,
+    tarde_inicio:
+      calendarConfig.tarde_inicio ?? HORARIO_POR_DEFECTO.tarde_inicio,
+    tarde_fin: calendarConfig.tarde_fin ?? HORARIO_POR_DEFECTO.tarde_fin,
+    duracion_min:
+      calendarConfig.duracion_min || HORARIO_POR_DEFECTO.duracion_min,
+    paso_min: calendarConfig.paso_min || HORARIO_POR_DEFECTO.paso_min,
+  };
+
+  const diasActivos = new Set(horario.dias_laborables.split(",").filter(Boolean));
 
   return (
     <div className="flex flex-col gap-4">
@@ -214,6 +256,124 @@ export default async function ClientBotPage({
           </CardContent>
           <CardFooter>
             <Button type="submit">Guardar credenciales</Button>
+          </CardFooter>
+        </form>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Horario de atención</CardTitle>
+          <CardDescription>
+            El bot solo ofrece citas dentro de este horario, y comprueba la
+            agenda para no dar una hora que ya esté ocupada.
+          </CardDescription>
+        </CardHeader>
+        <form key={JSON.stringify(horario)} action={updateCalendarSchedule}>
+          <input type="hidden" name="client_id" value={clientId} />
+          <CardContent className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <Label>Días laborables</Label>
+              <div className="flex flex-wrap gap-2">
+                {DIAS_SEMANA.map((dia) => (
+                  <label
+                    key={dia.valor}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-primary/5"
+                  >
+                    <input
+                      type="checkbox"
+                      name="dias_laborables"
+                      value={dia.valor}
+                      defaultChecked={diasActivos.has(dia.valor)}
+                      className="size-4 accent-primary"
+                    />
+                    {dia.etiqueta}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="manana_inicio">Mañana: desde</Label>
+                <Input
+                  id="manana_inicio"
+                  name="manana_inicio"
+                  type="time"
+                  defaultValue={horario.manana_inicio}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="manana_fin">Mañana: hasta</Label>
+                <Input
+                  id="manana_fin"
+                  name="manana_fin"
+                  type="time"
+                  defaultValue={horario.manana_fin}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="tarde_inicio">Tarde: desde</Label>
+                <Input
+                  id="tarde_inicio"
+                  name="tarde_inicio"
+                  type="time"
+                  defaultValue={horario.tarde_inicio}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="tarde_fin">Tarde: hasta</Label>
+                <Input
+                  id="tarde_fin"
+                  name="tarde_fin"
+                  type="time"
+                  defaultValue={horario.tarde_fin}
+                />
+              </div>
+            </div>
+            <p className="-mt-2 text-sm text-muted-foreground">
+              Si el negocio no cierra a mediodía, deja los dos campos de tarde
+              vacíos y pon el horario completo en los de mañana.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="duracion_min">Duración de cada cita</Label>
+                <select
+                  id="duracion_min"
+                  name="duracion_min"
+                  defaultValue={horario.duracion_min}
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+                >
+                  <option value="15">15 minutos</option>
+                  <option value="30">30 minutos</option>
+                  <option value="45">45 minutos</option>
+                  <option value="60">1 hora</option>
+                  <option value="90">1 hora y media</option>
+                  <option value="120">2 horas</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="paso_min">Una cita puede empezar cada</Label>
+                <select
+                  id="paso_min"
+                  name="paso_min"
+                  defaultValue={horario.paso_min}
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+                >
+                  <option value="15">15 minutos (9:00, 9:15, 9:30…)</option>
+                  <option value="30">30 minutos (9:00, 9:30, 10:00…)</option>
+                  <option value="60">1 hora (9:00, 10:00, 11:00…)</option>
+                </select>
+              </div>
+            </div>
+            <p className="-mt-2 text-sm text-muted-foreground">
+              La duración es lo que ocupa la cita en la agenda. El intervalo es
+              cada cuánto puede empezar una: con citas de 1 hora e intervalo de
+              15 minutos, si hay hueco se puede reservar a las 10:15.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button type="submit">Guardar horario</Button>
           </CardFooter>
         </form>
       </Card>

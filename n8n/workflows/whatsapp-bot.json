@@ -1,0 +1,847 @@
+{
+  "name": "Whatsapp Bot - Cliente Prueba",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp-kivuk",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "85aa53a8-3e2a-4c6d-9f85-95067616216b",
+      "name": "Webhook",
+      "webhookId": "efcbe156-4887-4a85-ae4d-dd9a38e72685"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "09580403-5fee-44f4-912e-7db4ab2a92f1",
+              "leftValue": "={{ $json.query['hub.verify_token'] }}",
+              "rightValue": "kivuk-secreto-2026",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "abd81e53-b8db-45b6-9001-4974444e0e78",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "fdea71bc-2a73-4e88-a710-040a45d0a098",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Forbidden",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        624,
+        96
+      ],
+      "id": "393cfcbf-320a-4773-bd3d-e4dfccde3ce7",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-kivuk",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        288
+      ],
+      "id": "e6ace6e5-bd91-483d-abc2-0dc268d2c676",
+      "name": "Webhook1",
+      "webhookId": "ce948c67-e4f7-4f63-bc12-767de9f6c6a9"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body;\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\n\n// Si no hay mensaje de texto (puede ser una actualización de estado u otro evento), paramos aquí.\nif (!message || message.type !== 'text') {\n  return [];\n}\n\nreturn [{\n  json: {\n    phone_number_id: value.metadata.phone_number_id,\n    from: message.from,\n    message_text: message.text.body,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        288
+      ],
+      "id": "d746ffb9-d9c2-4197-b806-e24cf2f0902c",
+      "name": "Extraer mensaje"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.whatsapp&config->>phone_number_id=eq.{{ $json.phone_number_id }}&select=client_id,config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -32,
+        288
+      ],
+      "id": "74b68236-fb84-49e8-9f6d-eb6160e1706c",
+      "name": "Buscar cliente Whatsapp"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/agent_configs?client_id=eq.{{ $json.client_id }}&select=system_prompt,knowledge_base",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        288
+      ],
+      "id": "e46001eb-6494-4b25-ad4a-c1fb6aba3a87",
+      "name": "Buscar prompt del cliente"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.calendar&active=eq.true&client_id=eq.{{ $('Buscar cliente Whatsapp').item.json.client_id }}&select=config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        288
+      ],
+      "id": "02bb7410-4214-4629-846a-c352e47385f8",
+      "name": "Buscar módulo calendar",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.email&active=eq.true&client_id=eq.{{ $('Buscar cliente Whatsapp').item.json.client_id }}&select=config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        288
+      ],
+      "id": "a1c0de01-0001-4001-8001-000000000001",
+      "name": "Buscar módulo email",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oauth2.googleapis.com/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "={{ $('Buscar módulo calendar').first().json.config?.google_client_id || '' }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $('Buscar módulo calendar').first().json.config?.google_client_secret || '' }}"
+            },
+            {
+              "name": "refresh_token",
+              "value": "={{ $('Buscar módulo calendar').first().json.config?.refresh_token || '' }}"
+            },
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        752,
+        288
+      ],
+      "id": "76663333-75e8-47d9-805f-bf9a3f71ec4d",
+      "name": "Refrescar token Google",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/freeBusy",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Refrescar token Google').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"timeMin\": \"{{ $now.toISO() }}\",\n  \"timeMax\": \"{{ $now.plus({ days: 8 }).toISO() }}\",\n  \"timeZone\": \"Europe/Madrid\",\n  \"items\": [ { \"id\": {{ JSON.stringify($('Buscar módulo calendar').first().json.config?.calendar_id || \"\") }} } ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        944,
+        288
+      ],
+      "id": "a1c0de01-0005-4005-8005-000000000005",
+      "name": "Cargar ocupación",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/conversations?on_conflict=client_id,channel,external_contact_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"client_id\": {{ JSON.stringify($('Buscar cliente Whatsapp').item.json.client_id) }},\n    \"channel\": \"whatsapp\",\n    \"external_contact_id\": {{ JSON.stringify($('Extraer mensaje').item.json.from) }}\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1136,
+        288
+      ],
+      "id": "53781a9f-5bcb-4874-b8a8-82951179373a",
+      "name": "Buscar o crear conversación"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/messages?conversation_id=eq.{{ $('Buscar o crear conversación').item.json.id }}&select=role,content&order=created_at.desc&limit=12",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1328,
+        288
+      ],
+      "id": "a1c0de01-0002-4002-8002-000000000002",
+      "name": "Cargar historial",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Historial: Supabase nos lo devuelve del más nuevo al más viejo,\n// así que lo invertimos para dárselo a la IA en orden cronológico.\nconst previos = $input.all()\n  .map((i) => i.json)\n  .filter((m) => m.role && m.content)\n  .reverse()\n  .map((m) => ({ role: m.role, content: m.content }));\n\n// Ojo: este nodo recibe varios items (uno por mensaje del historial), así que\n// hay que usar .first() y no .item, que aquí no existe.\nconst cfg = $('Buscar prompt del cliente').first().json;\n\n// La IA no sabe qué día de la semana cae cada fecha, así que se equivocaba al\n// resolver \"el viernes\". Le damos los próximos 7 días ya calculados: exactamente\n// 7, para que cada nombre de día aparezca UNA sola vez y no pueda elegir mal.\nconst proximosDias = [];\nfor (let i = 0; i < 7; i++) {\n  const d = $now.plus({ days: i });\n  proximosDias.push(`${d.setLocale('es').toFormat('cccc')} = ${d.toFormat('yyyy-MM-dd')}`);\n}\n\n// --- Horario de atencion del negocio (configurado en el panel) ---------------\n// Los valores por defecto deben coincidir con HORARIO_POR_DEFECTO del panel.\nconst cal = $('Buscar módulo calendar').first().json.config || {};\nconst diasLaborables = (cal.dias_laborables || '1,2,3,4,5')\n  .split(',')\n  .map((s) => parseInt(s, 10))\n  .filter((n) => n >= 1 && n <= 7);\n// duracion = lo que ocupa la cita. paso = cada cuanto puede empezar una.\n// Son cosas distintas: citas de 60 min con paso de 15 permiten reservar a las 10:15.\nconst duracion = parseInt(cal.duracion_min || '60', 10);\nconst paso = parseInt(cal.paso_min || '15', 10);\n\nconst tramos = [];\nif (cal.manana_inicio && cal.manana_fin) tramos.push([cal.manana_inicio, cal.manana_fin]);\nif (cal.tarde_inicio && cal.tarde_fin) tramos.push([cal.tarde_inicio, cal.tarde_fin]);\nif (!tramos.length) tramos.push(['09:00', '14:00'], ['16:00', '20:00']);\n\n// --- Franjas ya ocupadas segun Google Calendar -------------------------------\nconst ocupadas = [];\nconst freeBusy = $('Cargar ocupación').first().json || {};\nfor (const c of Object.values(freeBusy.calendars || {})) {\n  for (const b of c.busy || []) {\n    ocupadas.push([new Date(b.start).getTime(), new Date(b.end).getTime()]);\n  }\n}\nconst solapa = (ini, fin) => ocupadas.some(([a, b]) => ini < b && fin > a);\n\n// --- Huecos realmente libres de los proximos 7 dias --------------------------\nconst ahora = $now.toMillis();\nconst libres = [];\nfor (let i = 0; i < 7; i++) {\n  const dia = $now.plus({ days: i }).startOf('day');\n  if (!diasLaborables.includes(dia.weekday)) continue;\n\n  const horas = [];\n  for (const [desde, hasta] of tramos) {\n    const [h1, m1] = desde.split(':').map(Number);\n    const [h2, m2] = hasta.split(':').map(Number);\n    const cierre = dia.set({ hour: h2, minute: m2 });\n    let t = dia.set({ hour: h1, minute: m1 });\n    while (t.plus({ minutes: duracion }) <= cierre) {\n      const ini = t.toMillis();\n      const fin = t.plus({ minutes: duracion }).toMillis();\n      if (ini > ahora && !solapa(ini, fin)) horas.push(t.toFormat('HH:mm'));\n      t = t.plus({ minutes: paso });\n    }\n  }\n  if (horas.length) {\n    libres.push({\n      fecha: dia.toFormat('yyyy-MM-dd'),\n      dia: dia.setLocale('es').toFormat('cccc'),\n      horas,\n    });\n  }\n}\n\n// Con paso de 15 min salen decenas de horas sueltas por dia, asi que las\n// agrupamos en rangos para que el prompt no se dispare.\nconst aMin = (h) => {\n  const [a, b] = h.split(':').map(Number);\n  return a * 60 + b;\n};\nconst aTexto = (m) =>\n  String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');\n\nfunction rangos(horas) {\n  const out = [];\n  let ini = null;\n  let prev = null;\n  for (const h of horas) {\n    const m = aMin(h);\n    if (prev !== null && m === prev + paso) {\n      prev = m;\n      continue;\n    }\n    if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n    ini = m;\n    prev = m;\n  }\n  if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n  return out.join(', ');\n}\n\nconst calendario = [\n  '=== CALENDARIO REAL (esta es la unica fuente valida de fechas) ===',\n  `Hoy es ${$now.setLocale('es').toFormat('cccc')} ${$now.toFormat('yyyy-MM-dd')} (Europe/Madrid).`,\n  proximosDias.join('\\n'),\n  'Reglas de fechas:',\n  '- Si el usuario nombra un dia de la semana (\"el viernes\", \"este viernes\"), usa EXACTAMENTE la fecha de esta lista.',\n  '- Si nombra una fecha concreta (\"el 31 de julio\"), respetala tal cual y NO la corrijas.',\n  '- NUNCA digas a que dia de la semana corresponde una fecha si no aparece en esta lista.',\n  '- Los mensajes anteriores de la conversacion pueden contener fechas equivocadas: ignoralas y usa solo esta lista.',\n  '- Solo si dice \"la semana que viene\" o \"el viernes que viene\" suma 7 dias a la fecha de la lista.',\n  '',\n  `=== HUECOS LIBRES (citas de ${duracion} min, pueden empezar cada ${paso} min) ===`,\n  libres.length\n    ? libres.map((d) => `${d.dia} ${d.fecha}: ${rangos(d.horas)}`).join('\\n')\n    : 'No queda ningun hueco libre en los proximos 7 dias.',\n  'Reglas de disponibilidad:',\n  `- Los rangos son horas de INICIO posibles: dentro de \"09:00-11:00\" vale cualquier hora en saltos de ${paso} minutos (09:00, ${aTexto(9 * 60 + paso)}, ...).`,\n  '- Si el usuario PREGUNTA que huecos hay, respondele usando esos rangos, sin inventarte ninguno.',\n  '- Si el usuario PIDE una hora concreta, NO juzgues si esta libre: limitate a rellenar date y time. De comprobarlo se encarga el sistema.',\n].join('\\n');\n\nconst instrucciones = [\n  'Tu tarea es EXTRAER datos y conversar. La disponibilidad la decide el sistema, nunca tu.',\n  '',\n  'Responde SIEMPRE en JSON con esta forma exacta:',\n  '{\"reply\": \"tu respuesta al usuario\", \"date\": \"YYYY-MM-DD\" o null, \"time\": \"HH:mm\" o null, \"email\": \"el email del usuario\" o null}',\n  '',\n  'Para reservar una cita hacen falta TRES datos: fecha, hora y email de contacto.',\n  '- date, time y email son los que el usuario haya dicho en CUALQUIER momento de la conversacion, aunque fuera en un mensaje anterior. Pon null solo si de verdad no lo ha dicho nunca.',\n  '- Rellena SIEMPRE date y time si el usuario ha mencionado un dia y una hora, AUNQUE creas que esa hora podria estar ocupada.',\n  '- NUNCA digas que una hora no esta disponible, y NUNCA ofrezcas horas alternativas por tu cuenta: de eso se encarga el sistema despues de ti.',\n  '- En reply: si falta alguno de los tres datos, pide UNICAMENTE el que falte. Si ya tienes los tres, escribe una confirmacion breve.',\n  '- No vuelvas a preguntar un dato que el usuario ya te dio antes.',\n].join('\\n');\n\nconst messages = [{ role: 'system', content: cfg.system_prompt || '' }];\n\nif (cfg.knowledge_base) {\n  messages.push({\n    role: 'system',\n    content: 'Base de conocimiento del negocio:\\n' + cfg.knowledge_base,\n  });\n}\n\nmessages.push({ role: 'system', content: instrucciones });\nmessages.push(...previos);\n// El calendario va DESPUES del historial, pegado al mensaje actual. Si queda\n// enterrado al principio, el modelo se guia por las fechas (a veces erroneas)\n// que el mismo dijo en mensajes anteriores.\nmessages.push({ role: 'system', content: calendario });\nmessages.push({ role: 'user', content: $('Extraer mensaje').first().json.message_text });\n\n// \"libres\" viaja también al nodo Comprobar disponibilidad, para no duplicar\n// allí el cálculo de huecos.\nreturn [{ json: { messages, libres, duracion } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        288
+      ],
+      "id": "a1c0de01-0003-4003-8003-000000000003",
+      "name": "Preparar contexto"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": {{ JSON.stringify($json.messages) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1712,
+        288
+      ],
+      "id": "c81725b5-543b-4eaf-9245-d341101a519f",
+      "name": "Llamar a OpenAI"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($json.choices[0].message.content);\nreturn [{ json: parsed }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        288
+      ],
+      "id": "5c44a541-2cf7-4c1c-8e62-85d0e5e30937",
+      "name": "Parsear respuesta IA"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ia = $input.first().json;\nconst ctx = $('Preparar contexto').first().json;\nconst libres = ctx.libres || [];\n\nconst aMin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };\nconst dosCifras = (n) => String(n).padStart(2, '0');\n\n// La hora que el usuario ha escrito en ESTE mensaje manda sobre la que\n// extrae la IA: se la ha visto inventarse un 'no disponible' con time=null, y\n// tambien coger la primera alternativa de su propia lista (le pides 12:30 y\n// reserva 12:15). Lo que el usuario escribe es el dato fiable.\nfunction horaDelTexto(txt) {\n  const t = String(txt || '').toLowerCase();\n  // Se evita el punto como separador suelto: '4.08' es una fecha, no las 04:08.\n  const patrones = [\n    /\\blas\\s+(\\d{1,2})(?:\\s*[:.,'’h]\\s*(\\d{2}))?/,\n    /\\b(\\d{1,2})\\s*[:'’]\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*[.,]\\s*(\\d{2})\\s*h\\b/,\n    /\\b(\\d{1,2})\\s*h\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*h\\b/,\n  ];\n  for (const p of patrones) {\n    const m = t.match(p);\n    if (!m) continue;\n    const h = Number(m[1]);\n    const min = m[2] === undefined ? 0 : Number(m[2]);\n    if (h < 24 && min < 60) return dosCifras(h) + ':' + dosCifras(min);\n  }\n  return null;\n}\n\nconst hora = horaDelTexto($('Extraer mensaje').first().json.message_text) || ia.time;\n\n// 1. Sin fecha y hora todavia no hay nada que comprobar: sirve el reply de la\n//    IA, que estara pidiendo lo que falte.\nif (!ia.date || !hora) {\n  return [{ json: { ...ia, time: hora, disponible: false } }];\n}\n\nconst dia = libres.find((d) => d.fecha === ia.date);\nconst libre = Boolean(dia && dia.horas.includes(hora));\nia.time = hora;\n\n// 2. Hueco libre y email ya conocido: confirmamos. El texto lo ponemos\n//    nosotros porque la IA a veces niega horas que si estan libres.\nif (libre && ia.email) {\n  const reply =\n    '¡Listo! Tu cita queda confirmada para el ' + dia.dia + ' ' + dia.fecha +\n    ' a las ' + ia.time + '. Te envío la confirmación a ' + ia.email + '.';\n  return [{ json: { ...ia, disponible: true, reply } }];\n}\n\n// 3. Hueco libre pero falta el email: lo pedimos AHORA, ya sabiendo que la\n//    cita es viable. Nunca al reves: pedir datos para una hora ocupada.\nif (libre) {\n  const reply =\n    'Perfecto, el ' + dia.dia + ' ' + dia.fecha + ' a las ' + ia.time +\n    ' está libre. ¿Me dices tu email para enviarte la confirmación?';\n  return [{ json: { ...ia, disponible: false, reply } }];\n}\n\n// 4. Ocupado o fuera de horario: lo decimos ya, sin pedir mas datos.\n//    Las alternativas son las mas CERCANAS a la hora pedida (antes y despues),\n//    no las primeras del dia: si pides las 12:00 no te sirve que te ofrezcan las 9.\n//    Damos siempre una opcion ANTES (la ultima que cabe) y varias DESPUES,\n//    que es como razona quien pide hora: 'un poco antes o un poco despues'.\nconst pedido = aMin(hora);\nconst cercanas = (horas, nDespues) => {\n  const antes = horas.filter((h) => aMin(h) < pedido).slice(-1);\n  const despues = horas.filter((h) => aMin(h) > pedido).slice(0, nDespues);\n  return antes.concat(despues);\n};\n\nconst alternativas = [];\nif (dia && dia.horas.length) {\n  alternativas.push(dia.dia + ' ' + dia.fecha + ': ' + cercanas(dia.horas, 4).join(', '));\n}\nfor (const d of libres) {\n  if (alternativas.length >= 3) break;\n  if (d.fecha === ia.date || !d.horas.length) continue;\n  alternativas.push(d.dia + ' ' + d.fecha + ': ' + cercanas(d.horas, 3).join(', '));\n}\n\nconst reply = alternativas.length\n  ? 'Lo siento, las ' + ia.time + ' del ' + ia.date + ' no están disponibles. Tengo libre:\\n' +\n    alternativas.join('\\n') + '\\n¿Cuál te viene mejor?'\n  : 'Lo siento, ahora mismo no me queda ningún hueco libre en los próximos días.';\n\nreturn [{ json: { ...ia, disponible: false, reply } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        288
+      ],
+      "id": "a1c0de01-0006-4006-8006-000000000006",
+      "name": "Comprobar disponibilidad"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1e2966f1-7127-4749-beb8-c89deb928d84",
+              "leftValue": "={{ $json.disponible }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "ed700131-4f69-4aac-9183-b78a09a423cf",
+              "leftValue": "={{ $('Buscar módulo calendar').first().json.config?.calendar_id || \"\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b7f21c44-0e55-4a1b-9d3c-2a6f8e1b4d90",
+              "leftValue": "={{ $json.email || \"\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2288,
+        288
+      ],
+      "id": "35e1fdad-fa16-4735-9ca6-ba201a1df45e",
+      "name": "¿Cita confirmable?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($('Buscar módulo calendar').first().json.config.calendar_id) }}/events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Refrescar token Google').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"summary\": {{ JSON.stringify(\"Cita - \" + $('Extraer mensaje').item.json.from) }},\n  \"description\": {{ JSON.stringify(\"Contacto Whatsapp: \" + $('Extraer mensaje').item.json.from + \"\\nEmail: \" + ($('Comprobar disponibilidad').item.json.email || \"no facilitado\")) }},\n  \"start\": {\n    \"dateTime\": \"{{ $('Comprobar disponibilidad').item.json.date }}T{{ $('Comprobar disponibilidad').item.json.time }}:00\",\n    \"timeZone\": \"Europe/Madrid\"\n  },\n  \"end\": {\n    \"dateTime\": \"{{ DateTime.fromISO($('Comprobar disponibilidad').item.json.date + 'T' + $('Comprobar disponibilidad').item.json.time).plus({ minutes: $('Preparar contexto').first().json.duracion }).toFormat(`yyyy-MM-dd'T'HH:mm:ss`) }}\",\n    \"timeZone\": \"Europe/Madrid\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2496,
+        160
+      ],
+      "id": "e07a463e-b061-4f8d-b1ca-e23d16ecb3bc",
+      "name": "Crear evento"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Buscar módulo email').item.json.config?.resend_api_key || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from\": {{ JSON.stringify($('Buscar módulo email').item.json.config?.from_email || \"onboarding@resend.dev\") }},\n  \"to\": [{{ JSON.stringify($('Comprobar disponibilidad').item.json.email) }}],\n  \"subject\": \"Confirmación de tu cita\",\n  \"html\": {{ JSON.stringify(\"<p>¡Hola!</p><p>Tu cita ha quedado confirmada para el <strong>\" + $('Comprobar disponibilidad').item.json.date + \"</strong> a las <strong>\" + $('Comprobar disponibilidad').item.json.time + \"</strong>.</p><p>Si necesitas cambiarla, escríbenos por WhatsApp.</p>\") }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2688,
+        160
+      ],
+      "id": "a1c0de01-0004-4004-8004-000000000004",
+      "name": "Enviar email confirmación",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Buscar cliente Whatsapp').item.json.config.phone_number_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Buscar cliente Whatsapp').item.json.config.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": {{ JSON.stringify($('Extraer mensaje').item.json.from) }},\n  \"type\": \"text\",\n  \"text\": { \"body\": {{ JSON.stringify($('Comprobar disponibilidad').item.json.reply) }} }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2896,
+        304
+      ],
+      "id": "e956314e-3cad-4061-a3af-7841c9a18385",
+      "name": "Responder por Whatsapp"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=[\n  {\n    \"conversation_id\": {{ JSON.stringify($('Buscar o crear conversación').item.json.id) }},\n    \"role\": \"user\",\n    \"content\": {{ JSON.stringify($('Extraer mensaje').item.json.message_text) }},\n    \"created_at\": \"{{ $now.toISO() }}\"\n  },\n  {\n    \"conversation_id\": {{ JSON.stringify($('Buscar o crear conversación').item.json.id) }},\n    \"role\": \"assistant\",\n    \"content\": {{ JSON.stringify($('Comprobar disponibilidad').item.json.reply) }},\n    \"created_at\": \"{{ $now.plus({ seconds: 1 }).toISO() }}\"\n  }\n]",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3088,
+        304
+      ],
+      "id": "72253213-bfda-4c9c-97d8-7d0fad6d6d0d",
+      "name": "Guardar mensajes"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer mensaje": {
+      "main": [
+        [
+          {
+            "node": "Buscar cliente Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar cliente Whatsapp": {
+      "main": [
+        [
+          {
+            "node": "Buscar prompt del cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar prompt del cliente": {
+      "main": [
+        [
+          {
+            "node": "Buscar módulo calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar módulo calendar": {
+      "main": [
+        [
+          {
+            "node": "Buscar módulo email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar módulo email": {
+      "main": [
+        [
+          {
+            "node": "Refrescar token Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refrescar token Google": {
+      "main": [
+        [
+          {
+            "node": "Cargar ocupación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar ocupación": {
+      "main": [
+        [
+          {
+            "node": "Buscar o crear conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar o crear conversación": {
+      "main": [
+        [
+          {
+            "node": "Cargar historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar historial": {
+      "main": [
+        [
+          {
+            "node": "Preparar contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar contexto": {
+      "main": [
+        [
+          {
+            "node": "Llamar a OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Llamar a OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Parsear respuesta IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear respuesta IA": {
+      "main": [
+        [
+          {
+            "node": "Comprobar disponibilidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar disponibilidad": {
+      "main": [
+        [
+          {
+            "node": "¿Cita confirmable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Cita confirmable?": {
+      "main": [
+        [
+          {
+            "node": "Crear evento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder por Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear evento": {
+      "main": [
+        [
+          {
+            "node": "Enviar email confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar email confirmación": {
+      "main": [
+        [
+          {
+            "node": "Responder por Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder por Whatsapp": {
+      "main": [
+        [
+          {
+            "node": "Guardar mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
