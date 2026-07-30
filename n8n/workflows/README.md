@@ -10,6 +10,7 @@ el panel de la agencia escribe por cliente.
 | --- | --- |
 | `whatsapp-bot.json` | Versión actual: WhatsApp + IA con memoria, disponibilidad real de agenda, Google Calendar y confirmación por email (Resend). |
 | `agenda-api.json` | API interna de agenda: consultar disponibilidad y reservar. La comparten el bot de WhatsApp y el agente de voz. |
+| `voz-vapi.json` | Adaptador entre las tool calls de Vapi (agente de voz) y la Agenda API. |
 | `whatsapp-bot-v1-calendar.json` | Copia de seguridad de la primera versión (sin memoria, email ni disponibilidad). |
 
 ## Agenda API
@@ -54,6 +55,45 @@ La lógica de cálculo de huecos vive además en un único fichero
 código en los nodos que lo necesitan. Es a propósito: cuando esa lógica estaba
 duplicada, cada corrección había que hacerla dos veces y era cuestión de tiempo
 que divergieran.
+
+## Canal de voz (Vapi)
+
+`voz-vapi.json` traduce entre Vapi y la Agenda API. Toda la particularidad de
+Vapi se queda aquí para que `agenda-api.json` no sepa de qué canal viene la
+petición.
+
+```
+POST /webhook/voz-vapi
+```
+
+Acepta los dos formatos que manda Vapi según el tipo de tool: el JSON plano del
+tipo *API Request* y el sobre `{ message: { toolCallList: [...] } }` del custom
+tool clásico. Y devuelve las dos formas a la vez (`mensaje` plano + `results`
+con el `toolCallId`), porque sobra una u otra pero no estorban.
+
+**`ok` no significa "sí".** Significa "la herramienta ha funcionado". Que una
+hora esté ocupada es una consulta correcta con un *no* por respuesta, y viaja
+como `ok: true` con `hay_hueco: false`. Cuando esto se devolvía como `ok: false`,
+Vapi lo leía como un fallo de la tool y el agente se ponía a improvisar en vez
+de leer el mensaje que le habíamos redactado.
+
+| campo | qué dice |
+| --- | --- |
+| `ok` | La herramienta ha respondido. `false` solo si el cliente no existe o la Agenda API no contesta. |
+| `mensaje` | Texto ya redactado, listo para leer en voz alta. |
+| `hay_hueco` | Si la hora pedida está libre, o si hay huecos en la consulta de disponibilidad. |
+| `reservada` | Si la cita se ha creado. |
+
+Multi-tenancy: el cliente se identifica por el `assistant_id` de Vapi
+(`client_modules.config.vapi_assistant_id`), de modo que las mismas tools valen
+para todos los clientes. Como en las pruebas por web Vapi **no interpolaba** las
+plantillas Liquid (`{{ assistant.id }}` llegaba literal), el nodo `Leer tool
+call` descarta cualquier valor que contenga `{{` y se admite además un
+`client_id` explícito como *static body field*.
+
+El email es opcional en voz: el speech-to-text destroza las direcciones incluso
+deletreadas. La cita se crea igual y queda pendiente decidir el canal de
+confirmación (SMS o WhatsApp).
 
 ## Cómo agenda el bot
 
