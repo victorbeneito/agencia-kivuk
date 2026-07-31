@@ -31,7 +31,7 @@ export type ModuleName =
   | "voice"
   | "calendar"
   | "email"
-  | "instagram";
+  | "social";
 
 export async function toggleModuleActive(
   clientId: string,
@@ -173,6 +173,64 @@ export async function updateVoiceConfig(formData: FormData) {
   if (error) {
     throw new Error(
       `No se pudo guardar la configuración del agente de voz: ${error.message}`
+    );
+  }
+
+  revalidatePath(`/dashboard/${clientId}`);
+}
+
+/**
+ * Catálogo de la tienda del cliente, materia prima del contenido de redes.
+ * Se guarda la URL del sitemap y n8n se encarga del resto: reconoce las fichas
+ * porque se declaran como Product de schema.org, así que vale para PrestaShop,
+ * WooCommerce o Shopify sin tocar nada.
+ *
+ * `catalog_url_pattern` es opcional y por defecto va vacío a propósito. Filtrar
+ * por URL parece buena idea hasta que descubres que la tienda mezcla fichas con
+ * ID numérico y fichas con slug, y el patrón se deja productos fuera sin avisar.
+ */
+export async function updateSocialConfig(formData: FormData) {
+  const clientId = formData.get("client_id") as string;
+
+  const error = await mergeModuleConfig(clientId, "social", {
+    catalog_sitemap_url:
+      (formData.get("catalog_sitemap_url") as string)?.trim() ?? "",
+    catalog_url_pattern:
+      (formData.get("catalog_url_pattern") as string)?.trim() ?? "",
+    ig_user_id: (formData.get("ig_user_id") as string)?.trim() ?? "",
+    ig_access_token: (formData.get("ig_access_token") as string)?.trim() ?? "",
+  });
+
+  if (error) {
+    throw new Error(
+      `No se pudo guardar la configuración de redes sociales: ${error.message}`
+    );
+  }
+
+  revalidatePath(`/dashboard/${clientId}`);
+}
+
+/**
+ * Identidad de la marca en las piezas generadas: cómo suenan los textos y cómo
+ * se ven. El tono va tal cual al prompt; los colores, a la plantilla del render.
+ */
+export async function updateBrandConfig(formData: FormData) {
+  const clientId = formData.get("client_id") as string;
+
+  const error = await mergeModuleConfig(clientId, "social", {
+    ig_handle: (formData.get("ig_handle") as string)?.trim() ?? "",
+    web: (formData.get("web") as string)?.trim() ?? "",
+    tono: (formData.get("tono") as string)?.trim() ?? "",
+    color_primario: (formData.get("color_primario") as string)?.trim() ?? "",
+    color_secundario: (formData.get("color_secundario") as string)?.trim() ?? "",
+    producto_estrella:
+      (formData.get("producto_estrella") as string)?.trim() ?? "",
+    peso_estrella: (formData.get("peso_estrella") as string)?.trim() ?? "",
+  });
+
+  if (error) {
+    throw new Error(
+      `No se pudo guardar la configuración de redes sociales: ${error.message}`
     );
   }
 

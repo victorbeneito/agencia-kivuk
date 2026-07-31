@@ -1,0 +1,14 @@
+{
+  "name": "kivuk-render",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Servicio de render de piezas para redes sociales (posts, stories y reels)",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "sharp": "^0.33.5"
+  }
+}

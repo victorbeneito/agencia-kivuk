@@ -1,0 +1,509 @@
+{
+  "name": "Catálogo - Ingesta",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "catalogo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -620,
+        300
+      ],
+      "id": "ct000001-0001-4001-8001-000000000001",
+      "name": "Entrada",
+      "webhookId": "d9a3e4f5-0001-4001-8001-c00000000001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json || {};\nconst clientId = String(body.client_id || '').trim();\nconst esUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId);\n\nreturn [{\n  json: {\n    // Sin uuid válido no seguimos: Supabase respondería con un error feo de\n    // \"invalid input syntax for type uuid\".\n    client_id: esUuid ? clientId : '',\n    // Tope de fichas por pasada. Sirve para probar con 10 productos en vez de\n    // recorrer el catálogo entero mientras se ajusta algo.\n    limite: Number(body.limite) > 0 ? Number(body.limite) : 0,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        300
+      ],
+      "id": "ct000002-0002-4002-8002-000000000002",
+      "name": "Leer petición"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?client_id=eq.{{ $json.client_id }}&module=eq.social&select=client_id,config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -220,
+        300
+      ],
+      "id": "ct000003-0003-4003-8003-000000000003",
+      "name": "Buscar módulo redes",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pet = $('Leer petición').first().json;\nconst fila = $input.first().json;\nconst config = (fila && fila.config) || {};\n\nreturn [{\n  json: {\n    ...pet,\n    sitemap_url: String(config.catalog_sitemap_url || '').trim(),\n    // Opcional: si la tienda tiene miles de URLs y solo unas cuantas son\n    // fichas, este patrón evita descargarlas todas para descartarlas después.\n    patron_url: String(config.catalog_url_pattern || '').trim(),\n    listo: Boolean(fila && fila.client_id && config.catalog_sitemap_url),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        300
+      ],
+      "id": "ct000004-0004-4004-8004-000000000004",
+      "name": "Leer configuración"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-listo",
+              "leftValue": "={{ $json.listo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        180,
+        300
+      ],
+      "id": "ct000005-0005-4005-8005-000000000005",
+      "name": "¿Configurado?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true,\n  \"mensaje\": \"Ingesta de catálogo iniciada.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        380,
+        180
+      ],
+      "id": "ct000006-0006-4006-8006-000000000006",
+      "name": "Aceptado"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": false,\n  \"mensaje\": \"Este cliente no tiene el módulo de redes sociales activo o le falta catalog_sitemap_url en la configuración.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        380,
+        440
+      ],
+      "id": "ct000007-0007-4007-8007-000000000007",
+      "name": "Sin configurar"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Leer configuración').first().json.sitemap_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        580,
+        180
+      ],
+      "id": "ct000008-0008-4008-8008-000000000008",
+      "name": "Descargar sitemap"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Leer configuración').first().json;\nconst xml = String($input.first().json.data || $input.first().json.body || '');\n\nconst urls = [...xml.matchAll(/<loc>\\s*([^<\\s]+)\\s*<\\/loc>/g)].map((m) => m[1]);\n\nlet lista = [...new Set(urls)];\nif (cfg.patron_url) {\n  let re = null;\n  try { re = new RegExp(cfg.patron_url); } catch (e) { re = null; }\n  if (re) lista = lista.filter((u) => re.test(u));\n}\nif (cfg.limite) lista = lista.slice(0, cfg.limite);\n\n// Una URL por item: a partir de aquí n8n se encarga de recorrerlas por lotes.\nreturn lista.map((url) => ({ json: { url } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        180
+      ],
+      "id": "ct000009-0009-4009-8009-000000000009",
+      "name": "Extraer URLs"
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        980,
+        180
+      ],
+      "id": "ct000010-0010-4010-8010-000000000010",
+      "name": "Lotes"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1180,
+        280
+      ],
+      "id": "ct000011-0011-4011-8011-000000000011",
+      "name": "Descargar ficha",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const html = String($json.data || $json.body || '');\nconst url = $('Lotes').item.json.url;\nconst clientId = $('Leer configuración').first().json.client_id;\n\n// Buscamos el bloque JSON-LD que se declara como Product. Es la parte que hace\n// esto reutilizable: no hay selectores de HTML de ninguna tienda concreta.\nlet p = null;\nfor (const m of html.matchAll(/<script[^>]+application\\/ld\\+json[^>]*>([\\s\\S]*?)<\\/script>/gi)) {\n  let j;\n  try { j = JSON.parse(m[1].trim()); } catch (e) { continue; }\n  const candidatos = Array.isArray(j) ? j : [j, ...(j['@graph'] || [])];\n  for (const c of candidatos) {\n    if (c && c['@type'] === 'Product') { p = c; break; }\n  }\n  if (p) break;\n}\n\n// Portada, listados, páginas legales... no son producto y se descartan aquí.\nif (!p || !p.name) return { json: { descartado: true, url } };\n\nconst oferta = (Array.isArray(p.offers) ? p.offers[0] : p.offers) || {};\n\n// Resolvemos la ruta relativa a mano en vez de con new URL(): la sandbox del\n// nodo Code no expone esa clase, y como estaba dentro de un try/catch el fallo\n// no se veía por ningún lado, solo aparecían las imágenes vacías en Supabase.\nconst raiz = (url.match(/^(https?:\\/\\/[^/]+)/i) || ['', ''])[1];\nconst absoluta = (u) => {\n  const s = String(u || '').trim();\n  if (!s) return '';\n  if (/^https?:\\/\\//i.test(s)) return s;\n  if (s.startsWith('//')) return 'https:' + s;\n  if (s.startsWith('/')) return raiz + s;\n  return raiz + '/' + s;\n};\n\nlet imagen = absoluta(Array.isArray(p.image) ? p.image[0] : p.image);\n// PrestaShop sirve la misma foto en varios tamaños y en el JSON-LD pone el\n// thumbnail. Para Instagram no vale: pedimos la grande.\nimagen = imagen.replace(/-(home|medium|small|cart)_default\\.(jpg|jpeg|png|webp)$/i, '-large_default.$2');\n\nconst marca = (p.brand && (p.brand.name || p.brand)) || '';\nconst precio = Number(String(oferta.price || '').replace(',', '.'));\n\nreturn {\n  json: {\n    descartado: false,\n    client_id: clientId,\n    url,\n    external_id: String(p.sku || p.mpn || p.productID || ''),\n    name: String(p.name).trim(),\n    description: String(p.description || '').trim().slice(0, 2000),\n    price: Number.isFinite(precio) && precio > 0 ? precio : null,\n    currency: String(oferta.priceCurrency || 'EUR'),\n    image_url: imagen,\n    category: String(p.category || '') || null,\n    tags: marca ? [String(marca)] : [],\n    // Solo marcamos como no disponible si lo dice explícitamente; una tienda\n    // que no informa de stock no debería quedarse con todo a false.\n    available: !/OutOfStock|SoldOut|Discontinued|BackOrder/i.test(String(oferta.availability || '')),\n    last_seen_at: new Date().toISOString(),\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        280
+      ],
+      "id": "ct000012-0012-4012-8012-000000000012",
+      "name": "Extraer producto"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-producto",
+              "leftValue": "={{ $json.descartado }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        280
+      ],
+      "id": "ct000013-0013-4013-8013-000000000013",
+      "name": "¿Es un producto?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/catalog_products?on_conflict=client_id,url",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"client_id\": {{ JSON.stringify($json.client_id) }},\n  \"url\": {{ JSON.stringify($json.url) }},\n  \"external_id\": {{ JSON.stringify($json.external_id) }},\n  \"name\": {{ JSON.stringify($json.name) }},\n  \"description\": {{ JSON.stringify($json.description) }},\n  \"price\": {{ $json.price === null ? 'null' : $json.price }},\n  \"currency\": {{ JSON.stringify($json.currency) }},\n  \"image_url\": {{ JSON.stringify($json.image_url) }},\n  \"category\": {{ JSON.stringify($json.category) }},\n  \"tags\": {{ JSON.stringify($json.tags) }},\n  \"available\": {{ $json.available }},\n  \"last_seen_at\": {{ JSON.stringify($json.last_seen_at) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1780,
+        280
+      ],
+      "id": "ct000014-0014-4014-8014-000000000014",
+      "name": "Guardar producto",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        280
+      ],
+      "id": "ct000015-0015-4015-8015-000000000015",
+      "name": "Pausa",
+      "webhookId": "d9a3e4f5-0015-4015-8015-c00000000015"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map((i) => i.json);\nconst guardados = items.filter((x) => !x.descartado);\n\nreturn [{\n  json: {\n    ok: true,\n    productos_guardados: guardados.length,\n    paginas_descartadas: items.length - guardados.length,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        80
+      ],
+      "id": "ct000016-0016-4016-8016-000000000016",
+      "name": "Resumen"
+    }
+  ],
+  "connections": {
+    "Entrada": {
+      "main": [
+        [
+          {
+            "node": "Leer petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer petición": {
+      "main": [
+        [
+          {
+            "node": "Buscar módulo redes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar módulo redes": {
+      "main": [
+        [
+          {
+            "node": "Leer configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer configuración": {
+      "main": [
+        [
+          {
+            "node": "¿Configurado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Configurado?": {
+      "main": [
+        [
+          {
+            "node": "Aceptado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sin configurar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aceptado": {
+      "main": [
+        [
+          {
+            "node": "Descargar sitemap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar sitemap": {
+      "main": [
+        [
+          {
+            "node": "Extraer URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer URLs": {
+      "main": [
+        [
+          {
+            "node": "Lotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lotes": {
+      "main": [
+        [
+          {
+            "node": "Resumen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Descargar ficha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar ficha": {
+      "main": [
+        [
+          {
+            "node": "Extraer producto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer producto": {
+      "main": [
+        [
+          {
+            "node": "¿Es un producto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es un producto?": {
+      "main": [
+        [
+          {
+            "node": "Guardar producto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar producto": {
+      "main": [
+        [
+          {
+            "node": "Pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausa": {
+      "main": [
+        [
+          {
+            "node": "Lotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

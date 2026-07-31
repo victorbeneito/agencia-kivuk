@@ -1,0 +1,518 @@
+{
+  "name": "Contenido - Generar",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contenido",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -640,
+        300
+      ],
+      "id": "cn000001-0001-4001-8001-000000000001",
+      "name": "Entrada",
+      "webhookId": "e1b2c3d4-0001-4001-8001-d00000000001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json || {};\nconst clientId = String(body.client_id || '').trim();\nconst esUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId);\n\nconst cantidad = Math.min(Math.max(Number(body.cantidad) || 9, 1), 20);\nconst formato = ['post', 'story', 'cuadrado'].includes(body.formato) ? body.formato : 'post';\n\nreturn [{\n  json: {\n    client_id: esUuid ? clientId : '',\n    cantidad,\n    formato,\n    // Tema opcional para acotar el lote: \"infantil\", \"cocina\", \"navidad\"...\n    tema: String(body.tema || '').trim(),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -440,
+        300
+      ],
+      "id": "cn000002-0002-4002-8002-000000000002",
+      "name": "Leer petición"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?client_id=eq.{{ $json.client_id }}&module=eq.social&select=client_id,config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -240,
+        300
+      ],
+      "id": "cn000003-0003-4003-8003-000000000003",
+      "name": "Buscar módulo redes",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pet = $('Leer petición').first().json;\nconst fila = $input.first().json;\nconst config = (fila && fila.config) || {};\n\nconst handle = String(config.ig_handle || '').trim();\nconst web = String(config.web || '').trim();\n\nreturn [{\n  json: {\n    ...pet,\n    tono: String(config.tono || '').trim() ||\n      'cercano y natural, tratando de tú, sin lenguaje publicitario ni exageraciones',\n    handle,\n    // Pie de la pieza: lo que se ve en pequeño dentro de la imagen.\n    pie: [handle, web].filter(Boolean).join(' · '),\n    marca: {\n      primario: String(config.color_primario || '').trim() || undefined,\n      secundario: String(config.color_secundario || '').trim() || undefined,\n    },\n    // Producto estrella: la palabra que lo identifica en el nombre y cuánto\n    // debe ocupar de cada lote. Sin configurar, el lote sale repartido entre\n    // familias sin favorecer a ninguna.\n    producto_estrella: String(config.producto_estrella || '').trim(),\n    peso_estrella: Math.min(100, Math.max(0, Number(config.peso_estrella) || 60)),\n    listo: Boolean(fila && fila.client_id),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        300
+      ],
+      "id": "cn000004-0004-4004-8004-000000000004",
+      "name": "Leer configuración"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-listo",
+              "leftValue": "={{ $json.listo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        300
+      ],
+      "id": "cn000005-0005-4005-8005-000000000005",
+      "name": "¿Configurado?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": false,\n  \"mensaje\": \"Este cliente no tiene el módulo de redes sociales activo.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        360,
+        460
+      ],
+      "id": "cn000006-0006-4006-8006-000000000006",
+      "name": "Sin configurar"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/catalog_products?client_id=eq.{{ $json.client_id }}&available=eq.true&select=id,name,price,currency,image_url,url,category&limit=2000",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        360,
+        200
+      ],
+      "id": "cn000007-0007-4007-8007-000000000007",
+      "name": "Cargar catálogo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Palabras que aparecen en medio catálogo y no distinguen un producto de otro.\nconst VACIAS = new Set([\n  'con', 'para', 'por', 'del', 'las', 'los', 'una', 'uno', 'sin',\n  'tejido', 'basic', 'combi', 'juego', 'liso', 'lisos', 'lisa', 'lisas',\n  'hilos', 'digital', 'estampado', 'enrollable',\n]);\n\nconst cfg = $('Leer configuración').first().json;\nconst filas = $input.all().map((i) => i.json).filter((p) => p && p.name);\n\n// Sin foto no hay pieza que valga: se descartan antes de gastar tokens.\nlet candidatos = filas.filter((p) => p.image_url && p.available !== false);\n\nif (cfg.tema) {\n  const t = cfg.tema.toLowerCase();\n  const filtrados = candidatos.filter((p) =>\n    (p.name + ' ' + (p.category || '')).toLowerCase().includes(t)\n  );\n  // Si el tema no casa con nada, mejor un lote variado que un lote vacío.\n  if (filtrados.length >= cfg.cantidad) candidatos = filtrados;\n}\n\nif (!candidatos.length) {\n  return [{ json: { error: 'El catálogo no tiene productos con foto.', productos: [] } }];\n}\n\n// Barajado de Fisher-Yates. Hace falta porque el catálogo viene ordenado por\n// fecha de alta y los productos contiguos suelen ser variaciones del mismo\n// modelo: sin barajar salen nueve piezas casi idénticas.\nconst baraja = candidatos.slice();\nfor (let i = baraja.length - 1; i > 0; i--) {\n  const j = Math.floor(Math.random() * (i + 1));\n  [baraja[i], baraja[j]] = [baraja[j], baraja[i]];\n}\n\nconst palabras = (nombre) =>\n  String(nombre)\n    .toLowerCase()\n    .replace(/[^\\p{L}\\p{N}\\s]/gu, ' ')\n    .split(/\\s+/)\n    // Fuera referencias (llevan cifras) y palabras que no distinguen nada.\n    .filter((w) => w.length > 2 && !/\\d/.test(w) && !VACIAS.has(w));\n\n// Reparte una lista en grupos y va cogiendo uno de cada grupo por vuelta, de\n// modo que salgan cosas distintas aunque un grupo tenga cientos de productos.\nconst repartir = (lista, cuantos, clavePara) => {\n  const grupos = new Map();\n  for (const p of lista) {\n    const k = clavePara(p);\n    if (!grupos.has(k)) grupos.set(k, []);\n    grupos.get(k).push(p);\n  }\n  const orden = [...grupos.values()].sort((a, b) => b.length - a.length);\n  const salida = [];\n  for (let vuelta = 0; salida.length < cuantos && vuelta < 200; vuelta++) {\n    let hubo = false;\n    for (const g of orden) {\n      if (salida.length >= cuantos) break;\n      if (g[vuelta]) { salida.push(g[vuelta]); hubo = true; }\n    }\n    if (!hubo) break;\n  }\n  return salida;\n};\n\n// === Qué distingue a un producto de sus hermanos ===\n// Dentro de una familia enorme (\"estor enrollable estampado digital ...\") lo\n// que cambia es el tema: zen, paisajes, infantil, ciudades. Se localiza sola,\n// sin listas escritas a mano: es la palabra menos frecuente del nombre que aun\n// así se repite lo bastante como para ser un tema y no ruido.\nconst temaDe = (lista) => {\n  const frec = new Map();\n  const cache = new Map();\n  for (const p of lista) {\n    const ws = [...new Set(palabras(p.name))];\n    cache.set(p, ws);\n    for (const w of ws) frec.set(w, (frec.get(w) || 0) + 1);\n  }\n  return (p) => {\n    let mejor = '';\n    let mejorFrec = Infinity;\n    for (const w of cache.get(p) || []) {\n      const f = frec.get(w);\n      // El mínimo de 3 evita quedarse con una errata o una palabra suelta.\n      if (f >= 3 && f < mejorFrec) { mejorFrec = f; mejor = w; }\n    }\n    return mejor || 'otros';\n  };\n};\n\n// === Reparto ===\n// Decide el código, no la IA. Cuando se le pasaba una muestra y se le pedía\n// \"elige los más variados\", esquivaba la familia dominante justamente por ser\n// la más repetida: con un catálogo 84% estores salían lotes con 2 estores y 7\n// de ropa de cama, o sea publicando lo que menos se vende.\n//\n// Cuánto pesa el producto estrella lo decide el cliente en el panel, no una\n// constante escondida aquí: quien sabe qué le conviene vender es él.\nconst estrella = String(cfg.producto_estrella || '').toLowerCase().trim();\nconst principales = estrella\n  ? baraja.filter((p) => p.name.toLowerCase().includes(estrella))\n  : [];\nconst resto = estrella\n  ? baraja.filter((p) => !p.name.toLowerCase().includes(estrella))\n  : baraja;\n\nlet cuotaPrincipal = principales.length\n  ? Math.round((cfg.cantidad * cfg.peso_estrella) / 100)\n  : 0;\ncuotaPrincipal = Math.min(cuotaPrincipal, principales.length);\n\n// Sin producto estrella configurado se agrupa por las dos primeras palabras,\n// que es una familia razonable en cualquier catálogo.\nconst porFamilia = (p) => palabras(p.name).slice(0, 2).join(' ') || 'otros';\n\nconst elegidos = [\n  // Dentro de los estores, variedad de temas; entre el resto, variedad de familia.\n  ...repartir(principales, cuotaPrincipal, temaDe(principales)),\n  ...repartir(resto, cfg.cantidad - cuotaPrincipal, porFamilia),\n];\n\n// Si una parte no llegó a llenar su cuota (catálogo corto), la otra completa.\nif (elegidos.length < cfg.cantidad) {\n  const yaEstan = new Set(elegidos.map((p) => p.id));\n  for (const p of baraja) {\n    if (elegidos.length >= cfg.cantidad) break;\n    if (!yaEstan.has(p.id)) elegidos.push(p);\n  }\n}\n\nreturn [{\n  json: {\n    ...cfg,\n    total_catalogo: candidatos.length,\n    de_producto_estrella: elegidos.filter(\n      (p) => estrella && p.name.toLowerCase().includes(estrella)\n    ).length,\n    productos: elegidos.map((p, i) => ({\n      indice: i,\n      id: p.id,\n      nombre: p.name,\n      precio: p.price,\n      moneda: p.currency || 'EUR',\n      image_url: p.image_url,\n      url: p.url,\n    })),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        200
+      ],
+      "id": "cn000008-0008-4008-8008-000000000008",
+      "name": "Muestrear productos"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"temperature\": 0.9,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    { \"role\": \"system\", \"content\": {{ JSON.stringify(\"Llevas las redes de una tienda pequeña de textil y decoración de hogar. Escribes en español de España, como alguien que conoce sus productos y sabe cómo se vive una casa. No como un catálogo.\\n\\n=== LA PRIMERA LÍNEA ES LO ÚNICO QUE SE LEE ===\\nInstagram corta la caption a los 125 caracteres y casi nadie despliega el resto.\\nEmpieza por una escena, un momento del día, una pregunta o una observación. NUNCA nombrando el producto.\\n\\n=== CONCRETO, NO ABSTRACTO ===\\n«El sol de las ocho de la mañana en julio» dice algo. «Un ambiente agradable» no dice nada.\\nHáblale de tú a una persona, no a un público.\\n\\n=== PROHIBIDO: son las muletillas que delatan un texto escrito por una máquina ===\\n- Empezar la caption con «Este» o «Esta» seguido del producto.\\n- Estas expresiones: ideal para, perfecto para, un toque especial, transforma tu hogar, el complemento perfecto, sinónimo de, no puede faltar, dale vida a, un aliado, la calidad que mereces, el rincón más apetecible, ¿a qué esperas?\\n- Exclamaciones encadenadas, «¡No te lo pierdas!», «¡Corre!».\\n- Más de un emoji por pieza, y solo si de verdad aporta.\\n\\n=== VARIEDAD ENTRE PIEZAS ===\\nNinguna pieza puede empezar igual que otra del mismo lote. Alterna los arranques: una escena, una pregunta, un contraste, una confesión, un detalle del día a día.\\nQue una de cada tres termine con una pregunta abierta, sin pedir la compra.\\n\\n=== EL TITULAR ===\\nVa escrito encima de la foto, con 46 caracteres como máximo. Es un gancho: ni el nombre del producto ni el de su categoría.\\n\\n=== SOLO LA VERDAD ===\\nDe cada producto sabes su nombre y su precio, nada más. No inventes materiales, medidas, composición, certificados ni tallas.\\nCada pieza habla de SU producto y de ningún otro: un estor no es una sábana, un cojín no es una funda nórdica.\\n\\n=== EJEMPLOS ===\\nEnseñan el TONO, no el contenido. No copies estas frases ni las adaptes cambiando dos palabras: escribe las tuyas.\\nMAL: «Este estor de paisajes transforma tu hogar con vistas inspiradoras. Ideal para crear un ambiente sereno y relajante.»\\nBIEN: «Hay ventanas que dan a un patio de luces. Esta da a una playa al atardecer, aunque fuera sea noviembre.»\\n\\nMAL: «Esta colcha aporta un toque de elegancia sobria a cualquier dormitorio. Perfecta para quienes buscan estilo.»\\nBIEN: «Un color que no cansa a los dos meses. De esos que pones y ya no te planteas cambiarlo.»\\n\\n=== SALIDA ===\\nTe doy una lista de productos ya elegida. Escribe una pieza para CADA UNO, en el mismo orden. No elijas, no descartes ninguno, no añadas otros.\\nLa caption tiene de dos a cuatro frases.\\nEntre 6 y 10 hashtags en español, en su propio campo y sin almohadilla. Menos de 6 no vale. No los metas dentro de la caption.\\nLos hashtags tampoco pueden inventar: no etiquetes un material que no aparezca en el nombre del producto.\\n\\nResponde solo con JSON: {\\\"piezas\\\":[{\\\"indice\\\":0,\\\"nombre\\\":\\\"nombre exacto del producto, copiado tal cual\\\",\\\"titular\\\":\\\"...\\\",\\\"caption\\\":\\\"...\\\",\\\"hashtags\\\":[\\\"...\\\",\\\"...\\\"]}]}\\nEl campo nombre se comprueba contra el índice: si no coinciden, la pieza se descarta.\" + \"\\n\\nTono de esta marca: \" + $json.tono) }} },\n    { \"role\": \"user\", \"content\": {{ JSON.stringify(\"Escribe una pieza para cada uno de estos \" + $json.productos.length + \" productos, sin saltarte ninguno:\\n\" + JSON.stringify($json.productos.map(p => ({ indice: p.indice, nombre: p.nombre, precio: p.precio })))) }} }\n  ]\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        760,
+        200
+      ],
+      "id": "cn000009-0009-4009-8009-000000000009",
+      "name": "Escribir copys"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Muestrear productos').first().json;\nconst productos = cfg.productos || [];\n\nlet datos = {};\ntry {\n  const bruto = $input.first().json;\n  const contenido = bruto.choices && bruto.choices[0] && bruto.choices[0].message\n    ? bruto.choices[0].message.content\n    : '{}';\n  datos = JSON.parse(contenido);\n} catch (e) {\n  datos = {};\n}\n\nconst piezas = Array.isArray(datos.piezas) ? datos.piezas : [];\n\n// Tope de caracteres del titular. La plantilla parte en dos líneas de unos 28\n// caracteres; más allá de 46 empieza a comerse palabras con puntos suspensivos.\nconst MAX_TITULAR = 46;\n\nconst salida = [];\nconst usados = new Set();\nconst descartadas = [];\n\n// Comparación laxa de nombres: minúsculas y sin espacios de más. No se\n// normalizan acentos porque el nombre debe venir copiado tal cual.\nconst clave = (s) => String(s || '').toLowerCase().replace(/\\s+/g, ' ').trim();\nconst porNombre = new Map(productos.map((p) => [clave(p.nombre), p]));\n\nfor (const p of piezas) {\n  let producto = productos[Number(p.indice)];\n\n  // El modelo debe devolver el nombre exacto del producto, y aquí se comprueba\n  // que cuadre con el índice. Sin esta verificación se cuela lo peor que puede\n  // pasar en esta fase: un texto que habla de un producto distinto del que sale\n  // en la foto (una vez escribió sobre sábanas de algodón sobre la foto de un\n  // estor). El nombre manda; si tampoco casa, la pieza se tira.\n  const dicho = clave(p.nombre);\n  if (dicho && (!producto || clave(producto.nombre) !== dicho)) {\n    const porTexto = porNombre.get(dicho);\n    if (porTexto) {\n      producto = porTexto;\n    } else {\n      descartadas.push({ titular: p.titular, nombre_dicho: p.nombre });\n      continue;\n    }\n  }\n\n  if (!producto) {\n    descartadas.push({ titular: p.titular, motivo: 'índice inexistente' });\n    continue;\n  }\n\n  const i = productos.indexOf(producto);\n  if (usados.has(i)) continue;\n  usados.add(i);\n\n  let titular = String(p.titular || '').trim().replace(/\\s+/g, ' ');\n  if (!titular) titular = producto.nombre;\n  if (titular.length > MAX_TITULAR) {\n    titular = titular.slice(0, MAX_TITULAR).replace(/[\\s,;:.]+\\S*$/, '');\n  }\n\n  // El modelo tiende a meter los hashtags dentro de la caption aunque se le\n  // pida un campo aparte. En vez de fiarnos, se recogen de los dos sitios y se\n  // limpian de la caption: así la etiqueta siempre acaba en su columna y el\n  // texto no las lleva duplicadas.\n  let caption = String(p.caption || '').trim();\n  const enTexto = (caption.match(/#[\\p{L}\\p{N}_]+/gu) || []).map((h) => h.slice(1));\n  caption = caption.replace(/#[\\p{L}\\p{N}_]+/gu, '').replace(/[ \\t]{2,}/g, ' ').trim();\n\n  const hashtags = [\n    ...(Array.isArray(p.hashtags) ? p.hashtags : []).map((h) => String(h)),\n    ...enTexto,\n  ]\n    .map((h) => h.replace(/^#/, '').trim())\n    .filter(Boolean)\n    .filter((h, i, a) => a.findIndex((x) => x.toLowerCase() === h.toLowerCase()) === i)\n    .slice(0, 12);\n\n  salida.push({\n    json: {\n      client_id: cfg.client_id,\n      formato: cfg.formato,\n      titular,\n      caption,\n      hashtags,\n      pie: cfg.pie,\n      marca: cfg.marca,\n      producto: {\n        id: producto.id,\n        image_url: producto.image_url,\n        price: producto.precio,\n        currency: producto.moneda,\n        url: producto.url,\n        nombre: producto.nombre,\n      },\n    },\n  });\n}\n\n// El prompt prohíbe estas muletillas, pero un prompt no es una garantía. No se\n// descarta la pieza por caer en una —sería tirar trabajo bueno por una frase—:\n// se marca para que salte a la vista de quien aprueba.\nconst MULETILLAS = [\n  'ideal para', 'perfecto para', 'perfecta para', 'un toque especial',\n  'transforma tu hogar', 'el complemento perfecto', 'sinónimo de',\n  'no puede faltar', 'dale vida a', 'la calidad que mereces',\n  '¿a qué esperas', 'no te lo pierdas',\n];\n\n// Materiales que el modelo se ha visto inventar: etiquetó #algodón unas sábanas\n// que en su nombre solo dicen \"satén\". Es la clase de detalle que nadie revisa\n// y que en una ficha de producto sería publicidad engañosa.\nconst MATERIALES = [\n  'algodón', 'algodon', 'lino', 'seda', 'satén', 'saten', 'franela',\n  'microfibra', 'poliéster', 'poliester', 'terciopelo', 'lana', 'bambú',\n  'percal', 'plumón', 'plumon',\n];\n\n// Trozos de los ejemplos del prompt. El modelo copió uno palabra por palabra\n// («Hay ventanas que dan a un patio de luces...») y se habría publicado tal\n// cual: un ejemplo didáctico mío firmado por la tienda. Un ejemplo enseña el\n// tono, pero también es texto listo para copiar.\nconst EJEMPLOS = [\n  'patio de luces',\n  'una playa al atardecer',\n  'no cansa a los dos meses',\n  'ya no te planteas cambiarlo',\n];\n\n// Rotación de estilos visuales. Con una sola plantilla, nueve piezas seguidas\n// en la cuadrícula del perfil cantan a bot: misma banda, misma composición,\n// cambiando solo la foto. \"sangre\" pesa el doble porque es el que menos parece\n// una ficha de producto.\nconst ROTACION = ['sangre', 'banda', 'sangre', 'marco'];\n\nconst arranques = new Map();\n\nfor (const item of salida) {\n  const texto = (item.json.caption + ' ' + item.json.titular).toLowerCase();\n  const avisos = MULETILLAS.filter((m) => texto.includes(m));\n\n  const nombreProd = item.json.producto.nombre.toLowerCase();\n  const conHashtags = texto + ' ' + item.json.hashtags.join(' ').toLowerCase();\n  for (const m of MATERIALES) {\n    if (conHashtags.includes(m) && !nombreProd.includes(m)) {\n      avisos.push('menciona «' + m + '» y no está en el nombre del producto');\n    }\n  }\n\n  if (item.json.hashtags.length < 6) {\n    avisos.push('solo ' + item.json.hashtags.length + ' hashtags');\n  }\n\n  for (const e of EJEMPLOS) {\n    if (texto.includes(e)) avisos.push('copia un ejemplo del prompt');\n  }\n\n  if (/^\\s*est[ae]\\s/i.test(item.json.caption)) {\n    avisos.push('empieza nombrando el producto');\n  }\n\n  // Dos piezas del mismo lote que arrancan igual cantan muchísimo en el perfil.\n  const arranque = item.json.caption.toLowerCase().split(/\\s+/).slice(0, 3).join(' ');\n  if (arranques.has(arranque)) avisos.push('arranque repetido');\n  arranques.set(arranque, true);\n\n  item.json.avisos = avisos;\n  item.json.estilo = ROTACION[salida.indexOf(item) % ROTACION.length];\n}\n\nif (descartadas.length) {\n  console.log('Piezas descartadas por no cuadrar con su producto:', JSON.stringify(descartadas));\n}\n\nif (!salida.length) {\n  return [{ json: { vacio: true, motivo: 'La IA no devolvió ninguna pieza utilizable.' } }];\n}\n\nreturn salida;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        200
+      ],
+      "id": "cn000010-0010-4010-8010-000000000010",
+      "name": "Parsear copys"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://render:3001/imagen",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"client_id\": {{ JSON.stringify($json.client_id) }},\n  \"formato\": {{ JSON.stringify($json.formato) }},\n  \"estilo\": {{ JSON.stringify($json.estilo) }},\n  \"titular\": {{ JSON.stringify($json.titular) }},\n  \"pie\": {{ JSON.stringify($json.pie) }},\n  \"producto\": {{ JSON.stringify($json.producto) }},\n  \"marca\": {{ JSON.stringify($json.marca) }},\n  \"subir\": true\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1160,
+        200
+      ],
+      "id": "cn000011-0011-4011-8011-000000000011",
+      "name": "Renderizar pieza",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const copy = $('Parsear copys').item.json;\nconst render = $json || {};\n\n// El render devuelve la URL pública; el copy viene del paso anterior. Aquí se\n// vuelven a juntar para escribir una fila completa en content_items.\nconst caption = [copy.caption, (copy.hashtags || []).map((h) => '#' + h).join(' ')]\n  .filter(Boolean)\n  .join('\\n\\n');\n\nreturn {\n  json: {\n    client_id: copy.client_id,\n    formato: copy.formato,\n    titular: copy.titular,\n    caption,\n    hashtags: copy.hashtags || [],\n    media_url: render.url || '',\n    producto_id: copy.producto.id,\n    producto_nombre: copy.producto.nombre,\n    avisos: copy.avisos || [],\n    estilo: copy.estilo || '',\n    ok_render: Boolean(render.url),\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        200
+      ],
+      "id": "cn000012-0012-4012-8012-000000000012",
+      "name": "Preparar guardado"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-render",
+              "leftValue": "={{ $json.ok_render }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        200
+      ],
+      "id": "cn000013-0013-4013-8013-000000000013",
+      "name": "¿Se renderizó?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/content_items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"client_id\": {{ JSON.stringify($json.client_id) }},\n  \"channel\": \"instagram\",\n  \"format\": {{ JSON.stringify($json.formato) }},\n  \"status\": \"pending\",\n  \"caption\": {{ JSON.stringify($json.caption) }},\n  \"hashtags\": {{ JSON.stringify($json.hashtags) }},\n  \"media_urls\": {{ JSON.stringify([$json.media_url]) }},\n  \"source_product_ids\": {{ JSON.stringify([$json.producto_id]) }},\n  \"meta\": {{ JSON.stringify({ titular: $json.titular, producto: $json.producto_nombre, avisos: $json.avisos, estilo: $json.estilo }) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1760,
+        200
+      ],
+      "id": "cn000014-0014-4014-8014-000000000014",
+      "name": "Guardar pieza",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map((i) => i.json);\n\nreturn [{\n  json: {\n    ok: true,\n    piezas_creadas: items.length,\n    mensaje: items.length\n      ? 'Listas ' + items.length + ' piezas. Revísalas y apruébalas en el panel.'\n      : 'No se generó ninguna pieza.',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        200
+      ],
+      "id": "cn000015-0015-4015-8015-000000000015",
+      "name": "Resumen"
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2160,
+        200
+      ],
+      "id": "cn000016-0016-4016-8016-000000000016",
+      "name": "Responder"
+    }
+  ],
+  "connections": {
+    "Entrada": {
+      "main": [
+        [
+          {
+            "node": "Leer petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer petición": {
+      "main": [
+        [
+          {
+            "node": "Buscar módulo redes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar módulo redes": {
+      "main": [
+        [
+          {
+            "node": "Leer configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer configuración": {
+      "main": [
+        [
+          {
+            "node": "¿Configurado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Configurado?": {
+      "main": [
+        [
+          {
+            "node": "Cargar catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sin configurar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar catálogo": {
+      "main": [
+        [
+          {
+            "node": "Muestrear productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Muestrear productos": {
+      "main": [
+        [
+          {
+            "node": "Escribir copys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escribir copys": {
+      "main": [
+        [
+          {
+            "node": "Parsear copys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear copys": {
+      "main": [
+        [
+          {
+            "node": "Renderizar pieza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renderizar pieza": {
+      "main": [
+        [
+          {
+            "node": "Preparar guardado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar guardado": {
+      "main": [
+        [
+          {
+            "node": "¿Se renderizó?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se renderizó?": {
+      "main": [
+        [
+          {
+            "node": "Guardar pieza",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Guardar pieza": {
+      "main": [
+        [
+          {
+            "node": "Resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

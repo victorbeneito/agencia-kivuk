@@ -106,12 +106,31 @@ Dos etapas:
 
 ## Fase 4 — Marketing e Instagram (3-4 semanas)
 
-**Qué construir:**
-- Workflow en n8n programado (cron) que genera contenido: nodo OpenAI para copys/ideas, DALL-E o Stable Diffusion (Replicate free credits) para imágenes.
-- Nodo de Instagram Graph API (gratis, cuenta business) para publicar directamente.
-- Panel en Next.js para que el cliente apruebe/edite antes de publicar.
+**Corrección sobre el plan inicial:** aquí se dijo "DALL-E o Stable Diffusion para
+las imágenes". Para un cliente con tienda real es un error: una imagen generada
+enseñaría un producto que no vende. Las fotos salen de su **catálogo**, y la IA
+se ocupa del texto y de decidir qué se publica. La generación de imagen se
+reserva para fondos y elementos gráficos, nunca para el producto.
 
-**Herramientas:** Instagram Graph API (gratis), OpenAI, Replicate (créditos gratis).
+**Qué construir (por incrementos):**
+
+- **A. Catálogo.** Workflow que recorre el sitemap de la tienda y guarda cada
+  producto en `catalog_products`. Reconoce las fichas por su JSON-LD de
+  schema.org, así que sirve para PrestaShop, WooCommerce o Shopify sin tocar
+  código.
+- **B. Generación.** OpenAI escribe copy y hashtags y agrupa productos por tema;
+  FFmpeg compone la story (1080×1920), el post (1080×1350) y el reel (15 s) a
+  partir de las fotos reales. Coste en imagen: 0 €.
+- **C. Aprobación.** Calendario en el panel: el cliente ve lo generado, edita el
+  texto y aprueba. Nada se publica sin su OK.
+- **D. Publicación.** Cron que publica lo aprobado vía Instagram Graph API.
+
+**Herramientas:** Instagram Graph API (gratis), OpenAI (copys), FFmpeg (gratis),
+Supabase Storage (los medios necesitan URL pública: la API de Instagram no
+acepta subida directa de bytes).
+
+**Requisitos de cuenta:** Instagram Business o Creator vinculada a una página de
+Facebook. Es innegociable para publicar por API.
 
 **Entregable:** el cliente pide un mes de contenido, se genera, se aprueba desde el panel, y n8n lo publica solo en la fecha programada.
 

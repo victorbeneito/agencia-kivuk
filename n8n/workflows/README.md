@@ -11,6 +11,8 @@ el panel de la agencia escribe por cliente.
 | `whatsapp-bot.json` | Versión actual: WhatsApp + IA con memoria, disponibilidad real de agenda, Google Calendar y confirmación por email (Resend). |
 | `agenda-api.json` | API interna de agenda: consultar disponibilidad y reservar. La comparten el bot de WhatsApp y el agente de voz. |
 | `voz-vapi.json` | Adaptador entre las tool calls de Vapi (agente de voz) y la Agenda API. |
+| `catalogo-ingesta.json` | Recorre el sitemap de la tienda de un cliente y vuelca sus productos en `catalog_products`. |
+| `contenido-generar.json` | Elige productos del catálogo, pide los copys a la IA, manda renderizar la pieza y la deja pendiente de aprobación. |
 | `whatsapp-bot-v1-calendar.json` | Copia de seguridad de la primera versión (sin memoria, email ni disponibilidad). |
 
 ## Agenda API
@@ -158,6 +160,108 @@ crezca sin control; los valores exactos se guardan aparte para la verificación.
 Si el cliente no ha configurado horario se aplica L-V, 09:00-14:00 y 16:00-20:00,
 citas de 60 minutos con paso de 15 — los mismos valores por defecto que muestra
 el panel (`HORARIO_POR_DEFECTO` en `app/src/app/dashboard/[clientId]/page.tsx`).
+
+## Ingesta de catálogo
+
+```
+POST /webhook/catalogo
+{ "client_id": "...", "limite": 10 }   ← limite opcional, para probar
+```
+
+Lee `catalog_sitemap_url` del módulo `social` del cliente, descarga el
+sitemap y recorre las fichas de diez en diez con una pausa de un segundo entre
+lotes. Contesta enseguida (`Aceptado`) porque recorrer cientos de fichas tarda
+minutos y quien llama no debe quedarse esperando.
+
+**Cómo sabe qué es un producto.** No hay selectores de HTML de ninguna tienda:
+una página es un producto si se declara como `Product` de schema.org en su
+JSON-LD. Lo hacen PrestaShop, WooCommerce y Shopify de serie, así que el mismo
+workflow vale para el siguiente cliente sin tocarlo. Lo que no es producto se
+descarta solo.
+
+**El filtro de URLs va vacío por defecto, y es a propósito.** Filtrar el sitemap
+por patrón parece la optimización obvia hasta que la pruebas: en una tienda real
+con 694 URLs, `/productos/\d+` dejaba fuera 109 productos porque su ficha no
+lleva ID numérico (`/productos/duo-funda-nordica-franela-valeria`). Descargar
+109 páginas de más no cuesta nada; perder 109 productos en silencio, sí.
+
+**Las fotos hay que pedirlas grandes.** El JSON-LD suele apuntar al thumbnail
+(`-home_default.jpg`, 250 px). El nodo lo reescribe a `-large_default.jpg` antes
+de guardar, porque a 250 px no se puede publicar nada.
+
+## Generación de contenido
+
+```
+POST /webhook/contenido
+{ "client_id": "...", "cantidad": 9, "formato": "post", "tema": "infantil" }
+```
+
+Deja las piezas en `content_items` con estado `pending`. **No publica nada**: eso
+lo decide una persona en la pestaña de Contenido del panel.
+
+**Los productos los elige el código, no la IA.** Al principio se le pasaba una
+muestra y se le pedía «elige los más variados». Con un catálogo que es 84%
+estores, esquivaba justamente la familia dominante por ser la más repetida, y
+salían lotes con 2 estores y 7 de ropa de cama: publicando lo que menos se vende.
+Ahora el reparto sale de `producto_estrella` y `peso_estrella` del panel, que es
+del cliente porque es él quien sabe qué le conviene mover.
+
+Dentro de la familia dominante, la variedad la da el **tema** —zen, paisajes,
+infantil, ciudades—, que se detecta solo: es la palabra menos frecuente del
+nombre que aun así se repite lo bastante como para no ser ruido. Sin listas
+escritas a mano, así que una categoría nueva entra sin tocar código.
+
+**La IA solo redacta**, y aun así se comprueba lo que devuelve:
+
+| comprobación | por qué |
+| --- | --- |
+| el nombre del producto debe cuadrar con el índice | escribió sobre sábanas de algodón encima de la foto de un estor |
+| hashtags recogidos también del texto | los metía en la caption aunque se le pidiera el campo aparte |
+| materiales que no están en el nombre | etiquetó `#algodón` unas sábanas que solo dicen «satén» |
+| frases copiadas de los ejemplos del prompt | copió literalmente la frase de muestra del tono |
+| muletillas («ideal para», «un toque especial») | son las que delatan un texto automático |
+
+Lo del nombre **descarta** la pieza; el resto solo la marca con un aviso que se
+ve al aprobarla. Tirar un texto entero por una muletilla sería tirar trabajo
+bueno; publicarlo sin que nadie lo mire, peor.
+
+## ⚠️ Desplegar sin navegador
+
+`scratchpad/desplegar.js` escribe el borrador **y publica**, sin tocar n8n:
+
+```bash
+node desplegar.js ../n8n/workflows/contenido-generar.json "Contenido - Generar"
+```
+
+Existe porque escribir solo el borrador y pedir un Save+Publish manual falló
+tres veces: si la pestaña del navegador estaba abierta de antes, al guardar
+mandaba **su** copia vieja encima de la nueva, y el fallo solo se descubría al
+ver resultados que no cuadraban.
+
+Publicar es crear una fila en `workflow_history` con un `versionId` nuevo y
+apuntar `workflow_entity.activeVersionId` a ella. El orden importa: hay una clave
+ajena, así que el historial va primero. Después hace falta reiniciar el
+contenedor, porque n8n registra los webhooks de las versiones publicadas al
+arrancar.
+
+## ⚠️ El nodo Code no es Node.js del todo
+
+La sandbox del nodo Code **no expone todos los globales de Node**. `new URL()`
+es el caso que ya nos ha mordido: funciona en cualquier script de prueba y en
+n8n lanza excepción. Como estaba dentro de un `try/catch` que devolvía cadena
+vacía, no hubo error por ningún lado — simplemente todas las imágenes del
+catálogo se guardaron vacías.
+
+Dos consecuencias, y las dos importan:
+
+- **Resolver URLs relativas a mano**, con manipulación de cadenas, sin `URL`.
+- **No envolver en `try/catch` silencioso** lo que no puede fallar en
+  condiciones normales. Un `catch` que devuelve un valor por defecto convierte
+  un error ruidoso en un dato malo y callado, que es mucho peor de encontrar.
+
+Los simuladores de `scratchpad/` ocultan a propósito `URL`, `fetch`, `require`,
+`process` y `Buffer` al ejecutar el código de los nodos, para que una prueba que
+pasa en local no pueda fallar luego en n8n.
 
 ## ⚠️ Guardar NO es desplegar
 
