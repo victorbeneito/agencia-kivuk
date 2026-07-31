@@ -216,14 +216,38 @@ escritas a mano, así que una categoría nueva entra sin tocar código.
 | comprobación | por qué |
 | --- | --- |
 | el nombre del producto debe cuadrar con el índice | escribió sobre sábanas de algodón encima de la foto de un estor |
+| el tipo de producto debe compartir palabra con el nombre | una etiqueta equivocada («Cojín» sobre un estor) es peor que ninguna |
 | hashtags recogidos también del texto | los metía en la caption aunque se le pidiera el campo aparte |
 | materiales que no están en el nombre | etiquetó `#algodón` unas sábanas que solo dicen «satén» |
-| frases copiadas de los ejemplos del prompt | copió literalmente la frase de muestra del tono |
+| frases copiadas de los ejemplos del prompt | copió literalmente la frase de muestra del tono, dos lotes seguidos |
+| «este/esta» + producto | prohibido al inicio, se mudó a la segunda frase |
 | muletillas («ideal para», «un toque especial») | son las que delatan un texto automático |
 
-Lo del nombre **descarta** la pieza; el resto solo la marca con un aviso que se
-ve al aprobarla. Tirar un texto entero por una muletilla sería tirar trabajo
-bueno; publicarlo sin que nadie lo mire, peor.
+El nombre y el tipo **corrigen o descartan** la pieza; el resto solo la marca con
+un aviso que se ve al aprobarla. Tirar un texto entero por una muletilla sería
+tirar trabajo bueno; publicarlo sin que nadie lo mire, peor.
+
+Dos detalles de esas comprobaciones que costaron un rato:
+
+- **Por palabra entera, no por subcadena.** Buscar «lana» con `includes()`
+  saltaba dentro de «plana» y avisaba de un material que nadie había mencionado.
+  Un aviso falso es peor que ninguno: enseña a ignorarlos.
+- **Los ejemplos del prompt hablan de productos que el cliente NO vende.** Con
+  ejemplos sobre ventanas, el modelo copiaba la frase tal cual en las piezas de
+  estores. Pedirle «no copies» no bastó dos veces seguidas; cambiar el ejemplo a
+  una lámpara sí.
+
+**Límite conocido:** «este/esta» + producto se le sigue colando en unas dos de
+cada tres piezas pese a la prohibición. Se marca con aviso y se corrige a mano
+al aprobar; no compensa otra llamada al modelo solo para eso.
+
+## Cada pieza dice qué se vende
+
+Cada imagen lleva una etiqueta con el tipo de producto arriba a la izquierda
+(`Estor enrollable`, `Funda nórdica`). No es decoración: el estilo «a sangre»
+recorta el estampado a pantalla completa y el resultado parece un cuadro, no un
+estor a medida. Quien lo ve puede darle a me gusta sin enterarse de qué se
+vende, y el hashtag no lo salva porque casi nadie los lee.
 
 ## ⚠️ Desplegar sin navegador
 
@@ -243,6 +267,10 @@ apuntar `workflow_entity.activeVersionId` a ella. El orden importa: hay una clav
 ajena, así que el historial va primero. Después hace falta reiniciar el
 contenedor, porque n8n registra los webhooks de las versiones publicadas al
 arrancar.
+
+⚠️ **`/healthz` responde antes de que los webhooks estén registrados.** Lanzar
+una llamada justo después del reinicio devuelve `Cannot POST /webhook/...` y
+parece que el workflow se ha roto. Hay que darle unos segundos más.
 
 ## ⚠️ El nodo Code no es Node.js del todo
 

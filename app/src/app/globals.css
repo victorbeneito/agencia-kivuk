@@ -48,73 +48,103 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Paleta de Kivuk, muestreada de `Logotipo Kivuk Agencia/exports/`:
+ *   #8EB9C5  azul       las K
+ *   #686765  gris       la i y la u
+ *   #D0BC82  arena      la v
+ *   #B45831  terracota  "agencia"
+ *
+ * El terracota es el único color saturado de la marca, así que se reserva para
+ * lo que reclama atención (algo pendiente, un aviso) y no se gasta en adornos.
+ *
+ * El fondo es un blanco cálido (#F8F8F5) en vez de blanco puro: con tarjetas
+ * blancas encima, el contraste marca la separación sin necesidad de sombras
+ * fuertes.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* El azul del logotipo es un tinte: con texto blanco encima da un contraste
+     de ~2:1, ilegible. Sirve para fondos suaves e iconos; para botones y
+     elementos activos se usa la versión honda, que sí pasa de 4,5:1. */
+  --kivuk-azul: #8eb9c5;
+  --kivuk-azul-hondo: #3b7686;
+  --kivuk-gris: #686765;
+  --kivuk-arena: #d0bc82;
+  --kivuk-terracota: #b45831;
+  /* Pizarra para la barra lateral: más oscura que el azul de marca pero de la
+     misma familia, para que la barra no parezca de otra aplicación. */
+  --kivuk-pizarra: #2b3f4d;
+
+  --background: #f8f8f5;
+  --foreground: #3a3a3a;
+  --card: #ffffff;
+  --card-foreground: #3a3a3a;
+  --popover: #ffffff;
+  --popover-foreground: #3a3a3a;
+  --primary: var(--kivuk-azul-hondo);
+  --primary-foreground: #ffffff;
+  --secondary: #eef2f3;
+  --secondary-foreground: var(--kivuk-gris);
+  --muted: #eef2f3;
+  --muted-foreground: #6f7d84;
+  --accent: #e8f2f6;
+  --accent-foreground: #2b3f4d;
+  --destructive: #d9534f;
+  --border: #e2e6e6;
+  --input: #dfe4e5;
+  --ring: var(--kivuk-azul-hondo);
+  --chart-1: var(--kivuk-azul);
+  --chart-2: var(--kivuk-arena);
+  --chart-3: var(--kivuk-terracota);
+  --chart-4: #8fbfae;
+  --chart-5: #a1a7c9;
+  --radius: 0.75rem;
+
+  --sidebar: var(--kivuk-pizarra);
+  --sidebar-foreground: #d7dfe4;
+  --sidebar-primary: var(--kivuk-azul-hondo);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: var(--kivuk-azul-hondo);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #1b2229;
+  --foreground: #e7ecef;
+  --card: #232c34;
+  --card-foreground: #e7ecef;
+  --popover: #232c34;
+  --popover-foreground: #e7ecef;
+  --primary: var(--kivuk-azul);
+  --primary-foreground: #10181e;
+  --secondary: #2c363f;
+  --secondary-foreground: #e7ecef;
+  --muted: #2c363f;
+  --muted-foreground: #9aa8b1;
+  --accent: #2c363f;
+  --accent-foreground: #e7ecef;
+  --destructive: #e2665f;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: var(--kivuk-azul-hondo);
+  --chart-1: var(--kivuk-azul);
+  --chart-2: var(--kivuk-arena);
+  --chart-3: var(--kivuk-terracota);
+  --chart-4: #8fbfae;
+  --chart-5: #a1a7c9;
+
+  /* La barra lateral ya es oscura en claro, así que en modo oscuro solo baja un
+     punto más para seguir separándose del fondo. */
+  --sidebar: #172027;
+  --sidebar-foreground: #d7dfe4;
+  --sidebar-primary: var(--kivuk-azul-hondo);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: var(--kivuk-azul-hondo);
 }
 
 @layer base {

@@ -23,15 +23,17 @@ export type PiezaData = {
   titular: string;
   producto: string;
   avisos: string[];
+  estilo?: string;
 };
 
-const ETIQUETA_ESTADO: Partial<Record<EstadoPieza, string>> = {
-  pending: "Pendiente",
-  approved: "Aprobada",
-  rejected: "Descartada",
-  scheduled: "Programada",
-  published: "Publicada",
-  failed: "Falló al publicar",
+/** Colores de marca: terracota para lo que espera, arena para lo ya aprobado. */
+const ESTADO: Partial<Record<EstadoPieza, { texto: string; clase: string }>> = {
+  pending: { texto: "Por revisar", clase: "bg-[#B45831]/15 text-[#B45831]" },
+  approved: { texto: "Aprobada", clase: "bg-[#D0BC82]/35 text-[#7d6c2b]" },
+  scheduled: { texto: "Programada", clase: "bg-[#8EB9C5]/30 text-[#3b7686]" },
+  published: { texto: "Publicada", clase: "bg-emerald-500/15 text-emerald-700" },
+  rejected: { texto: "Descartada", clase: "bg-muted text-muted-foreground" },
+  failed: { texto: "Falló al publicar", clase: "bg-destructive/15 text-destructive" },
 };
 
 export function Pieza({
@@ -59,9 +61,16 @@ export function Pieza({
             className="object-contain"
           />
         ) : null}
-        {ETIQUETA_ESTADO[pieza.status] && (
-          <span className="absolute right-2 top-2 rounded-full bg-background/90 px-2 py-1 text-xs font-medium">
-            {ETIQUETA_ESTADO[pieza.status]}
+        {ESTADO[pieza.status] && (
+          <span
+            className={`absolute right-2 top-2 rounded-full px-2.5 py-1 text-xs font-medium backdrop-blur ${ESTADO[pieza.status]!.clase}`}
+          >
+            {ESTADO[pieza.status]!.texto}
+          </span>
+        )}
+        {pieza.estilo && (
+          <span className="absolute left-2 top-2 rounded-full bg-background/85 px-2 py-0.5 text-[11px] text-muted-foreground backdrop-blur">
+            {pieza.estilo}
           </span>
         )}
       </div>

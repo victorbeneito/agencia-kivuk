@@ -29,22 +29,22 @@ export default async function DashboardLayout({
     <SidebarProvider>
       <AppSidebar agencyName={agency?.name ?? "Agencia"} />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center justify-between border-b px-4">
+        <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b bg-card px-4">
           <div className="flex items-center gap-2">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-5" />
-            <span className="text-sm text-muted-foreground">
-              {agency?.name ?? "Agencia"}
+            <span className="font-heading text-sm font-semibold">
+              Panel de la agencia
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
+            <span className="hidden text-sm text-muted-foreground sm:block">
               {user?.email}
             </span>
             <LogoutButton />
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
+        <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

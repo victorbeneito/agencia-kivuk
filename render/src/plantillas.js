@@ -254,6 +254,39 @@ function capaSangre({ ancho, alto, titular, precio, pie, marca, margen }) {
 </svg>`);
 }
 
+/**
+ * Etiqueta con el tipo de producto, arriba a la izquierda.
+ *
+ * No es decoración: sin ella, un estampado de paisaje a pantalla completa se ve
+ * precioso y nadie sabe que lo que se vende es un estor a medida. El hashtag no
+ * basta, porque casi nadie los lee.
+ */
+function etiquetaSvg({ ancho, texto, marca, margen, sobreFoto }) {
+  if (!texto) return null;
+
+  const cuerpo = 30;
+  const padX = 24;
+  const alto = 54;
+  const anchoCaja = Math.min(
+    Math.round(texto.length * cuerpo * 0.58) + padX * 2,
+    ancho - margen * 2
+  );
+
+  // Sobre foto hace falta una base opaca; sobre el fondo de marca basta con el
+  // color de acento, que además ata la pieza a la identidad.
+  const fondo = sobreFoto ? "#FFFFFF" : marca.primario;
+  const tinta = sobreFoto ? marca.texto : "#FFFFFF";
+
+  return {
+    svg: Buffer.from(`<svg width="${anchoCaja}" height="${alto}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="${anchoCaja}" height="${alto}" rx="${Math.round(alto / 2)}" fill="${fondo}" fill-opacity="${sobreFoto ? 0.92 : 1}"/>
+  <text x="${padX}" y="${Math.round(alto * 0.66)}" font-family="${FUENTE}" font-size="${cuerpo}" font-weight="600" fill="${tinta}">${escapar(texto)}</text>
+</svg>`),
+    ancho: anchoCaja,
+    alto,
+  };
+}
+
 /** Estilos disponibles. Rotarlos es lo que evita que el perfil parezca un bot. */
 export const ESTILOS = ["banda", "sangre", "marco"];
 
@@ -277,6 +310,7 @@ export async function componerImagen({
   titular = "",
   precio = "",
   pie = "",
+  etiqueta = "",
   marca: marcaParcial = {},
 }) {
   const dim = FORMATOS[formato];
@@ -296,9 +330,12 @@ export async function componerImagen({
       .resize(ancho, alto, { fit: "cover", position: "attention" })
       .toBuffer();
 
+    const chip = etiquetaSvg({ ancho, texto: etiqueta, marca, margen, sobreFoto: true });
+
     const buffer = await sharp(fondo)
       .composite([
         { input: capaSangre({ ancho, alto, titular, precio, pie, marca, margen }), left: 0, top: 0 },
+        ...(chip ? [{ input: chip.svg, left: margen, top: margen }] : []),
       ])
       .jpeg({ quality: 90, chromaSubsampling: "4:4:4" })
       .toBuffer();
@@ -314,14 +351,27 @@ export async function componerImagen({
   const zonaAlto = alto - banda;
   const holgura = esMarco ? 1.35 : 1;
 
+  const chip = etiquetaSvg({
+    ancho,
+    texto: etiqueta,
+    marca,
+    margen,
+    // En "marco" el fondo ya es el color de marca, así que la etiqueta va en
+    // blanco para que no desaparezca sobre él.
+    sobreFoto: esMarco,
+  });
+  const altoChip = chip ? chip.alto + Math.round(margen * 0.5) : 0;
+
   const producto = await prepararProducto(
     imagen,
     Math.round((ancho - margen * 2) / holgura),
-    Math.round((zonaAlto - margen * 2) / holgura)
+    Math.round((zonaAlto - margen * 2 - altoChip) / holgura)
   );
 
   const left = Math.round((ancho - producto.ancho) / 2);
-  const top = Math.round((zonaAlto - producto.alto) / 2);
+  // Se centra en el espacio que queda bajo la etiqueta, no en toda la zona: si
+  // no, el producto se le mete debajo.
+  const top = altoChip + Math.round((zonaAlto - altoChip - producto.alto) / 2);
 
   const buffer = await sharp(
     lienzoSvg({
@@ -329,7 +379,10 @@ export async function componerImagen({
       invertido: esMarco,
     })
   )
-    .composite([{ input: producto.buffer, left, top }])
+    .composite([
+      { input: producto.buffer, left, top },
+      ...(chip ? [{ input: chip.svg, left: margen, top: margen }] : []),
+    ])
     .jpeg({ quality: 90, chromaSubsampling: "4:4:4" })
     .toBuffer();
 

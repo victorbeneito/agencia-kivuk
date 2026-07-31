@@ -17,6 +17,21 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
+/**
+ * En un join de muchos a uno (`conversations.client_id → clients`) PostgREST
+ * devuelve un objeto, no un array. Leerlo como `clients[0]` daba siempre
+ * `undefined` y salía el texto de reserva, que además se parecía al nombre real
+ * del cliente de pruebas y disimuló el fallo. Se aceptan las dos formas para no
+ * depender de cómo lo tipe el cliente de Supabase.
+ */
+function nombreDelCliente(
+  clients: { name: string } | { name: string }[] | null | undefined
+): string | null {
+  if (!clients) return null;
+  const fila = Array.isArray(clients) ? clients[0] : clients;
+  return fila?.name ?? null;
+}
+
 export default async function ConversacionesPage() {
   const supabase = await createClient();
 
@@ -56,11 +71,26 @@ export default async function ConversacionesPage() {
                       href={`/dashboard/${conversation.client_id}/conversaciones/${conversation.id}`}
                       className="font-medium text-primary hover:underline"
                     >
-                      {conversation.clients?.[0]?.name ?? "Cliente"}
+                      {nombreDelCliente(conversation.clients) ?? "Sin nombre"}
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{conversation.channel}</Badge>
+                    <Badge
+                      variant="secondary"
+                      // Un color por canal: en una tabla larga se distingue de
+                      // un vistazo sin tener que leer la columna.
+                      className={
+                        conversation.channel === "voice"
+                          ? "bg-[#D0BC82]/30 text-[#87752f]"
+                          : "bg-[#8EB9C5]/25 text-[#3b7686]"
+                      }
+                    >
+                      {conversation.channel === "voice"
+                        ? "Voz"
+                        : conversation.channel === "whatsapp"
+                          ? "WhatsApp"
+                          : conversation.channel}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {conversation.external_contact_id ?? "—"}

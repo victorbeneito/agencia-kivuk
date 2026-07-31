@@ -54,6 +54,7 @@ app.post("/imagen", async (req, res) => {
       estilo = "banda",
       titular = "",
       pie = "",
+      etiqueta = "",
       producto = {},
       marca = {},
       subir: quiereSubir = true,
@@ -77,6 +78,7 @@ app.post("/imagen", async (req, res) => {
       titular,
       precio: formatearPrecio(producto.price, producto.currency),
       pie,
+      etiqueta,
       marca,
     });
 

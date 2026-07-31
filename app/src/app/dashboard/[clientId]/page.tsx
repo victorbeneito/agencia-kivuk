@@ -1,5 +1,12 @@
 import Link from "next/link";
+import {
+  CheckCircle2,
+  Clock,
+  MessageSquare,
+  Send,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { StatCard } from "@/components/stat-card";
 import type { ModuleName } from "./actions";
 import {
   Card,
@@ -83,25 +90,35 @@ export default async function ClientSummaryPage({
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardDescription>Conversaciones</CardDescription>
-            <CardTitle className="text-3xl">{conversaciones ?? 0}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Piezas publicadas</CardDescription>
-            <CardTitle className="text-3xl">{porEstado("published")}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Aprobadas sin publicar</CardDescription>
-            <CardTitle className="text-3xl">{porEstado("approved")}</CardTitle>
-          </CardHeader>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          icon={MessageSquare}
+          rotulo="Conversaciones"
+          valor={conversaciones ?? 0}
+          tono="azul"
+          href={`/dashboard/${clientId}/conversaciones`}
+        />
+        <StatCard
+          icon={Clock}
+          rotulo="Por revisar"
+          valor={pendientes}
+          pie={pendientes ? "Esperan tu visto bueno" : undefined}
+          tono="terracota"
+          href={`/dashboard/${clientId}/contenido`}
+        />
+        <StatCard
+          icon={CheckCircle2}
+          rotulo="Aprobadas"
+          valor={porEstado("approved")}
+          pie="Listas para publicar"
+          tono="arena"
+        />
+        <StatCard
+          icon={Send}
+          rotulo="Publicadas"
+          valor={porEstado("published")}
+          tono="verde"
+        />
       </div>
 
       <Card>
@@ -112,25 +129,28 @@ export default async function ClientSummaryPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
-          {MODULE_ORDER.map((module) => (
-            <div
-              key={module}
-              className="flex items-center justify-between rounded-lg border px-4 py-3"
-            >
-              <span className="text-sm font-medium">
-                {MODULE_LABELS[module]}
-              </span>
-              <span
-                className={
-                  activos.has(module)
-                    ? "text-sm text-foreground"
-                    : "text-sm text-muted-foreground"
-                }
+          {MODULE_ORDER.map((module) => {
+            const activo = activos.has(module);
+            return (
+              <div
+                key={module}
+                className="flex items-center justify-between rounded-lg border px-4 py-3"
               >
-                {activos.has(module) ? "Activo" : "Inactivo"}
-              </span>
-            </div>
-          ))}
+                <span className="text-sm font-medium">
+                  {MODULE_LABELS[module]}
+                </span>
+                <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span
+                    aria-hidden
+                    className={`size-2 rounded-full ${
+                      activo ? "bg-[#8EB9C5]" : "bg-border"
+                    }`}
+                  />
+                  {activo ? "Activo" : "Inactivo"}
+                </span>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
     </div>
