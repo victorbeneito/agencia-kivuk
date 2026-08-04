@@ -1,8 +1,6 @@
-version: "3.8"
-
 # n8n self-hosted para desarrollo local.
-# Este mismo archivo se reutiliza (con pequeños ajustes de dominio/HTTPS)
-# cuando se despliegue en el VPS en la Fase 1.5.
+# En el VPS este mismo archivo se combina con docker-compose.prod.yml, que
+# cierra los puertos al exterior y añade Caddy con HTTPS.
 
 services:
   postgres:
@@ -36,9 +34,6 @@ services:
       N8N_PORT: 5678
       N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
       WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
-      N8N_BASIC_AUTH_ACTIVE: "true"
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-changeme}
       GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Europe/Madrid}
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}

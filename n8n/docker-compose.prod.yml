@@ -1,0 +1,38 @@
+# Override de producción (VPS). No sustituye al compose base: se suma a él.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# El compose base sigue sirviendo tal cual para desarrollo local. Todo lo que
+# solo tiene sentido en el servidor vive aquí: cerrar los puertos al exterior,
+# la clave de cifrado y Caddy con HTTPS automático.
+
+services:
+  n8n:
+    ports: !override []          # a internet solo asoma Caddy
+    environment:
+      # Clave con la que n8n cifra credenciales. Fijarla explícitamente (en vez
+      # de dejar que se autogenere en el volumen) permite recrear el servidor
+      # sin perder acceso a lo ya guardado.
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_PROXY_HOPS: "1"        # n8n está detrás de un proxy inverso
+      N8N_RUNNERS_ENABLED: "true"
+
+  render:
+    ports: !override []          # solo accesible desde la red de Docker
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - n8n
+
+volumes:
+  caddy_data:
+  caddy_config:
