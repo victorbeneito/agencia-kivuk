@@ -8,6 +8,10 @@ app/.env*.local
 n8n/.env
 n8n/workflows/*.json.bak
 
+# Material de trabajo (creatividades, vídeos). Fuera de git a propósito: un
+# binario grande pesa en el historial para siempre, aunque después se borre.
+Pomelli/
+
 # OS / editor
 .DS_Store
 .vscode/*

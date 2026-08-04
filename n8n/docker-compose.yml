@@ -43,6 +43,11 @@ services:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Las variables se pasan una a una: una que esté en .env pero no aquí NO
+      # llega al contenedor, y dentro del workflow $env.LO_QUE_SEA vale undefined
+      # sin que nada avise.
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN}
+      META_API_VERSION: ${META_API_VERSION:-v25.0}
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
     volumes:
       - n8n_data:/home/node/.n8n

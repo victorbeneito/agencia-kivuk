@@ -97,6 +97,64 @@ El email es opcional en voz: el speech-to-text destroza las direcciones incluso
 deletreadas. La cita se crea igual y queda pendiente decidir el canal de
 confirmación (SMS o WhatsApp).
 
+## De dónde saca el bot lo que sabe (RAG)
+
+Antes de llamar a la IA, el bot busca en dos sitios lo que haga falta para
+**esa** pregunta y se lo pone delante. No se le pasa la base de conocimiento
+entera: no cabría, se pagaría en cada mensaje y el modelo se despista.
+
+| Fuente | Qué aporta | Cómo se busca |
+| --- | --- | --- |
+| `knowledge_documents` / `knowledge_chunks` | Políticas, horarios, cómo funciona el negocio | Búsqueda vectorial (`match_knowledge`) |
+| `catalog_products` | Nombre, **precio** y URL de producto | Búsqueda por texto sin tildes (`buscar_productos`) |
+
+**Los precios no salen nunca de un documento escrito a mano.** Cambian, y un
+precio inventado o viejo dicho a un comprador real hace daño de verdad. Salen de
+`catalog_products`, que se resincroniza con el workflow de ingesta.
+
+**Sin tildes por los dos lados.** `Preparar búsqueda` normaliza la pregunta y
+`buscar_productos` aplica `unaccent` en la base. Por WhatsApp casi nadie escribe
+«lámpara» con tilde, y sin esto no encontraría *Lámpara colgante de rafia*.
+
+**Las reglas de anclaje son la mitad del trabajo.** Los fragmentos se envían con
+instrucciones explícitas de responder solo con eso y de decir que no lo sabe
+cuando no esté. Sin ellas el modelo rellena los huecos por su cuenta, que es
+exactamente lo que no se quiere en una tienda.
+
+**Los dos nodos de búsqueda llevan «Always Output Data».** Una búsqueda sin
+resultados devuelve cero filas, y en n8n cero items **corta el flujo**: el bot se
+quedaría mudo justo con el cliente que aún no ha cargado su conocimiento. Con esa
+opción llega un item vacío, se filtra, y el bot responde con su prompt normal.
+
+**Dónde se insertan importa.** Van antes de `Cargar historial`, no justo antes de
+`Preparar contexto` como podría parecer: ese nodo lee el historial con
+`$input.all()`, así que meterle otra cosa por delante lo deja sin memoria de
+conversación.
+
+**Se cambió `.item` por `.first()`** en los nodos de aguas abajo. `.item` resuelve
+por emparejamiento de items, y los nodos nuevos agrupan varias filas en una, con
+lo que ese emparejamiento se pierde. Aquí cada ejecución atiende un solo mensaje,
+así que `.first()` es equivalente y no depende de él.
+
+## Un bot que no reserva citas
+
+No todos los clientes tienen agenda: una tienda solo asesora. En vez de duplicar
+el workflow, `Preparar búsqueda` mira los módulos activos del cliente y marca
+`tiene_agenda`. Con eso:
+
+- `Preparar contexto` no le mete el calendario ni las instrucciones de reserva, y
+  usa un juego de instrucciones de atención al cliente.
+- `Decidir acción` fuerza `accion = 'ninguna'`, así que nunca llega a la Agenda
+  API aunque el modelo devuelva una fecha.
+
+Lo segundo no sobra. Si solo se quita el calendario del prompt, basta con que
+alguien escriba «¿me lo mandáis el viernes a las 10?» para que el bot intente
+reservar una cita que nadie ha pedido.
+
+`Consultar agenda` se sigue llamando, pero con `onError: continueRegularOutput`:
+que la Agenda API no responda para un cliente sin calendario no puede dejar al
+bot sin contestar.
+
 ## Cómo agenda el bot
 
 El bot no puede dar una hora ocupada. Antes de llamar a la IA consulta la
@@ -105,23 +163,30 @@ equivoque, el nodo `Comprobar disponibilidad` vuelve a validarlo antes de crear
 nada:
 
 ```
-Extraer mensaje → Buscar cliente → Buscar prompt → Buscar módulo calendar
-  → Buscar módulo email → Refrescar token Google → Cargar ocupación (freeBusy)
+Extraer mensaje → Buscar cliente Whatsapp → Buscar prompt del cliente
+  → Módulos del cliente → Preparar búsqueda
+  → Generar embedding → Buscar conocimiento → Recoger conocimiento
+  → Buscar productos → Recoger productos
+  → Consultar agenda (Agenda API: disponibilidad)
   → Buscar o crear conversación → Cargar historial → Preparar contexto
-  → Llamar a OpenAI → Parsear respuesta IA → Comprobar disponibilidad
-  → ¿Cita confirmable?
-       sí → Crear evento → Enviar email confirmación → Responder por Whatsapp
-       no → ─────────────────────────────────────────→ Responder por Whatsapp
-  → Guardar mensajes
+  → Llamar a OpenAI → Parsear respuesta IA → Decidir acción
+  → ¿Consultar agenda?
+       sí → Comprobar o reservar (Agenda API) → Respuesta con agenda
+       no → ───────────────────────────────────→ Respuesta sin agenda
+  → Respuesta final → Responder por Whatsapp → Guardar mensajes
 ```
 
-**Reparto de responsabilidades:** la IA solo *extrae* datos (fecha, hora, email)
-y conversa; **no decide la disponibilidad**. Esa decisión es del código, en
-`Comprobar disponibilidad`, que también redacta las respuestas de disponibilidad.
-Se hizo así porque el modelo llegaba a negar horas que sí estaban libres cuando
-el historial contenía rechazos anteriores.
+Google Calendar y el email **ya no aparecen aquí**: viven dentro de la Agenda
+API, y el bot solo la llama. Lo que sigue describe cómo reparte esa API el
+trabajo, que es lo que importa entender.
 
-`Comprobar disponibilidad` resuelve en este orden, y el orden importa:
+**Reparto de responsabilidades:** la IA solo *extrae* datos (fecha, hora, email)
+y conversa; **no decide la disponibilidad**. Esa decisión es del código, dentro
+de la Agenda API, que además redacta el mensaje de respuesta ya listo para
+enviar. Se hizo así porque el modelo llegaba a negar horas que sí estaban libres
+cuando el historial contenía rechazos anteriores.
+
+La Agenda API resuelve en este orden, y el orden importa:
 
 1. ¿Falta fecha u hora? → responde la IA, pidiendo lo que falte.
 2. ¿La hora está ocupada? → se dice **ya**, con alternativas. No se piden más datos.
@@ -174,16 +239,41 @@ lotes. Contesta enseguida (`Aceptado`) porque recorrer cientos de fichas tarda
 minutos y quien llama no debe quedarse esperando.
 
 **Cómo sabe qué es un producto.** No hay selectores de HTML de ninguna tienda:
-una página es un producto si se declara como `Product` de schema.org en su
-JSON-LD. Lo hacen PrestaShop, WooCommerce y Shopify de serie, así que el mismo
-workflow vale para el siguiente cliente sin tocarlo. Lo que no es producto se
-descarta solo.
+una página es un producto si se declara como `Product` de schema.org. Lo hacen
+PrestaShop, WooCommerce y Shopify de serie, así que el mismo workflow vale para
+el siguiente cliente sin tocarlo. Lo que no es producto se descarta solo.
+
+Se busca de dos formas, en este orden:
+
+1. **JSON-LD** (`<script type="application/ld+json">`), que es lo habitual.
+2. **Microdatos** (`itemprop` / `itemtype` en el propio HTML) si no hay JSON-LD
+   de producto. Esta segunda vía se añadió por Cestería Aparici, que va con
+   **Odoo**: Odoo publica los mismos campos de schema.org como atributos, y solo
+   emite JSON-LD de `Organization`. Sin ella el workflow terminaba «bien» con
+   cero productos, descartando las 368 fichas una a una sin un solo error.
+
+**Una ficha declara un `Product`; un listado, muchos.** La página
+`/shop/category/capazos-54` lleva 16 bloques `Product`, uno por tarjeta. Al leer
+microdatos hay que contarlos y descartar la página si no hay exactamente uno, o
+la primera tarjeta se guarda como un producto cuya URL es la del listado: basura
+que además parece correcta de un vistazo. Con JSON-LD el problema no existe
+porque los listados no lo emiten.
+
+**Odoo casi nunca dice la categoría en la ficha.** Solo aparece en la miga de
+pan si se llegó navegando desde la categoría, así que al entrar por el sitemap
+la mayoría de productos se guardan sin `category`. Es un campo opcional; se deja
+vacío antes que inventarlo.
 
 **El filtro de URLs va vacío por defecto, y es a propósito.** Filtrar el sitemap
 por patrón parece la optimización obvia hasta que la pruebas: en una tienda real
 con 694 URLs, `/productos/\d+` dejaba fuera 109 productos porque su ficha no
 lleva ID numérico (`/productos/duo-funda-nordica-franela-valeria`). Descargar
 109 páginas de más no cuesta nada; perder 109 productos en silencio, sí.
+
+Si aun así se quiere usar, hay que comprobar antes cuántas fichas deja fuera el
+patrón, no ponerlo a ojo. Para Cestería Aparici se verificó que
+`/shop/[^/]+-[0-9]+$` selecciona las 368 fichas y descarta solo las 58 páginas
+de categoría, sin perder ninguna.
 
 **Las fotos hay que pedirlas grandes.** El JSON-LD suele apuntar al thumbnail
 (`-home_default.jpg`, 250 px). El nodo lo reescribe a `-large_default.jpg` antes
@@ -249,18 +339,128 @@ recorta el estampado a pantalla completa y el resultado parece un cuadro, no un
 estor a medida. Quien lo ve puede darle a me gusta sin enterarse de qué se
 vende, y el hashtag no lo salva porque casi nadie los lee.
 
+## Publicación (`publicar-pieza.json`)
+
+`POST /webhook/publicar` con `{ "content_item_id": "…" }`. Opcionalmente
+`{ "redes": ["instagram"] }` para acotar; por omisión sale en todas las redes
+conectadas del cliente.
+
+Los tokens salen de `social_accounts`, no de `client_modules.config`: ese jsonb
+lo lee el propio cliente por RLS y un token de página permite publicar en nombre
+del negocio. Para llenar la tabla, `scripts/conectar-meta.js` (ver
+`docs/conectar-meta.md`).
+
+### Lo que el workflow se niega a hacer
+
+| Situación | Respuesta |
+|---|---|
+| La pieza no está en `approved`/`scheduled` | «solo se publica lo aprobado» |
+| Ya está en `published` | «ya está publicada» — no se republica |
+| Sin imagen, o con varias | avisa; los carruseles aún no se publican |
+| `format: reel` | avisa; aún no se publican |
+| Red no conectada | se salta esa red, sin error |
+| Story hacia Facebook | se salta: Facebook no publica stories por API |
+
+### Instagram no publica de una
+
+Son dos llamadas obligatorias y una espera en medio:
+
+1. `POST /{ig_user_id}/media` → devuelve un **contenedor**
+2. sondear `GET /{contenedor}?fields=status_code` hasta `FINISHED`
+3. `POST /{ig_user_id}/media_publish` con `creation_id`
+
+Meta descarga la imagen **desde internet y sin credenciales** durante el paso 1.
+Por eso el bucket de Supabase tiene que ser público: si no, el contenedor falla
+con un mensaje que no dice que el problema sea el permiso.
+
+El contador de reintentos se lee de `$('IG esperar').item.json`, **no** de
+`IG leer contenedor`. Ese nodo solo se ejecuta una vez: si el contador saliera de
+ahí valdría siempre 1, nunca llegaría al tope y el bucle giraría para siempre.
+
+### Facebook: `message`, no `caption`
+
+`POST /{page_id}/photos` con `url` + `message`. `caption` también existe en ese
+endpoint, pero es el pie de un enlace: si lo usas, la foto sale sin texto y sin
+error. Los hashtags se quitan para Facebook, donde no aportan.
+
+### Una red que falla no tumba la pieza
+
+Si Instagram publica y Facebook no, la pieza queda en `published` con el fallo
+anotado en `error`. Marcarla como fallida obligaría a republicar, y eso
+duplicaría el post de Instagram. El detalle por red va en `meta.publicaciones`.
+
+Los nodos HTTP llevan `neverError` + `fullResponse`: un 400 de Meta llega como
+dato y se convierte en un mensaje legible, en vez de reventar la ejecución con un
+volcado.
+
+### Límites de Meta que ya cumplimos
+
+JPEG (no PNG), ratio entre 0,8 y 1,91 (el post 1080×1350 está justo en 0,8),
+2200 caracteres de texto, 30 hashtags y 100 publicaciones por cuenta cada 24 h.
+
+### No hace falta App Review
+
+`instagram_content_publish` y `pages_manage_posts` vienen con *acceso estándar*,
+que toda app tiene de entrada y sirve para cuentas de personas **con rol en la
+app**, esté la app en Desarrollo o en Producción. La revisión (*acceso avanzado*)
+solo hará falta para conectar la cuenta de un cliente ajeno.
+
+Lo que sí importa es **con qué caso de uso se creó la app**: Instagram no está
+migrado al sistema nuevo de «casos de uso» y solo el caso **«Otro»** (heredado)
+expone `instagram_content_publish`. La app del bot de WhatsApp no sirve. Todo el
+detalle, y la trampa de los permisos concedidos sobre cero páginas, en
+`docs/conectar-meta.md`.
+
 ## ⚠️ Desplegar sin navegador
 
-`scratchpad/desplegar.js` escribe el borrador **y publica**, sin tocar n8n:
+`scripts/desplegar-workflow.js` actualiza un workflow que ya existe **y lo
+publica**, sin tocar el navegador:
 
 ```bash
-node desplegar.js ../n8n/workflows/contenido-generar.json "Contenido - Generar"
+node scripts/desplegar-workflow.js n8n/workflows/catalogo-ingesta.json            # simula
+node scripts/desplegar-workflow.js n8n/workflows/catalogo-ingesta.json --aplicar  # escribe y publica
 ```
 
-Existe porque escribir solo el borrador y pedir un Save+Publish manual falló
+Toma el nombre del propio JSON; si en n8n se llama de otra forma, se pasa como
+segundo argumento.
+
+**Importar el JSON desde la interfaz no sirve para actualizar**: crea un
+workflow *nuevo* con el mismo nombre y acabas con dos, cualquiera de los cuales
+puede atender el webhook.
+
+Y existe porque escribir solo el borrador y pedir un Save+Publish manual falló
 tres veces: si la pestaña del navegador estaba abierta de antes, al guardar
 mandaba **su** copia vieja encima de la nueva, y el fallo solo se descubría al
 ver resultados que no cuadraban.
+
+Lo que hace, en orden, que es el orden que importa: inserta la versión en
+`workflow_history` (primero, porque `workflow_entity.activeVersionId` tiene una
+clave ajena contra ella), actualiza el workflow, apunta `activeVersionId` a la
+versión nueva y reinicia el contenedor. `workflow_published_version` existe pero
+se queda vacía; no hace falta tocarla.
+
+### Todo nodo webhook necesita `webhookId`
+
+Un nodo `n8n-nodes-base.webhook` sin `webhookId` en el JSON **activa bien y
+registra la ruta**, pero al llegar la primera petición responde:
+
+```
+Cannot read properties of undefined (reading 'node')
+```
+
+Nada en los logs de arranque lo delata: el workflow aparece como «Activated».
+
+Es un fallo que solo existe desplegando el JSON directamente: al importar desde
+la interfaz, n8n inventa el `webhookId` que falte. Por eso puede aparecer
+*después* de un despliegue sobre un workflow que ya funcionaba — el despliegue
+machaca los nodos y se lleva por delante el id que había puesto la interfaz.
+
+### Borrar desde la interfaz es archivar
+
+n8n no elimina los workflows «borrados»: les pone `isArchived = true` y los
+esconde. Siguen en `workflow_entity` con el mismo nombre, así que buscar por
+nombre devuelve dos ids. `desplegar.js` filtra por `isArchived = false` y aborta
+si aún así hay más de uno.
 
 Publicar es crear una fila en `workflow_history` con un `versionId` nuevo y
 apuntar `workflow_entity.activeVersionId` a ella. El orden importa: hay una clave
@@ -335,3 +535,5 @@ Se definen en `n8n/.env` (ver `n8n/.env.example`):
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `OPENAI_API_KEY`
+- `META_API_VERSION` — opcional, por omisión `v25.0`. Los tokens de Meta no van
+  aquí: viven en `social_accounts`, uno por cliente.

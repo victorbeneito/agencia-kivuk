@@ -1,0 +1,49 @@
+# Batería de preguntas reales para el bot de Cestería Aparici.
+# Se lanza con:
+#   node scripts/probar-conocimiento.js "Cesteria Aparici" --bateria docs/preguntas-cesteria-aparici.txt
+#
+# Cada línea es una pregunta tal y como la escribiría un cliente por WhatsApp:
+# sin tildes, con faltas y con prisa. Las últimas son las importantes: preguntas
+# cuya respuesta NO está en la base de conocimiento. Ahí el bot tiene que decir
+# que no lo sabe, y eso se comprueba viendo que no recupera nada relevante.
+
+# --- envíos ---
+cuanto tarda el envio?
+hacéis envíos a Canarias?
+el envio es gratis?
+mandais a Baleares? cuanto cuesta
+puedo recoger el pedido yo mismo?
+que empresa de transporte usais
+
+# --- devoluciones ---
+si no me gusta lo puedo devolver
+cuantos dias tengo para devolver algo
+puedo devolver un capazo personalizado
+tengo que pagar yo la devolucion
+me devolveis los gastos de envio
+
+# --- pagos ---
+puedo pagar con bizum
+los precios llevan iva
+aceptais paypal
+
+# --- productos y asesoramiento ---
+que diferencia hay entre el capazo clasico y el basic
+un mueble de mimbre aguanta en el jardin
+que es mejor el ratan o el mimbre
+cuanto vale una lampara de rafia
+teneis cestos para la ropa sucia
+de que material son los capazos
+
+# --- la empresa ---
+donde estais
+que horario teneis
+desde cuando existis
+hacéis capazos personalizados con mi logo
+
+# --- lo que NO debe saber: aquí tiene que decir que no lo sabe ---
+teneis alfombras de lana
+hacéis reparaciones de sillas de enea
+puedo pagar en criptomonedas
+cual es el numero de seguimiento de mi pedido
+teneis tienda en Madrid

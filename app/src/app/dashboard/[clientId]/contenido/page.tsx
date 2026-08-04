@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Pieza, type PiezaData } from "./pieza";
+import { GenerarLote } from "./generar";
+import { SubirPieza } from "./subir";
 import type { EstadoPieza } from "./actions";
 
 /** Orden de revisión: primero lo que espera decisión, al final lo ya resuelto. */
@@ -38,6 +40,8 @@ type Fila = {
   format: string;
   caption: string | null;
   media_urls: string[] | null;
+  /** Último fallo de publicación, para no tener que ir a n8n a averiguarlo. */
+  error: string | null;
   meta: {
     titular?: string;
     producto?: string;
@@ -59,7 +63,7 @@ export default async function ContenidoPage({
 
   const { data } = await supabase
     .from("content_items")
-    .select("id, status, format, caption, media_urls, meta")
+    .select("id, status, format, caption, media_urls, error, meta")
     .eq("client_id", clientId)
     .order("created_at", { ascending: false });
 
@@ -70,6 +74,7 @@ export default async function ContenidoPage({
       format: f.format,
       caption: f.caption ?? "",
       mediaUrl: f.media_urls?.[0] ?? "",
+      error: f.error ?? "",
       titular: f.meta?.titular ?? "",
       producto: f.meta?.producto ?? "",
       avisos: f.meta?.avisos ?? [],
@@ -93,16 +98,22 @@ export default async function ContenidoPage({
 
   if (!todas.length) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Todavía no hay contenido</CardTitle>
-          <CardDescription>
-            Las piezas se generan desde n8n a partir del catálogo del cliente.
-            Cuando haya un lote, aparecerá aquí para que lo revises antes de que
-            se publique nada.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="flex flex-col gap-5">
+        <Card>
+          <CardHeader>
+            <CardTitle>Todavía no hay contenido</CardTitle>
+            <CardDescription>
+              Las piezas se generan a partir del catálogo del cliente. Cuando
+              haya un lote, aparecerá aquí para que lo revises antes de que se
+              publique nada.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        <div className="flex flex-wrap items-start gap-3">
+          <GenerarLote clientId={clientId} />
+          <SubirPieza clientId={clientId} />
+        </div>
+      </div>
     );
   }
 
@@ -136,6 +147,11 @@ export default async function ContenidoPage({
             </Link>
           );
         })}
+      </div>
+
+      <div className="flex flex-wrap items-start gap-3">
+        <GenerarLote clientId={clientId} />
+        <SubirPieza clientId={clientId} />
       </div>
 
       <p className="text-sm text-muted-foreground">

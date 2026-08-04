@@ -1,0 +1,971 @@
+{
+  "name": "Contenido - Publicar",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "publicar",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -220,
+        300
+      ],
+      "name": "Entrada",
+      "webhookId": "f4c5d6e7-0001-4001-8001-e00000000001",
+      "id": "pb000001-0001-4001-8001-000000000001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cuerpo = $json.body || {};\n\n// Se acepta tanto una pieza suelta como una lista, para poder publicar un lote\n// entero desde el panel sin llamar al webhook nueve veces.\nconst ids = []\n  .concat(cuerpo.content_item_id || [], cuerpo.content_item_ids || [])\n  .map((x) => String(x || '').trim())\n  .filter(Boolean);\n\n// Por omisión se publica en todas las redes conectadas del cliente. Se puede\n// acotar con { \"redes\": [\"instagram\"] }.\nconst redes = (Array.isArray(cuerpo.redes) ? cuerpo.redes : [])\n  .map((r) => String(r).toLowerCase().trim())\n  .filter((r) => r === 'instagram' || r === 'facebook');\n\nreturn [{ json: { content_item_id: ids[0] || '', redes } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        300
+      ],
+      "name": "Leer petición",
+      "id": "pb000002-0002-4002-8002-000000000002"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/content_items?id=eq.{{ $json.content_item_id }}&select=id,client_id,format,status,caption,hashtags,media_urls,meta",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        300
+      ],
+      "name": "Cargar pieza",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "pb000003-0003-4003-8003-000000000003"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/social_accounts?client_id=eq.{{ $json.client_id }}&active=eq.true&select=platform,external_id,username,access_token,meta",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        360,
+        300
+      ],
+      "name": "Cargar cuentas",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "id": "pb000004-0004-4004-8004-000000000004"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pet = $('Leer petición').first().json;\nconst pieza = $('Cargar pieza').first().json || {};\nconst cuentas = $input.all().map((i) => i.json).filter((c) => c && c.platform);\n\nconst no = (motivo) => [{ json: { listo: false, motivo, content_item_id: pet.content_item_id } }];\n\nif (!pet.content_item_id) return no('No has indicado qué pieza publicar.');\nif (!pieza.id) return no('Esa pieza no existe.');\n\n// Solo se publica lo aprobado. Es la regla que sostiene todo el módulo: nada\n// sale a la calle sin que una persona lo haya visto.\nconst PUBLICABLES = ['approved', 'scheduled'];\nif (!PUBLICABLES.includes(pieza.status)) {\n  return no(pieza.status === 'published'\n    ? 'Esa pieza ya está publicada.'\n    : 'Esa pieza está en «' + pieza.status + '»; solo se publica lo aprobado.');\n}\n\nconst medios = (pieza.media_urls || []).filter(Boolean);\nif (!medios.length) return no('Esa pieza no tiene imagen.');\nif (medios.length > 1) return no('Los carruseles todavía no se publican; esta pieza tiene ' + medios.length + ' imágenes.');\nif (pieza.format === 'reel') return no('Los reels todavía no se publican.');\n\n// En Facebook los hashtags no aportan y ensucian: se quita el bloque final.\nconst sinHashtags = (t) => String(t || '')\n  .split('\\n')\n  .filter((l) => !/^\\s*(#[\\p{L}\\p{N}_]+\\s*)+$/u.test(l))\n  .join('\\n')\n  .trim();\n\nconst pedidas = pet.redes.length ? pet.redes : ['instagram', 'facebook'];\nconst tareas = [];\n\nfor (const red of pedidas) {\n  const cuenta = cuentas.find((c) => c.platform === red);\n  if (!cuenta) continue;               // red no conectada: se ignora, no es un error\n\n  // Facebook no publica stories por API; Instagram sí.\n  if (red === 'facebook' && pieza.format === 'story') continue;\n\n  tareas.push({\n    listo: true,\n    red,\n    content_item_id: pieza.id,\n    client_id: pieza.client_id,\n    formato: pieza.format,\n    cuenta_id: cuenta.external_id,\n    usuario: cuenta.username || cuenta.external_id,\n    token: cuenta.access_token,\n    imagen: medios[0],\n    texto: red === 'facebook' ? sinHashtags(pieza.caption) : String(pieza.caption || ''),\n    // STORIES para las stories; para el resto, imagen normal.\n    media_type: pieza.format === 'story' ? 'STORIES' : 'IMAGE',\n  });\n}\n\nif (!tareas.length) {\n  return no(cuentas.length\n    ? 'Ninguna de las redes pedidas está conectada para este cliente.'\n    : 'Este cliente no tiene ninguna cuenta conectada. Ejecuta scripts/conectar-meta.js.');\n}\n\nreturn tareas.map((json) => ({ json }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        300
+      ],
+      "name": "Planificar",
+      "id": "pb000005-0005-4005-8005-000000000005"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c--publicable-",
+              "leftValue": "={{ $json.listo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        300
+      ],
+      "name": "¿Publicable?",
+      "id": "pb000006-0006-4006-8006-000000000006"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": false,\n  \"mensaje\": {{ JSON.stringify($json.motivo) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        960,
+        460
+      ],
+      "name": "No publicable",
+      "id": "pb000007-0007-4007-8007-000000000007"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/content_items?id=eq.{{ $json.content_item_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"publishing\",\n  \"error\": null,\n  \"updated_at\": {{ JSON.stringify(new Date().toISOString()) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        960,
+        300
+      ],
+      "name": "Marcar publicando",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "pb000008-0008-4008-8008-000000000008"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Planificar').all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        300
+      ],
+      "name": "Retomar plan",
+      "id": "pb000009-0009-4009-8009-000000000009"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c--es-instagram-",
+              "leftValue": "={{ $json.red === 'instagram' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        300
+      ],
+      "name": "¿Es Instagram?",
+      "id": "pb000010-0010-4010-8010-000000000010"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/{{ $env.META_API_VERSION || 'v25.0' }}/{{ $json.cuenta_id }}/media",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.imagen }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.texto }}"
+            },
+            {
+              "name": "media_type",
+              "value": "={{ $json.media_type }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1560,
+        200
+      ],
+      "name": "IG crear contenedor",
+      "alwaysOutputData": true,
+      "id": "pb000011-0011-4011-8011-000000000011"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const plan = $('Retomar plan').item.json;\nconst r = $json || {};\nconst cuerpo = r.body || {};\n\nif (r.statusCode >= 400 || cuerpo.error) {\n  const e = cuerpo.error || {};\n  return { json: { ...plan, ok: false, intento: 0,\n    fallo: 'No se pudo preparar la imagen: ' + (e.message || 'error ' + r.statusCode) } };\n}\n\nreturn { json: { ...plan, ok: true, intento: 0, contenedor: cuerpo.id } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        200
+      ],
+      "name": "IG leer contenedor",
+      "id": "pb000012-0012-4012-8012-000000000012"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c-ig-contenedor-creado-",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1960,
+        200
+      ],
+      "name": "IG ¿contenedor creado?",
+      "id": "pb000013-0013-4013-8013-000000000013"
+    },
+    {
+      "parameters": {
+        "amount": 4,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        120
+      ],
+      "name": "IG esperar",
+      "webhookId": "aa11bb22-cc33-dd44-ee55-ff6677889900",
+      "id": "pb000014-0014-4014-8014-000000000014"
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/{{ $env.META_API_VERSION || 'v25.0' }}/{{ $json.contenedor }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "status_code,status"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2360,
+        120
+      ],
+      "name": "IG estado contenedor",
+      "alwaysOutputData": true,
+      "id": "pb000015-0015-4015-8015-000000000015"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// El contador se lee de lo que entró en la espera, NO de \"IG leer contenedor\":\n// ese nodo solo se ejecuta una vez y siempre devolvería intento 0, así que el\n// tope de reintentos no se alcanzaría nunca y el bucle no terminaría.\nconst previo = $('IG esperar').item.json;\nconst r = $json || {};\nconst cuerpo = r.body || {};\nconst intento = (previo.intento || 0) + 1;\n\nconst estado = cuerpo.status_code || '';\n\n// Meta recomienda sondear una vez por minuto y no más de cinco. Aquí se sondea\n// más a menudo porque una imagen suele estar lista al instante; el tope de\n// intentos es lo que evita quedarse colgado.\nconst base = { ...previo, intento, listo: false, reintentar: false };\n\nif (estado === 'FINISHED' || estado === 'PUBLISHED') return { json: { ...base, listo: true } };\n\nif (estado === 'ERROR') {\n  return { json: { ...base, fallo: 'Instagram rechazó la imagen: ' + (cuerpo.status || 'sin detalle') } };\n}\nif (estado === 'EXPIRED') {\n  return { json: { ...base, fallo: 'El contenedor caducó antes de publicarse.' } };\n}\nif (intento >= 5) {\n  return { json: { ...base, fallo: 'Instagram sigue procesando la imagen tras ' + intento + ' intentos.' } };\n}\n\nreturn { json: { ...base, reintentar: true } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        120
+      ],
+      "name": "IG ¿listo?",
+      "id": "pb000016-0016-4016-8016-000000000016"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c-ig-publicar-ya-",
+              "leftValue": "={{ $json.listo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        120
+      ],
+      "name": "IG ¿publicar ya?",
+      "id": "pb000017-0017-4017-8017-000000000017"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c-ig-reintentar-",
+              "leftValue": "={{ $json.reintentar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2960,
+        240
+      ],
+      "name": "IG ¿reintentar?",
+      "id": "pb000018-0018-4018-8018-000000000018"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/{{ $env.META_API_VERSION || 'v25.0' }}/{{ $json.cuenta_id }}/media_publish",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.contenedor }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2960,
+        40
+      ],
+      "name": "IG publicar",
+      "alwaysOutputData": true,
+      "id": "pb000019-0019-4019-8019-000000000019"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// A este nodo se llega por tres caminos y hay que distinguirlos: desde\n// \"IG publicar\" el item es la respuesta HTTP de Meta; desde los dos desvíos de\n// fallo es el plan, que ya trae el motivo en 'fallo'. La respuesta HTTP es la\n// única que trae statusCode.\nconst r = $json || {};\nconst desdeHttp = r.statusCode !== undefined;\nconst plan = desdeHttp ? $('IG ¿listo?').item.json : r;\n\nconst fin = (ok, extra) => ({\n  json: {\n    red: 'instagram',\n    content_item_id: plan.content_item_id,\n    usuario: plan.usuario,\n    ok,\n    ...extra,\n  },\n});\n\nif (!desdeHttp) return fin(false, { error: plan.fallo || 'Falló antes de publicar.' });\n\nconst cuerpo = r.body || {};\nif (r.statusCode >= 400 || cuerpo.error) {\n  const e = cuerpo.error || {};\n  return fin(false, { error: 'Instagram: ' + (e.message || 'error ' + r.statusCode) });\n}\n\nreturn fin(true, { post_id: cuerpo.id });"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3180,
+        120
+      ],
+      "name": "IG resultado",
+      "id": "pb000020-0020-4020-8020-000000000020"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/{{ $env.META_API_VERSION || 'v25.0' }}/{{ $json.cuenta_id }}/photos",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.imagen }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.texto }}"
+            },
+            {
+              "name": "published",
+              "value": "true"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1560,
+        460
+      ],
+      "name": "FB publicar",
+      "alwaysOutputData": true,
+      "id": "pb000021-0021-4021-8021-000000000021"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const plan = $('Retomar plan').item.json;\nconst r = $json || {};\nconst cuerpo = r.body || {};\n\nif (r.statusCode >= 400 || cuerpo.error) {\n  const e = cuerpo.error || {};\n  return { json: { red: 'facebook', content_item_id: plan.content_item_id,\n    usuario: plan.usuario, ok: false,\n    error: 'Facebook: ' + (e.message || 'error ' + r.statusCode) } };\n}\n\n// /photos devuelve el id de la foto y el del post; el que sirve para enlazar a\n// la publicación es post_id.\nreturn { json: { red: 'facebook', content_item_id: plan.content_item_id,\n  usuario: plan.usuario, ok: true, post_id: cuerpo.post_id || cuerpo.id } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        460
+      ],
+      "name": "FB resultado",
+      "id": "pb000022-0022-4022-8022-000000000022"
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        3400,
+        300
+      ],
+      "name": "Unir resultados",
+      "id": "pb000023-0023-4023-8023-000000000023"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resultados = $input.all().map((i) => i.json);\nconst ok = resultados.filter((r) => r.ok);\nconst fallos = resultados.filter((r) => !r.ok);\n\nconst itemId = (resultados[0] || {}).content_item_id ||\n  $('Leer petición').first().json.content_item_id;\n\n// La pieza se da por publicada si salió en al menos una red. Marcarla como\n// fallida porque Facebook falló, cuando Instagram sí publicó, obligaría a\n// republicar y duplicaría el post de Instagram.\nconst estado = ok.length ? 'published' : 'failed';\n\nconst publicaciones = {};\nfor (const r of resultados) {\n  publicaciones[r.red] = r.ok\n    ? { post_id: r.post_id, usuario: r.usuario, publicado_en: new Date().toISOString() }\n    : { error: r.error };\n}\n\nreturn [{\n  json: {\n    content_item_id: itemId,\n    estado,\n    // external_post_id se queda con el de Instagram por ser la red principal\n    // del módulo; el detalle completo de cada red va en meta.publicaciones.\n    external_post_id: (ok.find((r) => r.red === 'instagram') || ok[0] || {}).post_id || null,\n    published_at: ok.length ? new Date().toISOString() : null,\n    error: fallos.length ? fallos.map((f) => f.error).join(' | ') : null,\n    publicaciones,\n    mensaje: ok.length\n      ? 'Publicado en ' + ok.map((r) => r.red).join(' y ') +\n        (fallos.length ? '. Falló en ' + fallos.map((r) => r.red).join(' y ') + '.' : '.')\n      : 'No se pudo publicar. ' + fallos.map((f) => f.error).join(' | '),\n    ok: ok.length > 0,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3600,
+        300
+      ],
+      "name": "Resumen",
+      "id": "pb000024-0024-4024-8024-000000000024"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/content_items?id=eq.{{ $json.content_item_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": {{ JSON.stringify($json.estado) }},\n  \"external_post_id\": {{ JSON.stringify($json.external_post_id) }},\n  \"published_at\": {{ JSON.stringify($json.published_at) }},\n  \"error\": {{ JSON.stringify($json.error) }},\n  \"meta\": {{ JSON.stringify({ publicaciones: $json.publicaciones }) }},\n  \"updated_at\": {{ JSON.stringify(new Date().toISOString()) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3800,
+        300
+      ],
+      "name": "Guardar resultado",
+      "alwaysOutputData": true,
+      "id": "pb000025-0025-4025-8025-000000000025"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Resumen').first().json;\nreturn [{ json: { ok: r.ok, mensaje: r.mensaje, publicaciones: r.publicaciones } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        300
+      ],
+      "name": "Responder cuerpo",
+      "id": "pb000026-0026-4026-8026-000000000026"
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        4200,
+        300
+      ],
+      "name": "Responder",
+      "id": "pb000027-0027-4027-8027-000000000027"
+    }
+  ],
+  "connections": {
+    "Entrada": {
+      "main": [
+        [
+          {
+            "node": "Leer petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer petición": {
+      "main": [
+        [
+          {
+            "node": "Cargar pieza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar pieza": {
+      "main": [
+        [
+          {
+            "node": "Cargar cuentas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar cuentas": {
+      "main": [
+        [
+          {
+            "node": "Planificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Planificar": {
+      "main": [
+        [
+          {
+            "node": "¿Publicable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Publicable?": {
+      "main": [
+        [
+          {
+            "node": "Marcar publicando",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No publicable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar publicando": {
+      "main": [
+        [
+          {
+            "node": "Retomar plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retomar plan": {
+      "main": [
+        [
+          {
+            "node": "¿Es Instagram?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es Instagram?": {
+      "main": [
+        [
+          {
+            "node": "IG crear contenedor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FB publicar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG crear contenedor": {
+      "main": [
+        [
+          {
+            "node": "IG leer contenedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG leer contenedor": {
+      "main": [
+        [
+          {
+            "node": "IG ¿contenedor creado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG ¿contenedor creado?": {
+      "main": [
+        [
+          {
+            "node": "IG esperar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IG resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG esperar": {
+      "main": [
+        [
+          {
+            "node": "IG estado contenedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG estado contenedor": {
+      "main": [
+        [
+          {
+            "node": "IG ¿listo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG ¿listo?": {
+      "main": [
+        [
+          {
+            "node": "IG ¿publicar ya?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG ¿publicar ya?": {
+      "main": [
+        [
+          {
+            "node": "IG publicar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IG ¿reintentar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG ¿reintentar?": {
+      "main": [
+        [
+          {
+            "node": "IG esperar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IG resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG publicar": {
+      "main": [
+        [
+          {
+            "node": "IG resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG resultado": {
+      "main": [
+        [
+          {
+            "node": "Unir resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB publicar": {
+      "main": [
+        [
+          {
+            "node": "FB resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB resultado": {
+      "main": [
+        [
+          {
+            "node": "Unir resultados",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Unir resultados": {
+      "main": [
+        [
+          {
+            "node": "Resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen": {
+      "main": [
+        [
+          {
+            "node": "Guardar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar resultado": {
+      "main": [
+        [
+          {
+            "node": "Responder cuerpo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder cuerpo": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

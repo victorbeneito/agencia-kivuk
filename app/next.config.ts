@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    // Las Server Actions aceptan 1 MB por defecto y una pieza de Instagram
+    // exportada de una herramienta de diseño pasa de eso sin despeinarse. El
+    // servicio de imagen corta en 12 MB, así que aquí se pone lo mismo: mejor
+    // que el límite salte donde puede explicarse.
+    serverActions: { bodySizeLimit: "12mb" },
+  },
 };
 
 export default nextConfig;

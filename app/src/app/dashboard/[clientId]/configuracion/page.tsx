@@ -429,6 +429,25 @@ export default async function ClientConfigPage({
                 />
               </div>
             </div>
+            <label className="flex items-start gap-3 rounded-md border p-3">
+              <input
+                type="checkbox"
+                name="mostrar_precio"
+                defaultChecked={socialConfig.mostrar_precio === "true"}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span className="flex flex-col gap-1">
+                <span className="text-sm font-medium">
+                  Enseñar el precio en la imagen
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Déjalo sin marcar si el mismo producto tiene varios tamaños:
+                  el catálogo guarda el precio de partida, y enseñar esa cifra
+                  promete algo que en otras medidas no se cumple.
+                </span>
+              </span>
+            </label>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="color_primario">Color principal</Label>

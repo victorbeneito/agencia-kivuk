@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const SECCIONES = [
   { slug: "", etiqueta: "Resumen" },
   { slug: "contenido", etiqueta: "Contenido" },
+  { slug: "conocimiento", etiqueta: "Conocimiento" },
   { slug: "conversaciones", etiqueta: "Conversaciones" },
   { slug: "configuracion", etiqueta: "Configuración" },
 ];

@@ -60,7 +60,38 @@ sea cual sea la foto. El pie va a la izquierda y el precio a la derecha, en la
 misma fila: cuando iban uno debajo del otro, un titular de dos líneas los hacía
 solaparse.
 
+## `POST /subir` — piezas hechas fuera
+
+Para meter en la cola una imagen que no ha generado el sistema (Pomelli, Canva,
+un diseñador). No compone nada: comprueba, convierte y guarda.
+
+```bash
+curl -X POST "http://localhost:3001/subir?client_id=UUID&formato=post" \
+  --data-binary "@pieza.png"
+```
+
+El cuerpo son los bytes de la imagen, tal cual. Devuelve la URL pública.
+
+- **Siempre sale JPEG.** Instagram no admite PNG y las herramientas de diseño
+  exportan PNG por defecto. Se convierte aquí para que el fallo no aparezca al
+  publicar, cuando la pieza ya está aprobada.
+- **Se comprueba la proporción** contra lo que acepta Instagram: `post` entre
+  0,8 y 1,91; `story` entre 0,5 y 1. Fuera de rango se rechaza explicando la
+  medida recibida, en vez de recortar por su cuenta: una pieza diseñada lleva el
+  texto colocado y un recorte automático se lo comería.
+- **Se reduce a 1440 px de ancho** si viene más grande; nunca se amplía.
+
 ## Trampas que ya nos han mordido
+
+**El código va dentro de la imagen.** El contenedor no monta `src/`, así que
+`docker compose restart render` **no recoge los cambios**. Hay que reconstruir:
+
+```bash
+docker compose -f n8n/docker-compose.yml up -d --build render
+```
+
+Si el servicio arranca bien y `/salud` responde, pero un endpoint recién escrito
+da 404, es esto.
 
 **Las fuentes no son opcionales.** El texto se compone rasterizando un SVG. En
 una imagen sin fuentes instaladas el texto sale en blanco **sin dar ningún

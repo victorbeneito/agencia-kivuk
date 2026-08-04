@@ -76,6 +76,12 @@ export function AppSidebar({ agencyName }: { agencyName: string }) {
           oscura sería un rectángulo blanco. Los PNG de `public/` son el mismo
           logotipo con el fondo eliminado y recortado; la marca suelta (la K) es
           para cuando la barra está plegada y no cabe el logotipo entero.
+
+          Las dos alturas no son comparables entre sí: el logotipo es un bloque
+          de dos líneas donde la palabra "KIVUK" ocupa solo el 66% de la imagen
+          (el resto es el hueco y "agencia"), mientras que la marca es un glifo
+          que llena su caja. A 48px la palabra mide 32px reales; a 38px medía 25
+          y se veía casi igual de pequeña que la marca plegada de 22px.
         */}
         <div className="flex flex-col gap-1 px-2 py-2 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
           <Image
@@ -84,7 +90,7 @@ export function AppSidebar({ agencyName }: { agencyName: string }) {
             width={800}
             height={407}
             priority
-            className="h-[38px] w-auto max-w-[170px] object-contain object-left group-data-[collapsible=icon]:hidden"
+            className="h-[72px] w-auto max-w-[170px] object-contain object-left group-data-[collapsible=icon]:hidden"
           />
           <Image
             src="/kivuk-marca.png"

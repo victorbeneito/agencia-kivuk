@@ -226,6 +226,11 @@ export async function updateBrandConfig(formData: FormData) {
     producto_estrella:
       (formData.get("producto_estrella") as string)?.trim() ?? "",
     peso_estrella: (formData.get("peso_estrella") as string)?.trim() ?? "",
+    // Una casilla sin marcar no viaja en el formulario, así que su ausencia es
+    // el "false". Hay que escribirlo explícitamente o al desmarcarla se
+    // quedaría el valor anterior. Se guarda como cadena porque todo este config
+    // lo es, aunque la columna sea jsonb.
+    mostrar_precio: formData.get("mostrar_precio") === "on" ? "true" : "",
   });
 
   if (error) {
