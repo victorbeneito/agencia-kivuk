@@ -9,6 +9,7 @@ el panel de la agencia escribe por cliente.
 | Archivo | Qué es |
 | --- | --- |
 | `whatsapp-bot.json` | Versión actual: WhatsApp + IA con memoria, disponibilidad real de agenda, Google Calendar y confirmación por email (Resend). |
+| `enviar-whatsapp.json` | Envía un mensaje escrito por una persona desde la bandeja del panel. Es el único workflow que llama el panel para hablar con Meta. |
 | `agenda-api.json` | API interna de agenda: consultar disponibilidad y reservar. La comparten el bot de WhatsApp y el agente de voz. |
 | `voz-vapi.json` | Adaptador entre las tool calls de Vapi (agente de voz) y la Agenda API. |
 | `catalogo-ingesta.json` | Recorre el sitemap de la tienda de un cliente y vuelca sus productos en `catalog_products`. |
@@ -174,6 +175,7 @@ Extraer mensaje → Buscar cliente Whatsapp → Buscar prompt del cliente
        sí → Comprobar o reservar (Agenda API) → Respuesta con agenda
        no → ───────────────────────────────────→ Respuesta sin agenda
   → Respuesta final → Responder por Whatsapp → Guardar mensajes
+  → ¿Pide una persona? → Marcar que pide persona
 ```
 
 Google Calendar y el email **ya no aparecen aquí**: viven dentro de la Agenda
@@ -411,6 +413,63 @@ expone `instagram_content_publish`. La app del bot de WhatsApp no sirve. Todo el
 detalle, y la trampa de los permisos concedidos sobre cero páginas, en
 `docs/conectar-meta.md`.
 
+## Cuando contesta una persona en vez del bot
+
+La bandeja del panel permite que alguien del negocio entre en una conversación y
+siga hablando él. Para que eso funcione, el bot tiene que **callarse**, y el
+workflow tiene dos añadidos:
+
+```
+Buscar o crear conversación
+  → ¿Responde el bot?
+       sí → Cargar historial → ... (flujo de siempre)
+       no → Guardar mensaje entrante  ← y aquí se acaba
+```
+
+**El mensaje entrante se guarda igualmente.** Si no, al tomar el mando de una
+conversación el panel dejaría de recibir lo que escribe el contacto: se vería el
+hilo congelado en el último mensaje del bot. Es el error fácil de cometer, porque
+todo *parece* funcionar hasta que alguien usa el relevo de verdad.
+
+**El relevo caduca.** La condición no es solo `mode != 'human'`, sino también que
+`human_until` no haya pasado. Sin esa segunda parte, cualquiera que abra un chat
+y se despiste deja al contacto hablando con nadie. El panel aplica exactamente la
+misma regla al pintar el estado.
+
+**El bot levanta la mano, pero no se calla solo.** El contrato JSON con la IA
+tiene un campo `escalar`. Cuando viene `true` —el usuario pide una persona, está
+enfadado, reclama, pregunta por un pedido concreto— se sella
+`handoff_requested_at` y la bandeja destaca esa conversación. El bot responde
+igual lo que diga su prompt: quien decide tomar el mando es la persona que mira
+el panel, no el modelo. Un bot que se apagara solo dejaría conversaciones mudas
+cada vez que alguien escribiera «hola, quiero hablar con alguien» un domingo.
+
+## Enviar desde el panel (`enviar-whatsapp.json`)
+
+```
+POST /webhook/enviar-whatsapp
+Cabecera: x-kivuk-token: <PANEL_WEBHOOK_TOKEN>
+{ "conversation_id": "...", "texto": "...", "sent_by_user_id": "..." }
+```
+
+Devuelve `{ ok: true }` o `{ ok: false, mensaje: "..." }` con un motivo legible,
+que el panel enseña tal cual bajo el compositor.
+
+**Lleva secreto compartido y los demás webhooks no.** Este manda mensajes de
+WhatsApp en nombre de un negocio: abierto a internet sería un buzón de spam con
+el número del cliente. Si `PANEL_WEBHOOK_TOKEN` está vacío en el servidor, el
+workflow se niega a enviar y lo dice, en vez de dejar pasar todo.
+
+**Vuelve a comprobar la ventana de 24 horas** aunque el panel ya lo haya hecho.
+Meta solo acepta texto libre dentro de las 24 h siguientes al último mensaje del
+contacto, y entre que alguien escribe y le da a enviar puede haberse cerrado.
+
+**El mensaje se guarda solo si Meta lo acepta.** El nodo de envío va con
+`neverError` para poder leer el motivo del rechazo y devolverlo, en vez de morir
+sin respuesta y dejar al panel esperando. Se guarda con `role: assistant` (para
+que el bot lo entienda como un turno suyo si retoma el hilo) y `sender: human`
+(para que la bandeja lo pinte distinto y se sepa quién lo escribió).
+
 ## ⚠️ Desplegar sin navegador
 
 `scripts/desplegar-workflow.js` actualiza un workflow que ya existe **y lo
@@ -537,3 +596,5 @@ Se definen en `n8n/.env` (ver `n8n/.env.example`):
 - `OPENAI_API_KEY`
 - `META_API_VERSION` — opcional, por omisión `v25.0`. Los tokens de Meta no van
   aquí: viven en `social_accounts`, uno por cliente.
+- `PANEL_WEBHOOK_TOKEN` — secreto compartido con el panel para
+  `enviar-whatsapp`. El panel lo lee como `N8N_WEBHOOK_TOKEN`.

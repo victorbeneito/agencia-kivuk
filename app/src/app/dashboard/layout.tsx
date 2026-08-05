@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAgencia } from "@/lib/auth";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarInset,
@@ -6,23 +7,23 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { LogoutButton } from "./logout-button";
+import { LogoutButton } from "@/components/logout-button";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // El middleware ya reparte por rol, pero aquí se vuelve a exigir: una
+  // redirección se puede saltar de muchas maneras, una comprobación en el
+  // servidor no.
+  const user = await requireAgencia();
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const { data: agency } = await supabase
     .from("agencies")
     .select("name")
-    .eq("owner_user_id", user?.id ?? "")
+    .eq("owner_user_id", user.userId)
     .single();
 
   return (
@@ -39,7 +40,7 @@ export default async function DashboardLayout({
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-muted-foreground sm:block">
-              {user?.email}
+              {user.email}
             </span>
             <LogoutButton />
           </div>

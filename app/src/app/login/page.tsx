@@ -1,20 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-export default function LoginPage() {
+function Formulario() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(
+    // El middleware manda aquí a quien tiene sesión pero ninguna ficha en
+    // `user_profiles`: sin ella no se sabe de qué agencia o cliente es.
+    searchParams.get("sin_perfil")
+      ? "Tu usuario no tiene todavía un panel asignado. Avísanos y lo activamos."
+      : null
+  );
+  const [cargando, setCargando] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
+    setCargando(true);
 
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
@@ -22,89 +33,73 @@ export default function LoginPage() {
       password,
     });
 
-    setLoading(false);
-
     if (error) {
+      setCargando(false);
       setError("Email o contraseña incorrectos.");
       return;
     }
 
-    router.replace("/dashboard");
+    // A la raíz, no a un panel concreto: es ella la que sabe si este usuario es
+    // de la agencia o de un cliente. Así el login no tiene que enterarse.
+    router.replace("/");
     router.refresh();
   }
 
   return (
-    <main
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "sans-serif",
-      }}
+    <form
+      onSubmit={handleSubmit}
+      className="flex w-full max-w-sm flex-col gap-6 rounded-xl border bg-card p-8 shadow-sm"
     >
-      <form
-        onSubmit={handleSubmit}
-        style={{ width: 320, padding: 24, border: "1px solid #ddd", borderRadius: 8 }}
-      >
-        <h1 style={{ marginBottom: 24 }}>Iniciar sesión</h1>
+      <div className="flex flex-col items-center gap-2">
+        <Image
+          src="/kivuk-logo.png"
+          alt="Kivuk Agencia"
+          width={800}
+          height={407}
+          priority
+          className="h-[76px] w-auto object-contain"
+        />
+      </div>
 
-        <label style={{ display: "block", fontWeight: "bold", marginBottom: 4 }}>
-          Email
-        </label>
-        <input
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
           type="email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={{
-            width: "100%",
-            padding: 8,
-            marginBottom: 16,
-            border: "1px solid #ccc",
-            borderRadius: 4,
-          }}
         />
+      </div>
 
-        <label style={{ display: "block", fontWeight: "bold", marginBottom: 4 }}>
-          Contraseña
-        </label>
-        <input
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="password">Contraseña</Label>
+        <Input
+          id="password"
           type="password"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={{
-            width: "100%",
-            padding: 8,
-            marginBottom: 16,
-            border: "1px solid #ccc",
-            borderRadius: 4,
-          }}
         />
+      </div>
 
-        {error && (
-          <p style={{ color: "red", marginBottom: 16, fontSize: 14 }}>{error}</p>
-        )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "10px 24px",
-            background: "#0070f3",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: loading ? "not-allowed" : "pointer",
-            fontSize: 14,
-            opacity: loading ? 0.7 : 1,
-          }}
-        >
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+      <Button type="submit" disabled={cargando} className="w-full">
+        {cargando ? "Entrando…" : "Entrar"}
+      </Button>
+    </form>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <main className="flex min-h-screen items-center justify-center p-6">
+      <Suspense>
+        <Formulario />
+      </Suspense>
     </main>
   );
 }

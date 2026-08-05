@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { AccesoCliente, type UsuarioCliente } from "../acceso-cliente";
 import {
   updateAgentConfig,
   updateBrandConfig,
@@ -13,7 +14,6 @@ import {
 import { ModuleToggle } from "../module-toggle";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -72,12 +72,6 @@ export default async function ClientConfigPage({
   const { clientId } = await params;
   const supabase = await createClient();
 
-  const { data: client } = await supabase
-    .from("clients")
-    .select("id, name")
-    .eq("id", clientId)
-    .single();
-
   const { data: agentConfig, error } = await supabase
     .from("agent_configs")
     .select("system_prompt, knowledge_base")
@@ -92,6 +86,30 @@ export default async function ClientConfigPage({
   const moduleByName = new Map(
     (modules ?? []).map((m) => [m.module as ModuleName, m])
   );
+
+  // El email vive en `auth.users`, que no se consulta con la sesión del usuario:
+  // hace falta `service_role`. La lista es de dos o tres personas por cliente,
+  // así que se pide una por una en vez de traerse el directorio entero.
+  const admin = createServiceRoleClient();
+  const { data: perfilesCliente } = await admin
+    .from("user_profiles")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("role", "client_user");
+
+  const usuarios: UsuarioCliente[] = (
+    await Promise.all(
+      (perfilesCliente ?? []).map(async ({ id }) => {
+        const { data } = await admin.auth.admin.getUserById(id);
+        if (!data.user) return null;
+        return {
+          id,
+          email: data.user.email ?? "(sin email)",
+          ultimoAcceso: data.user.last_sign_in_at ?? null,
+        };
+      })
+    )
+  ).filter((u): u is UsuarioCliente => u !== null);
 
   const whatsappConfig =
     (moduleByName.get("whatsapp")?.config as Record<string, string> | null) ??
@@ -153,6 +171,21 @@ export default async function ClientConfigPage({
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Acceso del cliente al panel</CardTitle>
+          <CardDescription>
+            Quién puede entrar en{" "}
+            <span className="font-mono text-xs">/panel</span> a ver sus
+            conversaciones y su contenido. Solo verá los módulos que tenga
+            activos, y nunca las credenciales ni el prompt del bot.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AccesoCliente clientId={clientId} usuarios={usuarios} />
         </CardContent>
       </Card>
 

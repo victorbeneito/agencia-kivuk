@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# El .example sí se versiona: es la lista de variables que hay que rellenar, y
+# sin él quien clona el repo no sabe qué le falta. No lleva ningún secreto.
+!.env*.example
 
 # vercel
 .vercel

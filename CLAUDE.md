@@ -8,7 +8,7 @@ Plataforma multi-cliente para una agencia digital: cada cliente final puede tene
 
 ## Arquitectura
 
-- **`/app`** — Next.js (App Router, TypeScript, Tailwind). Panel de control: login de agencia, alta de clientes, activación de módulos por cliente, configuración de bots (prompt, base de conocimiento), visualización de conversaciones/citas/leads.
+- **`/app`** — Next.js (App Router, TypeScript, Tailwind). **Dos paneles sobre la misma base de código**, repartidos por el rol de `user_profiles`: `/dashboard` es el de la agencia (alta de clientes, módulos, credenciales, prompt, conocimiento, contenido) y `/panel` el del cliente final (solo sus módulos contratados: bandeja de WhatsApp y contenido). Detalle en `docs/panel-cliente-siguientes-pasos.md`.
 - **`/n8n`** — n8n self-hosted vía Docker. Es el motor de ejecución: workflows/plantillas reutilizables (WhatsApp, Calendar+Email, Voz, Instagram) que se activan por cliente. Next.js y n8n se comunican por webhooks HTTP. **En producción vive en el VPS**, no en local: `https://n8n.agenciakivuk.com`.
 - **`/supabase`** — Esquema de base de datos (Postgres) y migraciones. Supabase también da Auth y Row Level Security (RLS) para aislar datos entre clientes.
 - **`/docs`** — Plan completo del proyecto por fases (`plan-agencia-ia.md`) y decisiones de arquitectura (`architecture.md`). Consulta estos archivos antes de proponer cambios de stack.
@@ -24,7 +24,8 @@ Plataforma multi-cliente para una agencia digital: cada cliente final puede tene
 ## Convenciones de trabajo
 
 - Cada módulo (WhatsApp, Voz, Calendar, Email, Instagram) es una plantilla de workflow n8n reutilizable + su correspondiente UI de configuración en Next.js. No se crea código específico por cliente.
-- Toda tabla de Supabase que contenga datos de clientes debe llevar RLS activado desde el primer commit que la crea.
+- Toda tabla de Supabase que contenga datos de clientes debe llevar RLS activado desde el primer commit que la crea. Las políticas se escriben con `es_agencia_del_cliente()` / `es_usuario_del_cliente()` (migración 0008), no con el subselect copiado a mano.
+- **Regla del `client_user`: lee, no escribe.** El cliente final tiene RLS de solo lectura sobre sus datos y ninguna sobre credenciales, prompt, conocimiento ni catálogo. Lo que sí puede hacer pasa por server actions con `service_role` que comprueban permisos y validan la transición. Si una tabla nueva va a verse desde `/panel`, la política por defecto es SELECT y nada más.
 - Las claves de API (OpenRouter, OpenAI, Meta WhatsApp, Twilio, Stripe...) nunca se hardcodean: van en variables de entorno (`.env.local` en `/app`, `.env` en `/n8n`, ambos con su `.example` versionado y el real en `.gitignore`).
 - El plan de trabajo avanza por fases (ver `docs/plan-agencia-ia.md`). No adelantar fases sin terminar la anterior salvo indicación explícita.
 
@@ -60,5 +61,17 @@ Para desarrollo local del panel: `/app` → `npm install` y `npm run dev`.
 
 Fase 1.5 completada: n8n en producción 24/7 con HTTPS, WhatsApp funcionando
 contra un cliente real de pruebas (mensajes, citas en Google Calendar y correos
-de confirmación verificados). Siguiente frente: el panel de administración en
-Next.js. Ver tareas y progreso en `docs/plan-agencia-ia.md`.
+de confirmación verificados).
+
+Panel de administración construido, y sobre él el **panel del cliente**: acceso
+propio en `/panel`, secciones según los módulos contratados, bandeja de
+conversaciones tipo WhatsApp con relevo humano (una persona entra en el chat y el
+bot se calla) y revisión de contenido.
+
+⚠️ **El panel del cliente está escrito pero no puesto en marcha.** Faltan las
+migraciones `0008`/`0009` en Supabase, el secreto `PANEL_WEBHOOK_TOKEN` y
+desplegar los workflows. Los pasos, en orden y con sus comprobaciones, están en
+`docs/panel-cliente-siguientes-pasos.md` — es lo primero que hay que leer antes
+de seguir por ahí.
+
+Ver tareas y progreso general en `docs/plan-agencia-ia.md`.

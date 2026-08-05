@@ -1,0 +1,540 @@
+{
+  "name": "Enviar Whatsapp (panel)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "enviar-whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -208,
+        288
+      ],
+      "id": "ew000001-0001-4001-8001-000000000001",
+      "name": "Entrada",
+      "webhookId": "e1a2b3c4-d5e6-4f70-8912-aabbccddeeff",
+      "notes": "Lo llama el panel cuando una persona escribe desde la bandeja. No lo llama Meta: los mensajes entrantes van al workflow del bot."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Este webhook envía WhatsApp en nombre de un negocio. Sin secreto\n// compartido, cualquiera que adivine la URL puede escribir a sus clientes: es\n// la diferencia entre un endpoint interno y un buzón de spam abierto.\nconst cabeceras = $json.headers || {};\nconst cuerpo = $json.body || {};\nconst esperado = $env.PANEL_WEBHOOK_TOKEN || '';\n\nconst autorizado = Boolean(esperado) && cabeceras['x-kivuk-token'] === esperado;\n\nreturn [{\n  json: {\n    autorizado,\n    // Falta el secreto en el servidor: se distingue del token equivocado para\n    // no volverse loco buscando por qué no envía.\n    sin_configurar: !esperado,\n    conversation_id: cuerpo.conversation_id || null,\n    texto: String(cuerpo.texto || '').trim(),\n    sent_by_user_id: cuerpo.sent_by_user_id || null,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        288
+      ],
+      "id": "ew000002-0002-4002-8002-000000000002",
+      "name": "Leer petición"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-ew000003",
+              "leftValue": "={{ $json.autorizado && $json.conversation_id && $json.texto }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        288
+      ],
+      "id": "ew000003-0003-4003-8003-000000000003",
+      "name": "¿Petición legítima?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('Leer petición').first().json;\n\nreturn [{\n  json: {\n    ok: false,\n    mensaje: p.sin_configurar\n      ? 'Falta PANEL_WEBHOOK_TOKEN en el .env del servidor de n8n.'\n      : !p.autorizado\n        ? 'Petición no autorizada.'\n        : 'Faltan la conversación o el texto.',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        496
+      ],
+      "id": "ew000004-0004-4004-8004-000000000004",
+      "name": "Respuesta rechazada"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/conversations?id=eq.{{ $json.conversation_id }}&select=id,client_id,external_contact_id,last_inbound_at",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        384,
+        288
+      ],
+      "id": "ew000005-0005-4005-8005-000000000005",
+      "name": "Buscar conversación"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Meta solo deja mandar texto libre dentro de las 24 h siguientes al último\n// mensaje del contacto. El panel ya lo comprueba antes de llamar, pero el\n// tiempo pasa: entre que se escribe y se envía puede haberse cerrado.\nconst conv = $json.id ? $json : null;\n\nif (!conv) {\n  return [{ json: { valida: false, mensaje: 'Esa conversación no existe.' } }];\n}\n\nconst ultimo = conv.last_inbound_at ? new Date(conv.last_inbound_at).getTime() : 0;\nconst abierta = ultimo > 0 && Date.now() - ultimo < 24 * 60 * 60 * 1000;\n\nreturn [{\n  json: {\n    valida: abierta,\n    mensaje: abierta\n      ? ''\n      : 'Han pasado mas de 24 horas desde su ultimo mensaje: WhatsApp ya no permite escribirle libremente.',\n    conversation_id: conv.id,\n    client_id: conv.client_id,\n    para: conv.external_contact_id,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        288
+      ],
+      "id": "ew000006-0006-4006-8006-000000000006",
+      "name": "Comprobar ventana"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-ew000007",
+              "leftValue": "={{ $json.valida }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        768,
+        288
+      ],
+      "id": "ew000007-0007-4007-8007-000000000007",
+      "name": "¿Se puede enviar?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ok: false, mensaje: $('Comprobar ventana').first().json.mensaje } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        496
+      ],
+      "id": "ew000008-0008-4008-8008-000000000008",
+      "name": "Respuesta fuera de plazo"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?client_id=eq.{{ $json.client_id }}&module=eq.whatsapp&select=config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        960,
+        288
+      ],
+      "id": "ew000009-0009-4009-8009-000000000009",
+      "name": "Buscar credenciales",
+      "notes": "El token de Meta vive aquí y no sale nunca del servidor: el panel no lo ve ni lo necesita."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/{{ $env.META_API_VERSION || 'v25.0' }}/{{ $json.config.phone_number_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.config.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": {{ JSON.stringify($('Comprobar ventana').first().json.para) }},\n  \"type\": \"text\",\n  \"text\": { \"body\": {{ JSON.stringify($('Leer petición').first().json.texto) }} }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1152,
+        288
+      ],
+      "id": "ew000010-0010-4010-8010-000000000010",
+      "name": "Enviar por Whatsapp",
+      "onError": "continueRegularOutput",
+      "notes": "`neverError` a propósito: si Meta rechaza el mensaje queremos leer su motivo y devolverlo al panel, no que la ejecución muera sin respuesta."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-ew000011",
+              "leftValue": "={{ Boolean($json.messages && $json.messages[0] && $json.messages[0].id) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1344,
+        288
+      ],
+      "id": "ew000011-0011-4011-8011-000000000011",
+      "name": "¿Lo aceptó Meta?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Enviar por Whatsapp').first().json || {};\nconst detalle = r.error?.error_user_msg || r.error?.message || 'WhatsApp no aceptó el mensaje.';\n\nreturn [{ json: { ok: false, mensaje: detalle } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        496
+      ],
+      "id": "ew000012-0012-4012-8012-000000000012",
+      "name": "Respuesta de Meta rechazada"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"conversation_id\": {{ JSON.stringify($('Comprobar ventana').first().json.conversation_id) }},\n  \"role\": \"assistant\",\n  \"sender\": \"human\",\n  \"sent_by_user_id\": {{ JSON.stringify($('Leer petición').first().json.sent_by_user_id) }},\n  \"content\": {{ JSON.stringify($('Leer petición').first().json.texto) }},\n  \"created_at\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1536,
+        240
+      ],
+      "id": "ew000013-0013-4013-8013-000000000013",
+      "name": "Guardar mensaje",
+      "notes": "Se guarda con role 'assistant' para que el bot lo entienda como un turno suyo si retoma la conversación, y sender 'human' para que la bandeja lo pinte distinto."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Se devuelve el id de la fila recién creada para que el panel pueda\n// sustituir la burbuja provisional por la definitiva sin esperar a que\n// Realtime le traiga el mensaje. Si Realtime falla, el mensaje se ve igual.\nconst fila = Array.isArray($json) ? $json[0] : $json;\n\nreturn [{ json: { ok: true, message_id: fila?.id || null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        240
+      ],
+      "id": "ew000014-0014-4014-8014-000000000014",
+      "name": "Respuesta enviada"
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1920,
+        288
+      ],
+      "id": "ew000015-0015-4015-8015-000000000015",
+      "name": "Responder"
+    }
+  ],
+  "connections": {
+    "Entrada": {
+      "main": [
+        [
+          {
+            "node": "Leer petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer petición": {
+      "main": [
+        [
+          {
+            "node": "¿Petición legítima?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Petición legítima?": {
+      "main": [
+        [
+          {
+            "node": "Buscar conversación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta rechazada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta rechazada": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar conversación": {
+      "main": [
+        [
+          {
+            "node": "Comprobar ventana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar ventana": {
+      "main": [
+        [
+          {
+            "node": "¿Se puede enviar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se puede enviar?": {
+      "main": [
+        [
+          {
+            "node": "Buscar credenciales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta fuera de plazo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta fuera de plazo": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar credenciales": {
+      "main": [
+        [
+          {
+            "node": "Enviar por Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar por Whatsapp": {
+      "main": [
+        [
+          {
+            "node": "¿Lo aceptó Meta?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Lo aceptó Meta?": {
+      "main": [
+        [
+          {
+            "node": "Guardar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta de Meta rechazada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta de Meta rechazada": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar mensaje": {
+      "main": [
+        [
+          {
+            "node": "Respuesta enviada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta enviada": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

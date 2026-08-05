@@ -16,6 +16,10 @@ services:
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
       N8N_PROXY_HOPS: "1"        # n8n está detrás de un proxy inverso
       N8N_RUNNERS_ENABLED: "true"
+      # Secreto compartido con el panel para el webhook de envío de WhatsApp.
+      # Ese webhook manda mensajes en nombre del negocio: sin él, cualquiera que
+      # dé con la URL puede escribir a los clientes del cliente.
+      PANEL_WEBHOOK_TOKEN: ${PANEL_WEBHOOK_TOKEN}
 
   render:
     ports: !override []          # solo accesible desde la red de Docker
@@ -39,6 +43,8 @@ services:
       # a internet ni pasa por Caddy.
       N8N_WEBHOOK_BASE_URL: http://n8n:5678
       RENDER_BASE_URL: http://render:3001
+      # El otro extremo del secreto de arriba.
+      N8N_WEBHOOK_TOKEN: ${PANEL_WEBHOOK_TOKEN}
     depends_on:
       - n8n
       - render
