@@ -303,6 +303,25 @@ Si compras como profesional, con una cuenta PRO, los precios de la tarifa profes
 
 ---
 
+## 15. Cuidado y mantenimiento: dónde poner cada pieza
+
+- **Categoría:** Productos
+- **URL de origen:** *(indicaciones del cliente, 05/08/2026)*
+
+```
+¿Puedo dejar esto en el jardín? ¿Aguanta la lluvia? ¿Se puede poner fuera? ¿Cómo se limpia? ¿Hay que darle algo para que dure?
+
+Las piezas de Cestería Aparici están hechas con fibras naturales y madera, así que no están pensadas para estar a la intemperie de forma permanente.
+
+Sí se pueden usar en exterior, pero cubierto: un porche, una galería, una terraza techada o un rincón resguardado. Lo que hay que evitar es la lluvia directa y el sol constante, que es lo que reseca la fibra y descolora la madera.
+
+Para las piezas que vayan a estar fuera, aunque sea bajo techo, se recomienda aplicar una capa de barniz protector. Alarga bastante su vida y protege del cambio de temperatura y de la humedad.
+
+Para limpiarlas, un paño ligeramente húmedo y dejar secar al aire. Nada de sumergirlas en agua ni de usar productos agresivos.
+```
+
+---
+
 # Pendiente de confirmar con el cliente
 
 Resueltos el 03/08/2026 por el cliente: **horario** (9:00-13:00), **formas de
