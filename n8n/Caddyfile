@@ -1,3 +1,7 @@
 n8n.agenciakivuk.com {
     reverse_proxy n8n:5678
 }
+
+panel.agenciakivuk.com {
+    reverse_proxy panel:3000
+}

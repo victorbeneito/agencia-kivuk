@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Empaqueta el servidor con solo las dependencias que usa, en vez de arrastrar
+  // node_modules entero. Es lo que permite que la imagen de Docker del panel
+  // pese decenas de MB y no cientos. Sin efecto en `npm run dev`.
+  output: "standalone",
   images: {
     // Las piezas generadas se sirven desde el bucket público de Supabase
     // Storage. Sin declarar el host aquí, next/image devuelve 400 y en la

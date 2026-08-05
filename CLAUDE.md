@@ -9,7 +9,7 @@ Plataforma multi-cliente para una agencia digital: cada cliente final puede tene
 ## Arquitectura
 
 - **`/app`** — Next.js (App Router, TypeScript, Tailwind). Panel de control: login de agencia, alta de clientes, activación de módulos por cliente, configuración de bots (prompt, base de conocimiento), visualización de conversaciones/citas/leads.
-- **`/n8n`** — n8n self-hosted vía Docker. Es el motor de ejecución: workflows/plantillas reutilizables (WhatsApp, Calendar+Email, Voz, Instagram) que se activan por cliente. Next.js y n8n se comunican por webhooks HTTP.
+- **`/n8n`** — n8n self-hosted vía Docker. Es el motor de ejecución: workflows/plantillas reutilizables (WhatsApp, Calendar+Email, Voz, Instagram) que se activan por cliente. Next.js y n8n se comunican por webhooks HTTP. **En producción vive en el VPS**, no en local: `https://n8n.agenciakivuk.com`.
 - **`/supabase`** — Esquema de base de datos (Postgres) y migraciones. Supabase también da Auth y Row Level Security (RLS) para aislar datos entre clientes.
 - **`/docs`** — Plan completo del proyecto por fases (`plan-agencia-ia.md`) y decisiones de arquitectura (`architecture.md`). Consulta estos archivos antes de proponer cambios de stack.
 
@@ -28,12 +28,37 @@ Plataforma multi-cliente para una agencia digital: cada cliente final puede tene
 - Las claves de API (OpenRouter, OpenAI, Meta WhatsApp, Twilio, Stripe...) nunca se hardcodean: van en variables de entorno (`.env.local` en `/app`, `.env` en `/n8n`, ambos con su `.example` versionado y el real en `.gitignore`).
 - El plan de trabajo avanza por fases (ver `docs/plan-agencia-ia.md`). No adelantar fases sin terminar la anterior salvo indicación explícita.
 
-## Cómo correr el proyecto en local
+## Dónde corre cada cosa
 
-1. `/app`: `npm install` y `npm run dev` (Next.js en `localhost:3000`).
-2. `/n8n`: `docker compose up -d` (n8n en `localhost:5678`).
-3. Para probar webhooks reales (WhatsApp, etc.) contra el n8n local, usar ngrok apuntando al puerto 5678.
+**n8n vive en el VPS (Contabo, Ubuntu 24.04) desde la Fase 1.5.** El n8n local
+está apagado y ngrok ya no se usa: Meta entrega los webhooks directamente al
+dominio. Si levantas el n8n local con los mismos workflows, ten cuidado — dos
+instancias escribiendo en la misma base de datos de Supabase hacen que parezca
+que todo funciona aunque los mensajes los esté procesando la otra.
+
+| Pieza | Dónde | URL |
+| --- | --- | --- |
+| n8n + render + Caddy | VPS Contabo | `https://n8n.agenciakivuk.com` |
+| Panel Next.js | local / Vercel | `localhost:3000` |
+| Datos, Auth, Storage | Supabase gestionado | — |
+
+Operar el servidor (`ssh kivuk@<IP>`, luego `cd ~/agencia-kivuk/n8n`):
+
+```bash
+alias dc='docker compose -f docker-compose.yml -f docker-compose.prod.yml'
+dc ps                  # estado de los 4 servicios
+dc logs -f n8n         # logs en vivo
+git pull && dc up -d --build   # desplegar cambios del repo
+```
+
+El `--build` es necesario porque `render` se construye desde el código. Los
+secretos viven **solo** en el `.env` del servidor (`chmod 600`), nunca en git.
+
+Para desarrollo local del panel: `/app` → `npm install` y `npm run dev`.
 
 ## Estado actual
 
-Fase 0 en construcción: base multi-tenant (Next.js + Supabase) y n8n local con Docker. Ver tareas y progreso en `docs/plan-agencia-ia.md`.
+Fase 1.5 completada: n8n en producción 24/7 con HTTPS, WhatsApp funcionando
+contra un cliente real de pruebas (mensajes, citas en Google Calendar y correos
+de confirmación verificados). Siguiente frente: el panel de administración en
+Next.js. Ver tareas y progreso en `docs/plan-agencia-ia.md`.

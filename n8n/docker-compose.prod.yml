@@ -20,6 +20,29 @@ services:
   render:
     ports: !override []          # solo accesible desde la red de Docker
 
+  # Panel de administración (Next.js). Vive aquí y no en Vercel porque necesita
+  # hablar con `render`, que no está expuesto a internet: desde esta misma red
+  # de Docker le llega por `http://render:3001` sin abrir ningún puerto.
+  panel:
+    build:
+      context: ../app
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Nombres de servicio de Docker, no el dominio público: la llamada no sale
+      # a internet ni pasa por Caddy.
+      N8N_WEBHOOK_BASE_URL: http://n8n:5678
+      RENDER_BASE_URL: http://render:3001
+    depends_on:
+      - n8n
+      - render
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -32,6 +55,7 @@ services:
       - caddy_config:/config
     depends_on:
       - n8n
+      - panel
 
 volumes:
   caddy_data:

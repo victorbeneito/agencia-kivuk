@@ -248,11 +248,35 @@ Publicar cada uno que tenga webhook. Comprobar en el nodo Webhook que la Product
 
 Aquí es donde se rompe todo si se olvida un sitio. Tres consumidores externos:
 
-**Meta / WhatsApp** — En la app de Meta → Casos de uso → Configuración de producción → Webhooks:
+**Meta / WhatsApp** — Ir directo a la **página de Webhooks de la app**:
+
+> `https://developers.facebook.com/apps/1861842631636106/webhooks/`
+> → *Selecciona un producto*: **WhatsApp Business Account** → **Editar**
+
 - Callback URL: `https://n8n.agenciakivuk.com/webhook/whatsapp-kivuk`
 - Verify token: el mismo de siempre (el que compara el nodo `If`).
-- Verificar y guardar.
+- Verificar y guardar. Comprobar que el campo `messages` sigue suscrito.
 - La suscripción `subscribed_apps` de la WABA **no se pierde**, ya está hecha. No hay que repetirla.
+
+> ⚠️ **La trampa que costó una hora el 5/8/2026.** En *Casos de uso → Personalizar
+> → Paso 2. Configuración de producto* también hay un campo de webhook. Cambiarlo
+> ahí hace que Meta **verifique** la URL nueva (la petición GET llega y responde
+> bien, así que todo parece correcto), pero **sigue entregando los mensajes a la
+> URL antigua**. La que manda es la de la página de Webhooks de la app.
+>
+> Cómo detectarlo: los mensajes se guardan en Supabase pero **no aparece ninguna
+> ejecución nueva en el n8n del VPS**. Si el n8n local sigue encendido, es él
+> quien los está procesando — y como ambos escriben en la misma Supabase, el
+> engaño es perfecto. Comparar el contador de `execution_entity` de las dos
+> instancias antes y después de un mensaje lo resuelve en un minuto.
+>
+> Descartar de paso un `override_callback_uri` a nivel de WABA, que tendría
+> prioridad sobre todo lo anterior:
+> `GET /{waba-id}/subscribed_apps?access_token=...`
+
+**Ojo con la app:** hay dos apps en Meta. `agencia_kivuk` (id `1861842631636106`)
+es la de WhatsApp; `Kivuk Social` es **solo para Instagram** y su desplegable de
+productos ni siquiera ofrece *WhatsApp Business Account*.
 
 **Vapi (agente de voz)** — Actualizar la URL del servidor/webhook del assistant para que apunte al dominio nuevo.
 

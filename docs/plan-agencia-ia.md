@@ -62,19 +62,25 @@ Esto es lo que te permite escalar sin reescribir nada: cliente A solo quiere Wha
 
 ---
 
-## Fase 1.5 — Desplegar n8n al VPS (2-4 días, en cuanto llegue este punto)
+## Fase 1.5 — Desplegar n8n al VPS ✅ COMPLETADA (5 de agosto de 2026)
 
-**Qué hacer:**
-- Contratar VPS barato: Hetzner CX22 (~4-5€/mes) o Contabo, Ubuntu.
-- Instalar Docker en el VPS.
-- Copiar el mismo `docker-compose.yml` que usaste en local.
-- Añadir un proxy con HTTPS automático (Caddy o Traefik) para tener una URL segura tipo `n8n.tuagencia.com`.
-- Apuntar el dominio al VPS.
-- Migrar las plantillas de workflow probadas en local a esta instancia.
+**Qué se hizo:**
+- VPS contratado en **Contabo** (Cloud VPS 4: 4 vCPU, 8 GB RAM, 96 GB, ~4,68 €/mes, Ubuntu 24.04 LTS, UE). Se descartó Hetzner por las subidas de precio de 2026 — ver `docs/fase-1.5-desplegar-vps.md`.
+- Servidor asegurado: usuario `kivuk` con sudo, ufw (solo 22/80/443), fail2ban y acceso SSH **solo por clave**.
+- Docker + Caddy como proxy inverso con HTTPS automático de Let's Encrypt.
+- Dominio `n8n.agenciakivuk.com` (DNS en Hostalia) apuntando al VPS.
+- Los 6 workflows importados y publicados; webhooks registrados.
+- Meta/WhatsApp reapuntado al dominio nuevo. ngrok y el n8n local, apagados.
 
-**Herramientas:** VPS (4-5€/mes), Docker, Caddy/Traefik (gratis), un dominio (10-15€/año).
+**Verificado en producción:** mensaje real de WhatsApp respondido con IA, cita
+reservada en Google Calendar con correo de confirmación, datos guardados en
+Supabase, y **reinicio completo del servidor con todos los servicios volviendo
+solos**.
 
-**Entregable:** n8n corriendo 24/7 en producción, con HTTPS, listo para clientes reales.
+**Pendiente menor:** reapuntar el webhook de Vapi (agente de voz) cuando se
+retome ese módulo, y probar el `render` de contenido de punta a punta.
+
+**Entregable:** n8n corriendo 24/7 en producción, con HTTPS, listo para clientes reales. ✅
 
 ---
 
