@@ -68,10 +68,14 @@ propio en `/panel`, secciones según los módulos contratados, bandeja de
 conversaciones tipo WhatsApp con relevo humano (una persona entra en el chat y el
 bot se calla) y revisión de contenido.
 
-⚠️ **El panel del cliente está escrito pero no puesto en marcha.** Faltan las
-migraciones `0008`/`0009` en Supabase, el secreto `PANEL_WEBHOOK_TOKEN` y
-desplegar los workflows. Los pasos, en orden y con sus comprobaciones, están en
-`docs/panel-cliente-siguientes-pasos.md` — es lo primero que hay que leer antes
-de seguir por ahí.
+**El panel del cliente está en producción** en `https://panel.agenciakivuk.com`,
+con migraciones `0008`–`0011` aplicadas y probado de punta a punta: relevo
+humano, envío manual por WhatsApp y los tres canales de aviso de «pide una
+persona» (en pantalla, correo por Resend con `agenciakivuk.com` verificado, y
+notificación push al móvil).
+
+Es además una PWA instalable, pensada para usarse desde el móvil como si fuera
+WhatsApp. Cómo funciona cada pieza y por qué está decidida así:
+`docs/panel-cliente-siguientes-pasos.md`.
 
 Ver tareas y progreso general en `docs/plan-agencia-ia.md`.

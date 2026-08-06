@@ -94,6 +94,24 @@ Tres decisiones que conviene no deshacer sin pensarlo:
 `messages` y `conversations` están en la publicación de Realtime. Realtime
 respeta la RLS del usuario conectado, así que cada uno recibe solo lo suyo.
 
+### De dónde sale `contact_name`
+
+Meta manda el nombre del perfil de WhatsApp en cada webhook entrante, dentro de
+`value.contacts[]`. `Extraer mensaje` lo saca buscando por `wa_id` —no cogiendo
+el primero, porque en un webhook agrupado podría haber varios contactos y el
+primero no tiene por qué ser el del mensaje— y `Buscar o crear conversación` lo
+guarda.
+
+⚠️ **Ese nodo es un upsert con `resolution=merge-duplicates`, que sobrescribe
+todas las columnas que lleve el cuerpo.** Por eso `contact_name` solo se incluye
+cuando Meta manda nombre: si se enviara `null`, un mensaje sin nombre borraría el
+que ya teníamos. De ahí el `Object.assign` en el cuerpo en vez de un JSON fijo.
+
+El nombre se refresca con cada mensaje, así que si alguien se lo cambia en
+WhatsApp la bandeja se entera. Las conversaciones anteriores a este cambio siguen
+saliendo por el número hasta que esa persona vuelva a escribir: no se pueden
+rellenar hacia atrás, porque el nombre nunca llegó a guardarse.
+
 ---
 
 ## 3. El chat con relevo humano
@@ -321,24 +339,12 @@ revierten solas: si hubiera que deshacer la 0008, las políticas viejas están e
 
 ## 5. Lo que falta
 
-- **Aviso en el móvil.** De los tres escalones de aviso, los dos primeros están
-  hechos (ver §6); falta el que de verdad resuelve el problema: **notificación
-  push**. Va con la PWA — Web Push, claves VAPID, una tabla de suscripciones por
-  dispositivo, y iOS con sus reglas (solo funciona si el cliente ha «instalado»
-  la web en su pantalla de inicio). La casilla ya existe en la pantalla de
-  avisos, desactivada, y la columna `push` está en la tabla esperándola.
 - **Citas.** `agenda-api.json` crea el evento en Google Calendar y no guarda nada
   en Supabase, así que no hay de dónde leerlas. Hace falta una tabla
   `appointments` que el workflow rellene al reservar. Es poco trabajo y da
   histórico, filtros y recuento.
 - **Llamadas de voz.** Mismo problema: comprobar qué guarda `voz-vapi.json` antes
   de prometer la sección.
-- **Nombre del contacto.** La columna `contact_name` existe pero nadie la
-  rellena; Meta manda el nombre del perfil en el webhook (`contacts[0].profile.name`)
-  y sería un cambio pequeño en `Extraer mensaje`.
-- **PWA.** El panel ya cuelga de `/panel`, que es lo que hacía falta para que el
-  `scope` del service worker quede limpio. Falta manifest, service worker y, si
-  se quieren, notificaciones push (Web Push, permisos, iOS con sus reglas).
 - **Marca blanca.** Hoy el cliente ve el logotipo de Kivuk. Si tiene que ver el
   suyo, hace falta logo y colores por cliente.
 - **Adjuntos.** La bandeja solo entiende texto. Meta manda imágenes y audios, y

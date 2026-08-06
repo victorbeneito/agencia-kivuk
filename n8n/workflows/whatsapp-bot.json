@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body;\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\n\n// Si no hay mensaje de texto (puede ser una actualización de estado u otro evento), paramos aquí.\nif (!message || message.type !== 'text') {\n  return [];\n}\n\nreturn [{\n  json: {\n    phone_number_id: value.metadata.phone_number_id,\n    from: message.from,\n    message_text: message.text.body,\n  }\n}];"
+        "jsCode": "const body = $json.body;\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\n\n// Si no hay mensaje de texto (puede ser una actualización de estado u otro evento), paramos aquí.\nif (!message || message.type !== 'text') {\n  return [];\n}\n\n// Meta manda el nombre del perfil de WhatsApp junto al mensaje. Puede no\n// venir (perfil sin nombre, o ajustes de privacidad), asi que es opcional.\n// Se busca por wa_id en vez de coger el primero: en un webhook agrupado\n// podria haber varios contactos y el primero no tiene por que ser el nuestro.\nconst contacto =\n  value?.contacts?.find((c) => c.wa_id === message.from) || value?.contacts?.[0];\nconst nombre = contacto?.profile?.name?.trim() || null;\n\nreturn [{\n  json: {\n    phone_number_id: value.metadata.phone_number_id,\n    from: message.from,\n    message_text: message.text.body,\n    contact_name: nombre,\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -213,7 +213,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n    \"client_id\": {{ JSON.stringify($('Buscar cliente Whatsapp').first().json.client_id) }},\n    \"channel\": \"whatsapp\",\n    \"external_contact_id\": {{ JSON.stringify($('Extraer mensaje').first().json.from) }}\n  }",
+        "jsonBody": "={{ JSON.stringify(Object.assign(\n  {\n    client_id: $('Buscar cliente Whatsapp').first().json.client_id,\n    channel: 'whatsapp',\n    external_contact_id: $('Extraer mensaje').first().json.from\n  },\n  $('Extraer mensaje').first().json.contact_name\n    ? { contact_name: $('Extraer mensaje').first().json.contact_name }\n    : {}\n)) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
