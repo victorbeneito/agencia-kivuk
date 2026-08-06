@@ -222,6 +222,12 @@ ssh kivuk@LA_IP
 ~/agencia-kivuk/scripts/desplegar.sh
 ```
 
+O, más cómodo desde Windows, doble clic en **`scripts/desplegar.bat`**: hace el
+`git push` y llama por SSH al script del servidor. Se planta si tienes cambios
+sin commitear, porque lo que se despliega es lo que está en GitHub y no lo que
+tienes en el disco — desplegar con algo a medias no da ningún error, solo deja
+el servidor con una versión que no es la que crees.
+
 El script reconstruye el panel, aplica el compose (que trae la variable nueva) y
 actualiza los workflows que hayan cambiado.
 
