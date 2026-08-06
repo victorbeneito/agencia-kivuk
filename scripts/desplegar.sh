@@ -96,8 +96,22 @@ titulo "Estado final"
 $DC ps --format 'table {{.Service}}\t{{.Status}}' | sed 's/^/  /'
 
 titulo "Comprobacion"
+# Se reintenta antes de dar la alarma. Desplegar un workflow reinicia n8n, y
+# comprobar la URL acto seguido devuelve 502 siempre: Caddy responde antes de
+# que el contenedor de detras este listo. Avisar de eso en cada despliegue es
+# enseñar a ignorar los avisos, que es peor que no tenerlos.
 for url in https://n8n.agenciakivuk.com https://panel.agenciakivuk.com/login; do
-  codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$url")
-  if [ "$codigo" = "200" ]; then ok "$url -> $codigo"; else echo "  AVISO $url -> $codigo"; fi
+  codigo=""
+  for intento in 1 2 3 4 5 6 7 8 9 10; do
+    codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$url")
+    [ "$codigo" = "200" ] && break
+    sleep 3
+  done
+
+  if [ "$codigo" = "200" ]; then
+    ok "$url -> $codigo"
+  else
+    echo "  AVISO $url -> $codigo (tras 30s de reintentos)"
+  fi
 done
 echo ""

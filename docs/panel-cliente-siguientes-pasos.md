@@ -372,6 +372,17 @@ llevas dos horas sin guardar mensajes cuando está todo correcto — pasó, y co
 un buen rato de búsqueda. Para verlo en hora local:
 `select last_message_at at time zone 'Europe/Madrid' ...`.
 
+⚠️ **El remitente tiene que ser de un dominio verificado en Resend.** Con
+`onboarding@resend.dev` —o cualquier dominio sin verificar— Resend acepta la
+llamada, crea el registro del correo y lo marca **Failed** sin entregarlo. Como
+el nodo va con `onError`, no salta nada en n8n: el fallo solo se ve entrando en
+el panel de Resend. Afecta igual a las confirmaciones de cita.
+
+Pendiente de decidir: los avisos van de la agencia al cliente, así que salir de
+`agenciakivuk.com` es correcto. Las confirmaciones de cita van del negocio a
+*sus* clientes finales y deberían salir del dominio del cliente — lo que implica
+verificar el dominio de cada uno en Resend.
+
 Dos decisiones de fondo:
 
 - **El correo cuelga de «pide una persona», no de cada mensaje.** Avisar de todo

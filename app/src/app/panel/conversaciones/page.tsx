@@ -27,10 +27,13 @@ export default async function PanelConversacionesPage() {
     .returns<FilaConversacion[]>();
 
   return (
-    // Altura fija (pantalla menos la cabecera) para que quien haga scroll sea la
-    // lista o el hilo, no la página entera: en una bandeja, el compositor tiene
-    // que quedarse siempre abajo a la vista.
-    <div className="flex h-[calc(100svh-3.5rem)] min-h-0 flex-col">
+    // Dos comportamientos a propósito. En escritorio, altura fija (pantalla
+    // menos la cabecera) para que scrollee la lista y no la página, que es lo
+    // que se espera de una bandeja de dos columnas. En móvil no se fija nada: la
+    // lista scrollea como una página normal —más fluido y sin pelearse con la
+    // barra del navegador, que aparece y desaparece— y el hilo, al abrirse, se
+    // pone encima a pantalla completa.
+    <div className="flex min-h-0 flex-1 flex-col md:h-[calc(100svh-3.5rem)]">
       <Bandeja
         clientId={perfil.clientId}
         conversacionesIniciales={(data ?? []).map(desdeFila)}

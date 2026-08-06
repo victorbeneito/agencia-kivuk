@@ -32,7 +32,9 @@ function Burbuja({ mensaje }: { mensaje: MensajeBandeja }) {
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm shadow-sm md:max-w-[65%]",
+          // 15px y burbujas anchas: es un chat, se lee de corrido y muchas
+          // veces con el móvil en una mano y a contraluz.
+          "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[15px] leading-snug shadow-sm md:max-w-[65%]",
           esContacto
             ? "rounded-bl-sm bg-card"
             : mensaje.quien === "human"
@@ -234,17 +236,25 @@ export function Hilo({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 items-center gap-3 border-b bg-card px-4 py-3">
+      <header
+        className="flex shrink-0 items-center gap-2 border-b bg-card px-2 py-2 md:px-4 md:py-3"
+        // En móvil este hilo ocupa la pantalla entera, notch incluido: hay que
+        // reservar el hueco que dice el sistema o el nombre del contacto queda
+        // debajo de la hora y la batería.
+        style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)" }}
+      >
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="size-11 shrink-0 md:hidden"
+          aria-label="Volver a la lista"
           onClick={onVolver}
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-5" />
         </Button>
+
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">
+          <p className="truncate text-[15px] font-medium">
             {etiquetaContacto(conversacion)}
           </p>
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -261,19 +271,30 @@ export function Hilo({
             )}
           </p>
         </div>
+
+        {/*
+          En móvil el botón se queda en icono: «Devolver al asistente» son 22
+          caracteres que empujan el nombre del contacto fuera de la pantalla.
+          El texto vuelve en cuanto hay sitio.
+        */}
         {alMando ? (
           <Button
             variant="outline"
-            size="sm"
+            className="size-11 shrink-0 px-0 md:h-9 md:w-auto md:px-3"
+            aria-label="Devolver al asistente"
             onClick={() => devolverAlBot(conversacion.id)}
           >
-            <Bot className="size-4" />
-            Devolver al asistente
+            <Bot className="size-5 md:size-4" />
+            <span className="hidden md:inline">Devolver al asistente</span>
           </Button>
         ) : (
-          <Button size="sm" onClick={() => tomarElMando(conversacion.id)}>
-            <UserRound className="size-4" />
-            Responder yo
+          <Button
+            className="size-11 shrink-0 px-0 md:h-9 md:w-auto md:px-3"
+            aria-label="Responder yo"
+            onClick={() => tomarElMando(conversacion.id)}
+          >
+            <UserRound className="size-5 md:size-4" />
+            <span className="hidden md:inline">Responder yo</span>
           </Button>
         )}
       </header>
@@ -310,7 +331,12 @@ export function Hilo({
         )}
       </div>
 
-      <footer className="shrink-0 border-t bg-card p-3">
+      <footer
+        className="shrink-0 border-t bg-card p-3"
+        // La barra de gestos del iPhone se traga lo que quede debajo. Sin este
+        // hueco, el botón de enviar queda medio tapado con la app instalada.
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
+      >
         {!abierta ? (
           <div className="flex items-start gap-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
             <Clock className="mt-0.5 size-4 shrink-0" />
@@ -341,15 +367,19 @@ export function Hilo({
                 }}
                 rows={1}
                 placeholder="Escribe un mensaje…"
-                className="max-h-32 min-h-10 flex-1 resize-y rounded-2xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                // `text-base` (16px) no es estética: por debajo de 16px, Safari
+                // en iOS hace zoom automático al enfocar el campo y deja la
+                // pantalla descuadrada, con el botón de enviar fuera de vista.
+                className="max-h-32 min-h-11 flex-1 resize-y rounded-2xl border border-input bg-background px-4 py-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 md:text-[15px]"
               />
               <Button
                 size="icon"
-                className="size-10 shrink-0 rounded-full"
+                className="size-11 shrink-0 rounded-full"
+                aria-label="Enviar mensaje"
                 disabled={!puedeEscribir || !texto.trim() || pendiente}
                 onClick={enviar}
               >
-                <Send className="size-4" />
+                <Send className="size-5" />
               </Button>
             </div>
             <div className="flex items-center justify-between gap-3">

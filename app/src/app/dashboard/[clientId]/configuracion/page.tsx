@@ -644,7 +644,15 @@ export default async function ClientConfigPage({
         <CardHeader>
           <CardTitle>Credenciales de Email (Resend)</CardTitle>
           <CardDescription>
-            Datos para confirmar citas por email a los clientes de este negocio.
+            Para las confirmaciones de cita y los avisos de «pide hablar con una
+            persona».{" "}
+            <strong>
+              El remitente tiene que ser de un dominio verificado en Resend
+            </strong>
+            : con cualquier otro —incluido{" "}
+            <span className="font-mono text-xs">onboarding@resend.dev</span>—
+            Resend acepta la petición pero no entrega el correo, y el fallo solo
+            se ve entrando en su panel.
           </CardDescription>
         </CardHeader>
         <form key={JSON.stringify(emailConfig)} action={updateEmailConfig}>
