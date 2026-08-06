@@ -168,6 +168,7 @@ ejecutar, uno detrás de otro:
 1. `supabase/migrations/0008_rls_panel_cliente.sql`
 2. `supabase/migrations/0009_conversaciones_bandeja.sql`
 3. `supabase/migrations/0010_avisos_cliente.sql`
+4. `supabase/migrations/0011_push.sql`
 
 Y comprobar que quedaron bien:
 
@@ -357,7 +358,7 @@ credenciales no.
 | --- | --- | --- |
 | En el panel | hecho, activado por defecto | `components/avisos-en-panel.tsx`: un cartel en pantalla, el contador en el título de la pestaña y un tono sintetizado con WebAudio. Solo avisa cuando el contador **sube**, para no sonar al marcar como leído. |
 | Por correo | hecho, apagado por defecto | El bot, tras marcar `handoff_requested_at`, mira las preferencias y manda un Resend con el mensaje y un enlace a la conversación. Usa las credenciales del módulo `email` del cliente. |
-| En el móvil | pendiente | Va con la PWA. La casilla existe desactivada y la columna `push` está creada. |
+| En el móvil | hecho, se activa en cada dispositivo | Web Push. El navegador da un permiso por **dispositivo** y su suscripción se guarda en `push_subscriptions`. n8n llama a `/api/avisos/push` del panel, que firma con la clave VAPID y envía. |
 
 El cartel en pantalla se añadió después de probarlo: la primera versión eran solo
 el título y el sonido, y con el panel delante no se notaba ninguno de los dos —el
@@ -382,6 +383,24 @@ Pendiente de decidir: los avisos van de la agencia al cliente, así que salir de
 `agenciakivuk.com` es correcto. Las confirmaciones de cita van del negocio a
 *sus* clientes finales y deberían salir del dominio del cliente — lo que implica
 verificar el dominio de cada uno en Resend.
+
+Sobre el push, tres cosas que no son evidentes:
+
+- **El permiso es del dispositivo, no del negocio.** Por eso la pantalla de
+  avisos no enseña una casilla de sí/no sino «este dispositivo recibe avisos»:
+  quien atiende desde el móvil y desde la tablet tiene que activarlo en los dos.
+- **En iPhone solo funciona con la app instalada** en la pantalla de inicio.
+  Abierta como página normal, Safari ni siquiera deja pedir el permiso — de ahí
+  que la PWA fuera antes que el push, y no al revés.
+- **Firmar el envío se hace en el panel, no en n8n.** Web Push exige firmar cada
+  mensaje con la clave VAPID (ECDSA); en un nodo Code serían cien líneas
+  frágiles, y en el panel es una librería. n8n solo llama a
+  `/api/avisos/push` con el mismo secreto compartido que usa para enviar
+  WhatsApp.
+
+⚠️ **Las claves VAPID se generan una vez y no se cambian.** Si se cambian, todas
+las suscripciones existentes dejan de valer en silencio y cada cliente tiene que
+volver a dar permiso en su móvil.
 
 Dos decisiones de fondo:
 

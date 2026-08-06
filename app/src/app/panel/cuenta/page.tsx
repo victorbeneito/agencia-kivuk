@@ -51,6 +51,9 @@ export default async function CuentaPage() {
               email: avisos?.email ?? "",
               push: avisos?.push ?? false,
             }}
+            // Pública por definición: viaja al navegador para poder suscribirse.
+            // La privada nunca sale del servidor.
+            clavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
           />
         </CardContent>
       </Card>

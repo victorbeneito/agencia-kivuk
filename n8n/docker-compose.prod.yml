@@ -33,6 +33,9 @@ services:
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        # Las NEXT_PUBLIC_ se incrustan al compilar la imagen, no al arrancarla:
+        # si cambia, hay que reconstruir con `--build`, no basta con reiniciar.
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
@@ -43,8 +46,15 @@ services:
       # a internet ni pasa por Caddy.
       N8N_WEBHOOK_BASE_URL: http://n8n:5678
       RENDER_BASE_URL: http://render:3001
-      # El otro extremo del secreto de arriba.
+      # El otro extremo del secreto de arriba. Vale también para el endpoint de
+      # notificaciones push, que llama n8n.
       N8N_WEBHOOK_TOKEN: ${PANEL_WEBHOOK_TOKEN}
+      # Notificaciones push (Web Push / VAPID). La pública se incrusta al
+      # compilar porque el navegador la necesita para suscribirse; la privada
+      # firma los envíos y no sale de aquí.
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:info@agenciakivuk.com}
     depends_on:
       - n8n
       - render

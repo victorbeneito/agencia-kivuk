@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { guardarAvisos, type Avisos } from "./acciones";
+import { AvisosMovil } from "./avisos-movil";
 
 /**
  * Un aviso que no llega no sirve, y uno que llega de más se acaba ignorando:
@@ -48,7 +49,14 @@ function Opcion({
   );
 }
 
-export function AvisosForm({ inicial }: { inicial: Avisos }) {
+export function AvisosForm({
+  inicial,
+  clavePublica,
+}: {
+  inicial: Avisos;
+  /** Clave VAPID pública. Vacía si el servidor no la tiene configurada. */
+  clavePublica: string;
+}) {
   const [avisos, setAvisos] = useState<Avisos>(inicial);
   const [pendiente, empezar] = useTransition();
   const [resultado, setResultado] = useState<{
@@ -107,13 +115,22 @@ export function AvisosForm({ inicial }: { inicial: Avisos }) {
         </div>
       )}
 
-      <Opcion
-        titulo="En el móvil"
-        descripcion="Notificación en el teléfono. Todavía no está disponible: llega cuando instalemos la aplicación."
-        marcado={avisos.push}
-        onChange={(v) => cambiar({ push: v })}
-        disabled
-      />
+      {/*
+        El aviso del móvil no es una casilla más: el permiso lo da cada
+        dispositivo por separado y hay que pedírselo al navegador. Se guarda
+        solo, sin pasar por el botón de Guardar de abajo.
+      */}
+      {clavePublica ? (
+        <AvisosMovil clavePublica={clavePublica} />
+      ) : (
+        <Opcion
+          titulo="En el móvil"
+          descripcion="No configurado en el servidor: faltan las claves de notificaciones."
+          marcado={false}
+          onChange={() => {}}
+          disabled
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <Button

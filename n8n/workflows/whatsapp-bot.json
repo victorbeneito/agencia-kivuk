@@ -797,7 +797,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_notification_settings?client_id=eq.{{ $('Buscar cliente Whatsapp').first().json.client_id }}&select=por_email,email",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_notification_settings?client_id=eq.{{ $('Buscar cliente Whatsapp').first().json.client_id }}&select=por_email,email,push",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -916,6 +916,73 @@
       "name": "Avisar por correo",
       "onError": "continueRegularOutput",
       "notes": "onError a propósito: que Resend falle no puede tumbar la ejecución. El mensaje al cliente final ya se ha enviado y la conversación ya está marcada; perder el aviso es molesto, perder la ejecución entera lo es más."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "wa-cond-push",
+              "leftValue": "={{ Boolean($json.push) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3440,
+        440
+      ],
+      "id": "wa000018-0018-4018-8018-000000000018",
+      "name": "¿Avisar al móvil?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PANEL_BASE_URL || \"http://panel:3000\" }}/api/avisos/push",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-kivuk-token",
+              "value": "={{ $env.PANEL_WEBHOOK_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"client_id\": {{ JSON.stringify($('Buscar cliente Whatsapp').first().json.client_id) }},\n  \"titulo\": \"Alguien quiere hablar contigo\",\n  \"cuerpo\": {{ JSON.stringify($('Extraer mensaje').first().json.from + \": \" + $('Extraer mensaje').first().json.message_text) }},\n  \"url\": \"/panel/conversaciones\",\n  \"tag\": {{ JSON.stringify(\"escalado-\" + $('Buscar o crear conversación').first().json.id) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3632,
+        440
+      ],
+      "id": "wa000019-0019-4019-8019-000000000019",
+      "name": "Avisar al móvil",
+      "onError": "continueRegularOutput",
+      "notes": "El panel firma y envia la notificacion: la criptografia VAPID en un nodo Code serian cien lineas fragiles. Va con el mismo secreto compartido que el webhook de envio de WhatsApp."
     }
   ],
   "connections": {
@@ -1278,6 +1345,11 @@
             "node": "¿Avisar por correo?",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "¿Avisar al móvil?",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -1303,6 +1375,18 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "¿Avisar al móvil?": {
+      "main": [
+        [
+          {
+            "node": "Avisar al móvil",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },
