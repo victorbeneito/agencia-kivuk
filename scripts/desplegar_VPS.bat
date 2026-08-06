@@ -65,8 +65,21 @@ if defined SUCIO (
 )
 
 rem --- Subir -----------------------------------------------------------------
-echo [1/2] Subiendo a GitHub...
-git push
+rem Se dice el remoto y la rama en vez de un `git push` a secas: si la rama
+rem local no tiene upstream configurado (pasa cuando siempre se ha pusheado
+rem desde VS Code, que lo indica el), el push a secas falla con un "no upstream
+rem branch" que no tiene nada que ver con el despliegue. Con `-u` funciona
+rem igual y ademas deja el upstream puesto para la proxima.
+set "RAMA="
+for /f "delims=" %%b in ('git rev-parse --abbrev-ref HEAD') do set "RAMA=%%b"
+
+if not defined RAMA (
+  echo No consigo saber en que rama estas.
+  goto :fin
+)
+
+echo [1/2] Subiendo a GitHub (rama %RAMA%)...
+git push -u origin %RAMA%
 if errorlevel 1 (
   echo.
   echo El push ha fallado. Mira el mensaje de arriba.
