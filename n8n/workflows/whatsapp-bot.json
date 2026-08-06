@@ -721,7 +721,8 @@
       ],
       "id": "wa000011-0011-4011-8011-000000000011",
       "name": "Guardar mensaje entrante",
-      "notes": "Hay una persona atendiendo esta conversación: el mensaje se guarda para que aparezca en la bandeja, pero el bot no responde."
+      "notes": "Hay una persona atendiendo esta conversación: el mensaje se guarda para que aparezca en la bandeja, pero el bot no responde.",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -791,7 +792,8 @@
       ],
       "id": "wa000013-0013-4013-8013-000000000013",
       "name": "Marcar que pide persona",
-      "notes": "La bandeja destaca estas conversaciones. El bot ya ha respondido lo que diga su prompt; esto solo avisa a quien mira el panel."
+      "notes": "Always Output Data: el PATCH responde 204 sin cuerpo y sin esto n8n corta aqui el flujo, dejando el aviso por correo sin ejecutar.",
+      "alwaysOutputData": true
     },
     {
       "parameters": {

@@ -366,6 +366,12 @@ si no has hecho clic en esa pestaña desde que cargó—. De ahí también el bo
 **Probar el sonido** en la pantalla de avisos: comprobarlo requiere un clic, que
 es justo lo que el navegador exige para dejar sonar.
 
+⚠️ **Al depurar con consultas SQL, las horas son UTC.** WhatsApp las enseña en
+hora local (en verano, dos más). Comparar una cosa con la otra hace parecer que
+llevas dos horas sin guardar mensajes cuando está todo correcto — pasó, y costó
+un buen rato de búsqueda. Para verlo en hora local:
+`select last_message_at at time zone 'Europe/Madrid' ...`.
+
 Dos decisiones de fondo:
 
 - **El correo cuelga de «pide una persona», no de cada mensaje.** Avisar de todo
