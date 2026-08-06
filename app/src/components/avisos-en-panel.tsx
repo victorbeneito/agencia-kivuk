@@ -78,17 +78,30 @@ export function AvisosEnPanel({
   clientId,
   activo,
   sinLeerInicial,
+  esperandoInicial,
+  ultimoEntranteInicial,
   tituloBase,
 }: {
   clientId: string;
   activo: boolean;
   sinLeerInicial: number;
+  /** Conversaciones que ya estaban esperando una persona al cargar la página. */
+  esperandoInicial: number;
+  /** Fecha del último mensaje entrante que ya existía al cargar la página. */
+  ultimoEntranteInicial: string;
   tituloBase: string;
 }) {
   const [sinLeer, setSinLeer] = useState(sinLeerInicial);
   const [aviso, setAviso] = useState<Aviso | null>(null);
+
+  // La foto de partida sale de lo que ya ha contado el servidor al pintar la
+  // página. Antes se tomaba en el primer evento que llegaba, y eso se comía el
+  // primer aviso de cada sesión: al escribir un contacto llegan dos eventos casi
+  // seguidos —el mensaje guardado y el sello de «pide una persona»—, el primero
+  // se gastaba en hacer la foto y el segundo ya no veía ningún cambio.
   const anteriorSinLeer = useRef(sinLeerInicial);
-  const anteriorEsperando = useRef<number | null>(null);
+  const anteriorEsperando = useRef(esperandoInicial);
+  const anteriorEntrante = useRef(ultimoEntranteInicial);
 
   // Preparar el audio en cuanto el usuario toque algo. Sin esto, el primer
   // aviso de la sesión es siempre mudo.
@@ -112,7 +125,7 @@ export function AvisosEnPanel({
     const { data } = await supabase
       .from("conversations")
       .select(
-        "unread_count, handoff_requested_at, mode, contact_name, external_contact_id, last_message_at"
+        "unread_count, handoff_requested_at, mode, contact_name, external_contact_id, last_message_at, last_inbound_at"
       )
       .eq("client_id", clientId)
       .order("last_message_at", { ascending: false, nullsFirst: false });
@@ -124,21 +137,27 @@ export function AvisosEnPanel({
       (c) => c.handoff_requested_at && c.mode !== "human"
     ).length;
 
+    // El disparador de «te han escrito» es la fecha del último mensaje
+    // entrante, no el contador de sin leer.
+    //
+    // El contador se pone a cero en cuanto alguien abre esa conversación en
+    // cualquier bandeja —la del cliente o la de la agencia—, así que usarlo
+    // para avisar significa no avisar justo cuando hay alguien trabajando. La
+    // fecha, en cambio, solo avanza: si es más nueva que la última que vimos,
+    // ha llegado algo, lo haya leído quien lo haya leído.
+    const ultimoEntrante = filas.reduce(
+      (max, c) =>
+        c.last_inbound_at && c.last_inbound_at > max ? c.last_inbound_at : max,
+      ""
+    );
+
     const reciente = filas[0];
     const quien =
       reciente?.contact_name || reciente?.external_contact_id || "Un contacto";
 
-    // Primera vuelta: solo se toma la foto. Avisar de lo que ya estaba ahí al
-    // abrir el panel sería avisar de algo que el usuario no acaba de recibir.
-    if (anteriorEsperando.current === null) {
-      anteriorEsperando.current = esperando;
-      anteriorSinLeer.current = total;
-      setSinLeer(total);
-      return;
-    }
-
     const nuevoEscalado = esperando > anteriorEsperando.current;
-    const nuevoMensaje = total > anteriorSinLeer.current;
+    const nuevoMensaje =
+      Boolean(ultimoEntrante) && ultimoEntrante > anteriorEntrante.current;
 
     // Estando en la bandeja, un cartel por cada mensaje que llega taparía el
     // cuadro de escribir justo mientras se contesta, y ahí la lista ya se
@@ -165,6 +184,7 @@ export function AvisosEnPanel({
 
     anteriorEsperando.current = esperando;
     anteriorSinLeer.current = total;
+    if (ultimoEntrante) anteriorEntrante.current = ultimoEntrante;
     setSinLeer(total);
   }, [clientId]);
 
@@ -189,8 +209,24 @@ export function AvisosEnPanel({
       )
       .subscribe();
 
+    // Red de seguridad. Realtime va por websocket, y un websocket se cae: wifi
+    // que salta, portátil que se suspende, proxy que corta la conexión inactiva.
+    // Cuando eso pasa no hay error visible, simplemente dejan de llegar avisos —
+    // que es el peor fallo posible en algo cuyo trabajo es avisar. Una consulta
+    // cada medio minuto cuesta nada y lo cubre.
+    const reloj = setInterval(() => void revisar(), 30_000);
+
+    // Y al volver a la pestaña, sin esperar al reloj: es justo el momento en el
+    // que alguien viene a mirar si ha pasado algo.
+    const alVolver = () => {
+      if (document.visibilityState === "visible") void revisar();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+
     return () => {
       supabase.removeChannel(canal);
+      clearInterval(reloj);
+      document.removeEventListener("visibilitychange", alVolver);
     };
   }, [clientId, activo, revisar]);
 

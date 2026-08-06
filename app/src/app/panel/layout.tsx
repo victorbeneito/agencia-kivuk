@@ -49,9 +49,16 @@ export default async function PanelLayout({
     modulos.has("whatsapp")
       ? supabase
           .from("conversations")
-          .select("unread_count")
+          .select("unread_count, handoff_requested_at, mode, last_inbound_at")
           .eq("client_id", contexto.clientId)
-      : Promise.resolve({ data: [] as { unread_count: number }[] }),
+      : Promise.resolve({
+          data: [] as {
+            unread_count: number;
+            handoff_requested_at: string | null;
+            mode: string;
+            last_inbound_at: string | null;
+          }[],
+        }),
     modulos.has("social")
       ? supabase
           .from("content_items")
@@ -64,6 +71,19 @@ export default async function PanelLayout({
   const sinLeer = (conversaciones ?? []).reduce(
     (total, c) => total + (c.unread_count ?? 0),
     0
+  );
+
+  // Las que ya estaban esperando a una persona al cargar. Es la foto de partida
+  // del avisador: sin ella no sabría distinguir «esto ya estaba» de «esto acaba
+  // de pasar».
+  const esperando = (conversaciones ?? []).filter(
+    (c) => c.handoff_requested_at && c.mode !== "human"
+  ).length;
+
+  const ultimoEntrante = (conversaciones ?? []).reduce(
+    (max, c) =>
+      c.last_inbound_at && c.last_inbound_at > max ? c.last_inbound_at : max,
+    ""
   );
 
   const secciones = [
@@ -110,6 +130,8 @@ export default async function PanelLayout({
           clientId={contexto.clientId}
           activo={avisos?.en_panel ?? true}
           sinLeerInicial={sinLeer}
+          esperandoInicial={esperando}
+          ultimoEntranteInicial={ultimoEntrante}
           tituloBase={nombre}
         />
       )}
