@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 
 /**
@@ -53,9 +53,8 @@ export function CambiarPassword() {
     <form onSubmit={guardar} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="password">Contraseña nueva</Label>
-        <Input
+        <PasswordInput
           id="password"
-          type="password"
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -65,9 +64,8 @@ export function CambiarPassword() {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="repetida">Repítela</Label>
-        <Input
+        <PasswordInput
           id="repetida"
-          type="password"
           autoComplete="new-password"
           value={repetida}
           onChange={(e) => setRepetida(e.target.value)}

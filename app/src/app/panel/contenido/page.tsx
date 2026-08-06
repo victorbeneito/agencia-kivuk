@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { modulosActivos, requireCliente } from "@/lib/auth";
+import { clienteDelPanel, modulosActivos } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PiezaCliente } from "./pieza-cliente";
@@ -33,7 +33,7 @@ export default async function PanelContenidoPage({
 }: {
   searchParams: Promise<{ estado?: string }>;
 }) {
-  const perfil = await requireCliente();
+  const perfil = await clienteDelPanel();
   const modulos = await modulosActivos(perfil.clientId);
   if (!modulos.has("social")) notFound();
 

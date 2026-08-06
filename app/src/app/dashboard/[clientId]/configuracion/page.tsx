@@ -1,5 +1,6 @@
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { AccesoCliente, type UsuarioCliente } from "../acceso-cliente";
+import { VerPanelDelCliente } from "../ver-panel";
 import {
   updateAgentConfig,
   updateBrandConfig,
@@ -184,8 +185,21 @@ export default async function ClientConfigPage({
             activos, y nunca las credenciales ni el prompt del bot.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-5">
           <AccesoCliente clientId={clientId} usuarios={usuarios} />
+
+          <div className="flex flex-col gap-2 rounded-lg border p-4">
+            <p className="text-sm font-medium">¿Necesitas ver lo que él ve?</p>
+            <p className="text-sm text-muted-foreground">
+              No hay forma de saber la contraseña de un cliente: Supabase guarda
+              un cálculo irreversible, no la contraseña, y así debe ser. Para
+              revisar su panel entras con tu propio usuario, sin pedirle nada ni
+              cambiarle el acceso.
+            </p>
+            <div className="mt-1">
+              <VerPanelDelCliente clientId={clientId} />
+            </div>
+          </div>
         </CardContent>
       </Card>
 

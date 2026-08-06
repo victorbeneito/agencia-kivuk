@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -61,6 +62,63 @@ export async function requireCliente(): Promise<Perfil & { clientId: string }> {
   if (!perfil) redirect("/login");
   if (perfil.rol !== "client_user" || !perfil.clientId) redirect("/dashboard");
   return { ...perfil, clientId: perfil.clientId };
+}
+
+/**
+ * Cookie con la que la agencia mira el panel de un cliente concreto.
+ *
+ * Va en cookie y no en la URL porque los layouts de Next.js no reciben
+ * `searchParams`, y es el layout el que necesita saber de quién es el panel para
+ * dibujar la barra lateral. `httpOnly` para que no la pueda escribir un script
+ * desde el navegador — aunque el valor se valida en cada lectura de todas
+ * formas, así que fabricarla a mano no daría acceso a nada.
+ */
+export const COOKIE_VISTA = "kivuk_vista_cliente";
+
+export type ContextoPanel = {
+  clientId: string;
+  /** La agencia mirando el panel de un cliente, no el cliente. */
+  esVistaDeAgencia: boolean;
+  email: string | null;
+};
+
+/**
+ * De quién es el panel que se está pintando.
+ *
+ * Dos formas de llegar a `/panel`: el cliente entra al suyo, o la agencia pulsa
+ * «Ver su panel» desde la ficha del cliente. La segunda existe porque nadie
+ * puede saber la contraseña de un cliente —Supabase guarda un hash, no la
+ * contraseña— y aun así hace falta poder mirar lo que él ve cuando llama
+ * diciendo que algo no le aparece.
+ *
+ * Importante: en la vista de agencia los datos se leen con la sesión de la
+ * agencia, que por RLS ya ve todo lo de sus clientes. No se suplanta a nadie ni
+ * se toca su sesión.
+ */
+export async function clienteDelPanel(): Promise<ContextoPanel> {
+  const perfil = await getPerfil();
+  if (!perfil) redirect("/login");
+
+  if (perfil.rol === "client_user") {
+    if (!perfil.clientId) redirect("/login");
+    return {
+      clientId: perfil.clientId,
+      esVistaDeAgencia: false,
+      email: perfil.email,
+    };
+  }
+
+  const cookieStore = await cookies();
+  const clientId = cookieStore.get(COOKIE_VISTA)?.value;
+
+  // Un admin de agencia en `/panel` sin haber elegido cliente no tiene nada que
+  // ver aquí: vuelve a su panel.
+  if (!clientId) redirect("/dashboard");
+
+  // La cookie no se cree: se comprueba que ese cliente es suyo en cada carga.
+  await exigirAccesoACliente(clientId);
+
+  return { clientId, esVistaDeAgencia: true, email: perfil.email };
 }
 
 /**

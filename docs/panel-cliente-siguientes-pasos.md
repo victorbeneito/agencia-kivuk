@@ -271,8 +271,16 @@ cliente al panel*. Se escribe el email y sale una contraseña temporal **que sol
 se ve una vez**: cópiala antes de cerrar. Desde ahí mismo se puede generar otra o
 quitar el acceso.
 
-El cliente entra en `https://panel.agenciakivuk.com`, y puede cambiar esa
-contraseña él mismo pulsando su email en la cabecera (`/panel/cuenta`).
+El cliente entra en `https://panel.agenciakivuk.com` y cambia esa contraseña él
+mismo en **Tu cuenta**, en su barra lateral.
+
+**Nadie puede saber la contraseña de un cliente, ni tú.** Supabase guarda un
+hash bcrypt: un cálculo de ida sin vuelta, que es justo lo que hace que un
+volcado de la base de datos no sea un volcado de contraseñas. Para revisar el
+panel de un cliente está el botón **Ver su panel** en esa misma tarjeta: entras
+con tu propio usuario, ves exactamente lo que ve él, con una barra que lo
+recuerda, y sales cuando quieras. Si el cliente ha perdido la suya, se le genera
+otra con el botón de la llave.
 
 ### Paso 7 — Probar el envío de verdad
 
@@ -305,6 +313,18 @@ revierten solas: si hubiera que deshacer la 0008, las políticas viejas están e
 
 ## 5. Lo que falta
 
+- **Avisar de que alguien espera.** Hoy el «pide una persona» solo se ve si el
+  cliente tiene el panel abierto y mira. Falta que le llegue sin mirar, y hay
+  tres escalones que se pueden hacer por separado:
+  1. **Dentro del panel**: un sonido y el contador en el título de la pestaña
+     cuando llega un mensaje o un escalado. Es lo más barato y ya tenemos
+     Realtime, que es la parte difícil.
+  2. **Correo** al escalar, para quien no vive con el panel abierto. Resend ya
+     está configurado por cliente en el módulo `email`.
+  3. **Notificación push** en el móvil. Es lo que de verdad resuelve el
+     problema, y va con la PWA: Web Push, permisos, y iOS con sus reglas
+     (solo funciona si el usuario ha «instalado» la app en la pantalla de
+     inicio).
 - **Citas.** `agenda-api.json` crea el evento en Google Calendar y no guarda nada
   en Supabase, así que no hay de dónde leerlas. Hace falta una tabla
   `appointments` que el workflow rellene al reservar. Es poco trabajo y da
@@ -333,3 +353,4 @@ revierten solas: si hubiera que deshacer la 0008, las políticas viejas están e
 | El relevo humano dura **2 horas** | `RELEVO_HORAS` en `components/bandeja/acciones.ts` |
 | Varios usuarios por cliente | ya soportado; se gestionan desde la ficha del cliente |
 | El cliente ve la marca de Kivuk | `components/panel-sidebar.tsx` |
+| La vista de agencia sobre el panel de un cliente dura 1 hora | `maxAge` en `app/dashboard/[clientId]/vista.ts` |

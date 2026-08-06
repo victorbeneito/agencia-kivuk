@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, Clock, MessageSquare, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { modulosActivos, requireCliente } from "@/lib/auth";
+import { clienteDelPanel, modulosActivos } from "@/lib/auth";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import {
  * cinco segundos.
  */
 export default async function PanelInicioPage() {
-  const perfil = await requireCliente();
+  const perfil = await clienteDelPanel();
   const supabase = await createClient();
   const modulos = await modulosActivos(perfil.clientId);
 

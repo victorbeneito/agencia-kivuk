@@ -3,7 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Images, MessageSquare, type LucideIcon } from "lucide-react";
+import {
+  Home,
+  Images,
+  MessageSquare,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -39,6 +45,7 @@ const ICONOS: Record<string, LucideIcon> = {
   inicio: Home,
   conversaciones: MessageSquare,
   contenido: Images,
+  cuenta: UserRound,
 };
 
 export function PanelSidebar({

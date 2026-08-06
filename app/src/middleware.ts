@@ -72,7 +72,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(inicio, request.url));
   }
 
-  if (!ruta.startsWith(inicio)) {
+  // La agencia sí puede estar en `/panel` si ha pulsado «Ver su panel»: la
+  // cookie dice de qué cliente. Aquí solo se mira que exista — de quién es ese
+  // cliente lo comprueba `clienteDelPanel()` en cada carga, que es donde se
+  // puede consultar la base de datos.
+  const mirandoUnCliente =
+    perfil.role === "agency_admin" &&
+    ruta.startsWith("/panel") &&
+    Boolean(request.cookies.get("kivuk_vista_cliente")?.value);
+
+  if (!ruta.startsWith(inicio) && !mirandoUnCliente) {
     return NextResponse.redirect(new URL(inicio, request.url));
   }
 

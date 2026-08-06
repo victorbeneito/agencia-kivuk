@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { requireCliente } from "@/lib/auth";
+import { clienteDelPanel } from "@/lib/auth";
 
 /**
  * Lo que el cliente puede hacer con sus piezas: darles el visto bueno,
@@ -21,7 +21,10 @@ export type Resultado = { ok: boolean; mensaje?: string };
 const REVISABLES = ["pending", "failed", "draft"];
 
 async function piezaDelCliente(itemId: string) {
-  const perfil = await requireCliente();
+  // Vale tanto para el cliente como para la agencia mirando su panel: los dos
+  // pueden aprobar, y en los dos casos hay que comprobar que la pieza es de ese
+  // cliente antes de tocarla.
+  const perfil = await clienteDelPanel();
   const admin = createServiceRoleClient();
 
   const { data: pieza } = await admin

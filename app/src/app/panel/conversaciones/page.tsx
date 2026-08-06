@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { modulosActivos, requireCliente } from "@/lib/auth";
+import { clienteDelPanel, modulosActivos } from "@/lib/auth";
 import { Bandeja } from "@/components/bandeja/bandeja";
 import {
   COLUMNAS_CONVERSACION,
@@ -9,7 +9,7 @@ import {
 } from "@/components/bandeja/tipos";
 
 export default async function PanelConversacionesPage() {
-  const perfil = await requireCliente();
+  const perfil = await clienteDelPanel();
 
   // La sección no está en la navegación si el módulo no está activo, pero la
   // ruta también lo comprueba: un enlace guardado en favoritos no debería
