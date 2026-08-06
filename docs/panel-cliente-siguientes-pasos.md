@@ -167,6 +167,7 @@ ejecutar, uno detrás de otro:
 
 1. `supabase/migrations/0008_rls_panel_cliente.sql`
 2. `supabase/migrations/0009_conversaciones_bandeja.sql`
+3. `supabase/migrations/0010_avisos_cliente.sql`
 
 Y comprobar que quedaron bien:
 
@@ -313,18 +314,12 @@ revierten solas: si hubiera que deshacer la 0008, las políticas viejas están e
 
 ## 5. Lo que falta
 
-- **Avisar de que alguien espera.** Hoy el «pide una persona» solo se ve si el
-  cliente tiene el panel abierto y mira. Falta que le llegue sin mirar, y hay
-  tres escalones que se pueden hacer por separado:
-  1. **Dentro del panel**: un sonido y el contador en el título de la pestaña
-     cuando llega un mensaje o un escalado. Es lo más barato y ya tenemos
-     Realtime, que es la parte difícil.
-  2. **Correo** al escalar, para quien no vive con el panel abierto. Resend ya
-     está configurado por cliente en el módulo `email`.
-  3. **Notificación push** en el móvil. Es lo que de verdad resuelve el
-     problema, y va con la PWA: Web Push, permisos, y iOS con sus reglas
-     (solo funciona si el usuario ha «instalado» la app en la pantalla de
-     inicio).
+- **Aviso en el móvil.** De los tres escalones de aviso, los dos primeros están
+  hechos (ver §6); falta el que de verdad resuelve el problema: **notificación
+  push**. Va con la PWA — Web Push, claves VAPID, una tabla de suscripciones por
+  dispositivo, y iOS con sus reglas (solo funciona si el cliente ha «instalado»
+  la web en su pantalla de inicio). La casilla ya existe en la pantalla de
+  avisos, desactivada, y la columna `push` está en la tabla esperándola.
 - **Citas.** `agenda-api.json` crea el evento en Google Calendar y no guarda nada
   en Supabase, así que no hay de dónde leerlas. Hace falta una tabla
   `appointments` que el workflow rellene al reservar. Es poco trabajo y da
@@ -344,7 +339,31 @@ revierten solas: si hubiera que deshacer la 0008, las políticas viejas están e
 
 ---
 
-## 6. Decisiones que se tomaron (y cómo revertirlas)
+## 6. Cómo se avisa de que alguien espera
+
+Un aviso que no llega no sirve, y uno que llega de más se acaba ignorando: por
+eso cada cliente elige, en **Tu cuenta → Avisos** de su panel (o la agencia por
+él, desde *Ver su panel*). Se guarda en `client_notification_settings`, tabla
+aparte de `client_modules` justo porque esto sí es una preferencia suya y las
+credenciales no.
+
+| Canal | Estado | Cómo funciona |
+| --- | --- | --- |
+| En el panel | hecho, activado por defecto | `components/avisos-en-panel.tsx`: contador en el título de la pestaña y un tono sintetizado con WebAudio. Solo suena cuando el contador **sube**, para no sonar al marcar como leído. |
+| Por correo | hecho, apagado por defecto | El bot, tras marcar `handoff_requested_at`, mira las preferencias y manda un Resend con el mensaje y un enlace a la conversación. Usa las credenciales del módulo `email` del cliente. |
+| En el móvil | pendiente | Va con la PWA. La casilla existe desactivada y la columna `push` está creada. |
+
+Dos decisiones de fondo:
+
+- **El correo cuelga de «pide una persona», no de cada mensaje.** Avisar de todo
+  es no avisar de nada: a la tercera notificación por un «hola» el cliente crea
+  un filtro y deja de leerlos.
+- **Que falle el aviso no puede tumbar la ejecución.** Los nodos del correo van
+  con `onError: continueRegularOutput`: para cuando se envía, el cliente final ya
+  tiene su respuesta y la conversación ya está marcada. Perder el aviso es
+  molesto; perder la ejecución entera, peor.
+
+## 7. Decisiones que se tomaron (y cómo revertirlas)
 
 | Decisión | Dónde se cambia si no gusta |
 | --- | --- |

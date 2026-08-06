@@ -790,6 +790,128 @@
       "id": "wa000013-0013-4013-8013-000000000013",
       "name": "Marcar que pide persona",
       "notes": "La bandeja destaca estas conversaciones. El bot ya ha respondido lo que diga su prompt; esto solo avisa a quien mira el panel."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_notification_settings?client_id=eq.{{ $('Buscar cliente Whatsapp').first().json.client_id }}&select=por_email,email",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3248,
+        240
+      ],
+      "id": "wa000014-0014-4014-8014-000000000014",
+      "name": "Cómo quiere que le avisen",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "notes": "Always Output Data: un cliente sin fila de preferencias devuelve cero items, y cero items cortan el flujo en n8n."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "wa-cond-email",
+              "leftValue": "={{ Boolean($json.por_email && $json.email) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3440,
+        240
+      ],
+      "id": "wa000015-0015-4015-8015-000000000015",
+      "name": "¿Avisar por correo?"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?client_id=eq.{{ $('Buscar cliente Whatsapp').first().json.client_id }}&module=eq.email&select=config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3632,
+        240
+      ],
+      "id": "wa000016-0016-4016-8016-000000000016",
+      "name": "Credenciales de correo",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.config?.resend_api_key || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from\": {{ JSON.stringify($json.config?.from_email || \"onboarding@resend.dev\") }},\n  \"to\": [{{ JSON.stringify($('Cómo quiere que le avisen').first().json.email) }}],\n  \"subject\": {{ JSON.stringify(\"Alguien quiere hablar contigo por WhatsApp\") }},\n  \"html\": {{ JSON.stringify(\n    \"<p>Una persona ha pedido hablar con alguien del equipo por WhatsApp.</p>\" +\n    \"<p><strong>\" + $('Extraer mensaje').first().json.from + \"</strong> ha escrito:</p>\" +\n    \"<blockquote style=\\\"margin:0;padding:8px 12px;border-left:3px solid #8EB9C5;color:#444\\\">\" +\n    $('Extraer mensaje').first().json.message_text +\n    \"</blockquote>\" +\n    \"<p>El asistente ya le ha contestado lo que ha podido, pero conviene que entres t\\u00fa.</p>\" +\n    \"<p><a href=\\\"https://panel.agenciakivuk.com/panel/conversaciones\\\">Abrir la conversaci\\u00f3n</a></p>\"\n  ) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3824,
+        240
+      ],
+      "id": "wa000017-0017-4017-8017-000000000017",
+      "name": "Avisar por correo",
+      "onError": "continueRegularOutput",
+      "notes": "onError a propósito: que Resend falle no puede tumbar la ejecución. El mensaje al cliente final ya se ha enviado y la conversación ya está marcada; perder el aviso es molesto, perder la ejecución entera lo es más."
     }
   ],
   "connections": {
@@ -1132,6 +1254,51 @@
           }
         ],
         []
+      ]
+    },
+    "Marcar que pide persona": {
+      "main": [
+        [
+          {
+            "node": "Cómo quiere que le avisen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cómo quiere que le avisen": {
+      "main": [
+        [
+          {
+            "node": "¿Avisar por correo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Avisar por correo?": {
+      "main": [
+        [
+          {
+            "node": "Credenciales de correo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Credenciales de correo": {
+      "main": [
+        [
+          {
+            "node": "Avisar por correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

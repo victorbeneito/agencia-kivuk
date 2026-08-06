@@ -4,6 +4,7 @@ import { clienteDelPanel, modulosActivos } from "@/lib/auth";
 import { PanelSidebar } from "@/components/panel-sidebar";
 import { LogoutButton } from "@/components/logout-button";
 import { SalirDeLaVista } from "@/components/salir-de-la-vista";
+import { AvisosEnPanel } from "@/components/avisos-en-panel";
 import {
   SidebarInset,
   SidebarProvider,
@@ -34,6 +35,12 @@ export default async function PanelLayout({
     .single();
 
   const modulos = await modulosActivos(contexto.clientId);
+
+  const { data: avisos } = await supabase
+    .from("client_notification_settings")
+    .select("en_panel")
+    .eq("client_id", contexto.clientId)
+    .maybeSingle();
 
   // Los avisos que llevan a mirar el panel: mensajes sin leer y piezas que
   // esperan un sí o un no. Se cuentan aquí para que salgan en la barra estés
@@ -85,19 +92,29 @@ export default async function PanelLayout({
     // acceso, así que tiene que estar escrito en algún sitio. Estaba solo
     // detrás del email de la cabecera y no se le ocurre a nadie pulsarlo.
     //
-    // En la vista de agencia no aparece: ahí la sesión es la del administrador,
-    // y «cambiar la contraseña» le cambiaría la suya sin que lo pareciera.
-    ...(contexto.esVistaDeAgencia
-      ? []
-      : [{ clave: "cuenta", titulo: "Tu cuenta", url: "/panel/cuenta" }]),
+    // También en la vista de agencia: ahí no sale el cambio de contraseña
+    // (sería la del administrador), pero sí los avisos, que muchas veces se
+    // dejan configurados al dar de alta al cliente.
+    { clave: "cuenta", titulo: "Tu cuenta", url: "/panel/cuenta" },
   ];
+
+  const nombre = cliente?.name ?? "Tu negocio";
 
   return (
     <SidebarProvider>
-      <PanelSidebar
-        nombreCliente={cliente?.name ?? "Tu negocio"}
-        secciones={secciones}
-      />
+      {/* No pinta nada: pone el contador en el título de la pestaña y suena
+          cuando llega algo nuevo. En la vista de agencia también, que para eso
+          se entra a comprobar si el aviso funciona. */}
+      {modulos.has("whatsapp") && (
+        <AvisosEnPanel
+          clientId={contexto.clientId}
+          activo={avisos?.en_panel ?? true}
+          sinLeerInicial={sinLeer}
+          tituloBase={nombre}
+        />
+      )}
+
+      <PanelSidebar nombreCliente={nombre} secciones={secciones} />
       <SidebarInset>
         {contexto.esVistaDeAgencia && (
           // Una barra que no se puede pasar por alto: sin ella es fácil creer
@@ -116,7 +133,7 @@ export default async function PanelLayout({
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-5" />
             <span className="font-heading text-sm font-semibold">
-              {cliente?.name ?? "Tu negocio"}
+              {nombre}
             </span>
           </div>
           <div className="flex items-center gap-3">
