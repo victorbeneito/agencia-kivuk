@@ -32,9 +32,11 @@ function Burbuja({ mensaje }: { mensaje: MensajeBandeja }) {
     >
       <div
         className={cn(
-          // 15px y burbujas anchas: es un chat, se lee de corrido y muchas
-          // veces con el móvil en una mano y a contraluz.
-          "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[15px] leading-snug shadow-sm md:max-w-[65%]",
+          // 16px y burbujas anchas, comparado con WhatsApp en el mismo móvil:
+          // esto se lee de corrido, en una mano y muchas veces a contraluz. A
+          // 13px —que es lo normal en una tabla de escritorio— resulta
+          // directamente inservible.
+          "max-w-[85%] rounded-2xl px-4 py-2.5 text-base leading-snug shadow-sm md:max-w-[65%] md:text-[15px]",
           esContacto
             ? "rounded-bl-sm bg-card"
             : mensaje.quien === "human"
@@ -46,7 +48,7 @@ function Burbuja({ mensaje }: { mensaje: MensajeBandeja }) {
         <p className="whitespace-pre-wrap break-words">{mensaje.contenido}</p>
         <div
           className={cn(
-            "mt-1 flex items-center justify-end gap-1 text-[11px]",
+            "mt-1 flex items-center justify-end gap-1 text-xs",
             esContacto || mensaje.quien === "bot"
               ? "text-muted-foreground"
               : "text-white/70"
@@ -254,7 +256,7 @@ export function Hilo({
         </Button>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-medium">
+          <p className="truncate text-base font-medium md:text-[15px]">
             {etiquetaContacto(conversacion)}
           </p>
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

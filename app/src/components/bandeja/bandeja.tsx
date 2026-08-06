@@ -165,7 +165,7 @@ export function Bandeja({
 
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-[15px] font-medium">
+                      <span className="truncate text-base font-medium md:text-[15px]">
                         {etiquetaContacto(c)}
                       </span>
                       <span
@@ -183,7 +183,7 @@ export function Bandeja({
                     <span className="mt-1 flex items-center justify-between gap-2">
                       <span
                         className={cn(
-                          "truncate text-sm",
+                          "truncate text-[15px] md:text-sm",
                           c.sinLeer > 0
                             ? "font-medium text-foreground"
                             : "text-muted-foreground"

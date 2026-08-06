@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { CambiarPassword } from "./cambiar-password";
 import { AvisosForm } from "./avisos";
+import { InstalarApp } from "@/components/instalar-app";
 
 /**
  * Dos cosas distintas que caen en el mismo sitio: cómo entras y cómo te
@@ -39,7 +40,10 @@ export default async function CuentaPage() {
             Cuando alguien pide hablar con una persona, ¿cómo quieres enterarte?
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-5">
+          {/* No se enseña si ya está instalada: se detecta sola. */}
+          <InstalarApp />
+
           <AvisosForm
             inicial={{
               enPanel: avisos?.en_panel ?? true,
