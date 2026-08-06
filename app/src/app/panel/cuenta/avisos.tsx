@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Volume2 } from "lucide-react";
+import { pitido } from "@/components/avisos-en-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,12 +63,25 @@ export function AvisosForm({ inicial }: { inicial: Avisos }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Opcion
-        titulo="En el panel"
-        descripcion="Un sonido y el número de mensajes en la pestaña del navegador, mientras lo tengas abierto."
-        marcado={avisos.enPanel}
-        onChange={(v) => cambiar({ enPanel: v })}
-      />
+      <div className="flex flex-col gap-2">
+        <Opcion
+          titulo="En el panel"
+          descripcion="Un cartel en pantalla, el número de mensajes en la pestaña del navegador y un sonido, mientras tengas el panel abierto."
+          marcado={avisos.enPanel}
+          onChange={(v) => cambiar({ enPanel: v })}
+        />
+        {avisos.enPanel && (
+          <div className="flex flex-wrap items-center gap-3 pl-3">
+            <Button variant="outline" size="sm" onClick={() => pitido()}>
+              <Volume2 className="size-4" />
+              Probar el sonido
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Si no lo oyes, mira que la pestaña no esté silenciada.
+            </span>
+          </div>
+        )}
+      </div>
 
       <Opcion
         titulo="Por correo"

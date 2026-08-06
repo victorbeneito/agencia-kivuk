@@ -355,9 +355,16 @@ credenciales no.
 
 | Canal | Estado | Cómo funciona |
 | --- | --- | --- |
-| En el panel | hecho, activado por defecto | `components/avisos-en-panel.tsx`: contador en el título de la pestaña y un tono sintetizado con WebAudio. Solo suena cuando el contador **sube**, para no sonar al marcar como leído. |
+| En el panel | hecho, activado por defecto | `components/avisos-en-panel.tsx`: un cartel en pantalla, el contador en el título de la pestaña y un tono sintetizado con WebAudio. Solo avisa cuando el contador **sube**, para no sonar al marcar como leído. |
 | Por correo | hecho, apagado por defecto | El bot, tras marcar `handoff_requested_at`, mira las preferencias y manda un Resend con el mensaje y un enlace a la conversación. Usa las credenciales del módulo `email` del cliente. |
 | En el móvil | pendiente | Va con la PWA. La casilla existe desactivada y la columna `push` está creada. |
+
+El cartel en pantalla se añadió después de probarlo: la primera versión eran solo
+el título y el sonido, y con el panel delante no se notaba ninguno de los dos —el
+título no se mira, y el sonido se lo come la política de autoplay del navegador
+si no has hecho clic en esa pestaña desde que cargó—. De ahí también el botón
+**Probar el sonido** en la pantalla de avisos: comprobarlo requiere un clic, que
+es justo lo que el navegador exige para dejar sonar.
 
 Dos decisiones de fondo:
 
