@@ -222,7 +222,7 @@ ssh kivuk@LA_IP
 ~/agencia-kivuk/scripts/desplegar.sh
 ```
 
-O, más cómodo desde Windows, doble clic en **`scripts/desplegar.bat`**: hace el
+O, más cómodo desde Windows, doble clic en **`scripts/desplegar_VPS.bat`**: hace el
 `git push` y llama por SSH al script del servidor. Se planta si tienes cambios
 sin commitear, porque lo que se despliega es lo que está en GitHub y no lo que
 tienes en el disco — desplegar con algo a medias no da ningún error, solo deja

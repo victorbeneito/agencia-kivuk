@@ -6,7 +6,12 @@ rem ============================================================================
 rem  Sube lo que haya en local y lo despliega en el VPS, de una tacada.
 rem
 rem  Se ejecuta con doble clic desde el Explorador, o escribiendo
-rem  scripts\desplegar.bat en una terminal.
+rem  scripts\desplegar_VPS.bat en una terminal.
+rem
+rem  Se llama distinto que desplegar.sh a proposito: Windows oculta las
+rem  extensiones, y con los dos llamandose "desplegar" en el Explorador es
+rem  cuestion de tiempo abrir el .sh en el Bloc de notas creyendo que se
+rem  ejecuta. Este es el que se pincha; el .sh corre en el servidor.
 rem
 rem  No hace nada que no pudieras hacer a mano: `git push` y luego el
 rem  desplegar.sh del servidor por SSH. Existe porque son siempre los mismos dos
