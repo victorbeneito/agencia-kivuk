@@ -6,6 +6,10 @@
   "start_url": "/panel",
   "scope": "/panel",
   "display": "standalone",
+  "id": "/panel",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "orientation": "portrait-primary",
   "background_color": "#f8f8f5",
   "theme_color": "#2b3f4d",

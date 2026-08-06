@@ -16,7 +16,9 @@
  *     exista.
  */
 
-const CACHE = "kivuk-panel-v1";
+// Al subir el número se borra la caché anterior entera (ver `activate`). Hay que
+// subirlo siempre que cambie algo que ya estuviera cacheado.
+const CACHE = "kivuk-panel-v2";
 
 // Lo mínimo para que la pantalla de «sin conexión» no dependa de la red.
 const BASICOS = ["/icon-192.png"];
@@ -50,10 +52,12 @@ self.addEventListener("fetch", (evento) => {
   if (url.origin !== self.location.origin) return;
 
   // Estáticos de Next y los iconos: primero la caché, que no cambian.
+  //
+  // El manifiesto NO entra aquí a propósito. Es de donde el sistema saca cómo se
+  // instala la app y a dónde van las notificaciones; servido desde la caché, un
+  // cambio ahí no llegaría nunca al móvil.
   const esEstatico =
-    url.pathname.startsWith("/_next/static/") ||
-    url.pathname.endsWith(".png") ||
-    url.pathname.endsWith(".webmanifest");
+    url.pathname.startsWith("/_next/static/") || url.pathname.endsWith(".png");
 
   if (esEstatico) {
     evento.respondWith(
@@ -124,21 +128,64 @@ self.addEventListener("push", (evento) => {
   );
 });
 
+/*
+ * Qué ventanas son la app instalada y cuáles una pestaña del navegador.
+ *
+ * La API de service workers no lo dice: un `WindowClient` es igual en los dos
+ * casos. Así que lo cuenta la propia página al cargarse (ver `registrar-pwa`),
+ * y aquí se apunta su id. Sirve para que, con el panel abierto a la vez en una
+ * pestaña y en la app, la notificación lleve a la app.
+ *
+ * Es una pista, no un registro fiable: el navegador puede parar el service
+ * worker cuando le convenga y esto se vacía. Por eso nunca se depende de ello
+ * para decidir, solo para ordenar los candidatos.
+ */
+const VENTANAS_APP = new Set();
+
+self.addEventListener("message", (evento) => {
+  if (evento.data && evento.data.tipo === "soy-la-app" && evento.source) {
+    VENTANAS_APP.add(evento.source.id);
+  }
+});
+
 self.addEventListener("notificationclick", (evento) => {
   evento.notification.close();
-  const destino = (evento.notification.data && evento.notification.data.url) || "/panel";
+  const destino = new URL(
+    (evento.notification.data && evento.notification.data.url) || "/panel",
+    self.location.origin
+  ).href;
 
   evento.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((ventanas) => {
-      // Si la app ya está abierta se reutiliza esa ventana; abrir una segunda
-      // deja al usuario con dos copias de lo mismo.
-      for (const ventana of ventanas) {
-        if (ventana.url.includes("/panel") && "focus" in ventana) {
-          ventana.navigate(destino);
-          return ventana.focus();
-        }
+    (async () => {
+      const ventanas = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+
+      // Solo las del panel: si el usuario tiene abierta otra parte del sitio,
+      // no es sitio al que llevarle desde un aviso de una conversación.
+      const alcance = self.registration.scope;
+      const candidatas = ventanas.filter(
+        (v) => v.url.startsWith(alcance) && "focus" in v
+      );
+
+      // La app antes que una pestaña suelta, si sabemos cuál es cuál.
+      const elegida =
+        candidatas.find((v) => VENTANAS_APP.has(v.id)) || candidatas[0];
+
+      if (elegida) {
+        // `navigate` falla si la ventana no la controla este service worker.
+        // Da igual: enfocarla ya deja al usuario donde quería estar.
+        try {
+          await elegida.navigate(destino);
+        } catch {}
+        return elegida.focus();
       }
+
+      // Nada abierto. Aquí decide el navegador si esto se abre en la app
+      // instalada o en una pestaña, y lo que le inclina hacia la app es el
+      // manifiesto: `id`, `scope` y `launch_handler`. Ver panel.webmanifest.
       return self.clients.openWindow(destino);
-    })
+    })()
   );
 });

@@ -18,6 +18,23 @@ export function RegistrarPwa() {
 
     navigator.serviceWorker
       .register("/panel-sw.js", { scope: "/panel" })
+      .then(() => {
+        // Si esto es la app instalada y no una pestaña, decírselo al service
+        // worker: es lo único que le permite distinguirlas, y lo necesita para
+        // que al pulsar una notificación se abra la app y no el navegador.
+        const enLaApp =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          // Safari en iOS no implementa display-mode y usa esto.
+          (window.navigator as { standalone?: boolean }).standalone === true;
+
+        if (!enLaApp) return;
+
+        // `controller` es null en la primera carga tras instalar el service
+        // worker: todavía no controla esta página. `ready` espera a que lo haga.
+        navigator.serviceWorker.ready.then(() => {
+          navigator.serviceWorker.controller?.postMessage({ tipo: "soy-la-app" });
+        });
+      })
       .catch(() => {
         // Sin service worker no hay instalación ni notificaciones, pero el
         // panel se usa igual desde el navegador. No merece molestar al usuario.

@@ -402,6 +402,29 @@ Sobre el push, tres cosas que no son evidentes:
 las suscripciones existentes dejan de valer en silencio y cada cliente tiene que
 volver a dar permiso en su móvil.
 
+### Que la notificación abra la app y no el navegador
+
+Al pulsar un aviso, el service worker mira si ya hay una ventana del panel
+abierta. Si la hay, la enfoca —y esa ventana es la app, así que todo va bien—.
+Si no hay ninguna, llama a `clients.openWindow()` **y ahí decide el navegador**:
+no existe forma de exigirle que abra la app instalada.
+
+Lo que le inclina hacia la app son tres campos del manifiesto: `id` (identidad
+estable de la aplicación), `scope` (que la URL del aviso caiga dentro) y
+`launch_handler: navigate-existing`. Están puestos en `panel.webmanifest`.
+
+Con el panel abierto a la vez en la app y en una pestaña, se prefiere la app.
+La API no distingue una ventana de otra, así que lo cuenta la propia página:
+`registrar-pwa` mira `display-mode: standalone` y avisa al service worker, que
+apunta el id. Es una pista y no un registro fiable —el navegador puede parar el
+service worker y se vacía—, por eso solo sirve para ordenar candidatos, nunca
+para descartar ninguno.
+
+📌 **Android guarda una copia del manifiesto al instalar** (el WebAPK). Tocar
+`id` o `launch_handler` no cambia nada en un móvil que ya lo tenía instalado
+hasta que Chrome se da cuenta, que puede tardar días. Para probarlo: desinstalar
+la app del móvil y volver a instalarla.
+
 Dos decisiones de fondo:
 
 - **El correo cuelga de «pide una persona», no de cada mensaje.** Avisar de todo
