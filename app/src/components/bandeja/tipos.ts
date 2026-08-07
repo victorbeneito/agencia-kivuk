@@ -23,6 +23,18 @@ export type MensajeBandeja = {
   contenido: string;
   quien: "contact" | "bot" | "human";
   fecha: string;
+  /**
+   * Archivo que mandó el contacto: foto, nota de voz, vídeo o documento.
+   *
+   * Es la ruta dentro del bucket `adjuntos`, no una URL. El bucket es privado
+   * —son conversaciones de clientes— y el enlace se firma al mirarlo, con la
+   * sesión de quien mira. Una URL guardada en la base de datos o caducaría o
+   * sería pública para siempre.
+   */
+  mediaPath?: string | null;
+  mediaType?: string | null;
+  /** Meta solo manda nombre de archivo en los documentos. */
+  mediaName?: string | null;
   /** Solo en el optimista, mientras n8n confirma el envío. */
   enviando?: boolean;
   fallo?: string;

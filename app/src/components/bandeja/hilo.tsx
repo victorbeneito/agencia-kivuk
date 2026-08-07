@@ -5,6 +5,7 @@ import { ArrowLeft, Bot, Clock, Send, UserRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Adjunto } from "./adjunto";
 import {
   devolverAlBot,
   enviarMensaje,
@@ -20,7 +21,13 @@ import {
 } from "./tipos";
 
 /** Un mensaje suelto. El color dice quién habla sin necesidad de etiqueta. */
-function Burbuja({ mensaje }: { mensaje: MensajeBandeja }) {
+function Burbuja({
+  mensaje,
+  urlAdjunto,
+}: {
+  mensaje: MensajeBandeja;
+  urlAdjunto: string | null | undefined;
+}) {
   const esContacto = mensaje.quien === "contact";
 
   return (
@@ -45,6 +52,7 @@ function Burbuja({ mensaje }: { mensaje: MensajeBandeja }) {
           mensaje.enviando && "opacity-60"
         )}
       >
+        <Adjunto mensaje={mensaje} url={urlAdjunto} />
         <p className="whitespace-pre-wrap break-words">{mensaje.contenido}</p>
         <div
           className={cn(
@@ -101,6 +109,8 @@ export function Hilo({
   onVolver: () => void;
 }) {
   const [mensajes, setMensajes] = useState<MensajeBandeja[]>([]);
+  /** Ruta del adjunto → enlace firmado, o null si no se ha podido firmar. */
+  const [firmadas, setFirmadas] = useState<Record<string, string | null>>({});
   const [cargando, setCargando] = useState(true);
   const [texto, setTexto] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +131,7 @@ export function Hilo({
 
     supabase
       .from("messages")
-      .select("id, content, sender, created_at")
+      .select("id, content, sender, created_at, media_path, media_type, media_name")
       .eq("conversation_id", conversacion.id)
       .order("created_at", { ascending: true })
       .then(({ data }) => {
@@ -132,6 +142,9 @@ export function Hilo({
             contenido: m.content,
             quien: m.sender as MensajeBandeja["quien"],
             fecha: m.created_at,
+            mediaPath: m.media_path,
+            mediaType: m.media_type,
+            mediaName: m.media_name,
           }))
         );
         setCargando(false);
@@ -153,6 +166,9 @@ export function Hilo({
             content: string;
             sender: string;
             created_at: string;
+            media_path: string | null;
+            media_type: string | null;
+            media_name: string | null;
           };
           setMensajes((previos) => {
             if (previos.some((p) => p.id === m.id)) return previos;
@@ -167,6 +183,9 @@ export function Hilo({
                 contenido: m.content,
                 quien: m.sender as MensajeBandeja["quien"],
                 fecha: m.created_at,
+                mediaPath: m.media_path,
+                mediaType: m.media_type,
+                mediaName: m.media_name,
               },
             ];
           });
@@ -179,6 +198,57 @@ export function Hilo({
       supabase.removeChannel(canal);
     };
   }, [conversacion.id]);
+
+  /*
+   * Enlaces firmados de los adjuntos.
+   *
+   * El bucket es privado, así que no vale con guardar una URL: hay que pedirle
+   * a Supabase una firma temporal, y solo la da si la RLS de `storage.objects`
+   * deja leer ese archivo a quien está mirando (migración 0012).
+   *
+   * `intentadas` es un ref y no estado a propósito. Si fuera estado tendría que
+   * ir en las dependencias del efecto, y cada firma provocaría otra vuelta: con
+   * un archivo que no se puede firmar —borrado, o subido a medias— eso es un
+   * bucle infinito de peticiones.
+   */
+  const intentadas = useRef(new Set<string>());
+
+  useEffect(() => {
+    const pendientes = mensajes
+      .map((m) => m.mediaPath)
+      .filter(
+        (p): p is string => typeof p === "string" && !intentadas.current.has(p)
+      );
+
+    if (pendientes.length === 0) return;
+    pendientes.forEach((p) => intentadas.current.add(p));
+
+    let cancelado = false;
+
+    createClient()
+      .storage.from("adjuntos")
+      // Una hora: de sobra para mirarlo, poco para que el enlace ande suelto si
+      // alguien lo comparte sin pensar.
+      .createSignedUrls(pendientes, 3600)
+      .then(({ data }) => {
+        if (cancelado) return;
+        setFirmadas((previas) => {
+          const siguiente = { ...previas };
+          // Lo que no se pueda firmar se marca como null, no se deja pendiente:
+          // así la burbuja dice que no se puede abrir en vez de girar para
+          // siempre.
+          for (const p of pendientes) siguiente[p] = null;
+          for (const f of data ?? []) {
+            if (f.path && f.signedUrl) siguiente[f.path] = f.signedUrl;
+          }
+          return siguiente;
+        });
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [mensajes]);
 
   // Al abrir una conversación con mensajes sin leer, se da por leída.
   useEffect(() => {
@@ -325,7 +395,10 @@ export function Hilo({
                     </span>
                   </div>
                 )}
-                <Burbuja mensaje={m} />
+                <Burbuja
+                  mensaje={m}
+                  urlAdjunto={m.mediaPath ? firmadas[m.mediaPath] : undefined}
+                />
               </div>
             ))}
             <div ref={finRef} />

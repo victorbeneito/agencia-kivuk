@@ -101,12 +101,12 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body;\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\n\n// Si no hay mensaje de texto (puede ser una actualización de estado u otro evento), paramos aquí.\nif (!message || message.type !== 'text') {\n  return [];\n}\n\n// Meta manda el nombre del perfil de WhatsApp junto al mensaje. Puede no\n// venir (perfil sin nombre, o ajustes de privacidad), asi que es opcional.\n// Se busca por wa_id en vez de coger el primero: en un webhook agrupado\n// podria haber varios contactos y el primero no tiene por que ser el nuestro.\nconst contacto =\n  value?.contacts?.find((c) => c.wa_id === message.from) || value?.contacts?.[0];\nconst nombre = contacto?.profile?.name?.trim() || null;\n\nreturn [{\n  json: {\n    phone_number_id: value.metadata.phone_number_id,\n    from: message.from,\n    message_text: message.text.body,\n    contact_name: nombre,\n  }\n}];"
+        "jsCode": "// Aqui se juntan todas las ramas y salen los campos que espera el resto del\n// workflow. Trece nodos leen $('Extraer mensaje'), asi que este contrato\n// --from, message_text, contact_name, client_id-- no se toca.\nconst base = $('Leer webhook').first().json;\nconst entrada = $input.first().json || {};\nconst client_id = $('Buscar cliente Whatsapp').first().json.client_id;\n\n// De donde viene el texto depende de por donde se haya pasado. Se mira la forma\n// del item, no de que nodo viene: referenciar un nodo que no se ha ejecutado\n// --$('Transcribir audio') cuando llego un PDF-- da error en n8n.\n//   Whisper          -> { text }\n//   vision           -> { choices: [...] }\n//   subida a Storage -> { Key }\n//   demasiado grande -> { url, file_size } (la ficha del medio, sin descargar)\n//   texto normal     -> { client_id, config } (la ficha del cliente)\nconst transcripcion = typeof entrada.text === 'string' ? entrada.text.trim() : '';\nconst descripcion = String(entrada.choices?.[0]?.message?.content || '').trim();\nconst demasiado_grande = Boolean(entrada.url && entrada.file_size);\n\n// La ruta se calcula, no se arrastra: con el id del medio y el del cliente basta,\n// y ambos estan disponibles vengamos por donde vengamos.\nconst guardado = Boolean(base.media_id) && !demasiado_grande;\nconst media_path = guardado ? client_id + '/' + base.media_id + '.' + base.ext : null;\n\nconst partes = [];\nif (base.texto) partes.push(base.texto);\nif (base.pie) partes.push(base.pie);\nif (transcripcion) partes.push(transcripcion);\nif (descripcion) partes.push('En la foto se ve: ' + descripcion);\n\n// Esto es lo que se guarda en la bandeja y lo que lee el modelo. Cuando no hay\n// nada legible se deja una marca entre corchetes en vez de una cadena vacia:\n// en la bandeja, un mensaje en blanco parece un fallo del panel.\nconst message_text =\n  partes.reduce((acc, p) => (acc ? acc + (/[.!?…]$/.test(acc) ? ' ' : '. ') + p : p), '') ||\n  (base.etiqueta ? '[' + base.etiqueta + ']' : '');\n\nreturn [{\n  json: {\n    phone_number_id: base.phone_number_id,\n    from: base.from,\n    contact_name: base.contact_name,\n    // `Buscar prompt del cliente` lo lee de su item de entrada, asi que tiene\n    // que seguir viajando por aqui.\n    client_id,\n    message_text,\n    // El archivo, para que lo abra quien atienda desde la bandeja.\n    media_path,\n    media_type: guardado ? base.mime : null,\n    media_name: guardado ? base.nombre_archivo : null,\n    // Para que `Preparar contexto` pueda avisar al modelo de que lo que llego\n    // no era texto, y de si se ha podido leer o no.\n    adjunto: base.tipo === 'text' ? null : {\n      etiqueta: demasiado_grande ? base.etiqueta + ', demasiado grande para guardarlo' : base.etiqueta,\n      leido: Boolean(transcripcion || descripcion),\n    },\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -208,
+        1360,
         288
       ],
       "id": "d746ffb9-d9c2-4197-b806-e24cf2f0902c",
@@ -160,7 +160,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        160,
+        1660,
         288
       ],
       "id": "e46001eb-6494-4b25-ad4a-c1fb6aba3a87",
@@ -178,7 +178,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        368,
+        1868,
         288
       ],
       "id": "wa000001-0001-4001-8001-000000000001",
@@ -219,7 +219,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        560,
+        2060,
         288
       ],
       "id": "53781a9f-5bcb-4874-b8a8-82951179373a",
@@ -246,7 +246,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        752,
+        2252,
         288
       ],
       "id": "a1c0de01-0002-4002-8002-000000000002",
@@ -255,12 +255,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// Historial: Supabase nos lo devuelve del más nuevo al más viejo,\n// así que lo invertimos para dárselo a la IA en orden cronológico.\nconst previos = $input.all()\n  .map((i) => i.json)\n  .filter((m) => m.role && m.content)\n  .reverse()\n  .map((m) => ({ role: m.role, content: m.content }));\n\n// Ojo: este nodo recibe varios items (uno por mensaje del historial), así que\n// hay que usar .first() y no .item, que aquí no existe.\nconst cfg = $('Buscar prompt del cliente').first().json;\n\nconst busqueda = $('Preparar búsqueda').first().json || {};\nconst fragmentos = ($('Recoger conocimiento').first().json || {}).fragmentos || [];\nconst productos = ($('Recoger productos').first().json || {}).productos || [];\n\n// === Conocimiento del negocio (RAG) ===\n// Lo recuperado para ESTA pregunta, no la base entera. Va como bloque propio y\n// con reglas explícitas: sin ellas el modelo rellena los huecos por su cuenta,\n// que es justo lo que no se quiere en una tienda de verdad.\nconst conocimiento = [];\n\nif (fragmentos.length) {\n  conocimiento.push('=== INFORMACION DEL NEGOCIO ===');\n  // El texto del fragmento ya viene con su título delante desde el indexado.\n  conocimiento.push(\n    fragmentos\n      .map((f) => f.content + (f.source_url ? '\\nMas informacion: ' + f.source_url : ''))\n      .join('\\n\\n')\n  );\n}\n\nif (productos.length) {\n  conocimiento.push('=== PRODUCTOS DEL CATALOGO ===');\n  conocimiento.push(\n    productos\n      .map((p) => {\n        const precio = p.price === null || p.price === undefined ? 'consultar' : p.price + ' ' + (p.currency || 'EUR');\n        return '- ' + p.name + ': ' + precio + (p.available === false ? ' (agotado)' : '') + ' -> ' + p.url;\n      })\n      .join('\\n')\n  );\n}\n\nif (conocimiento.length) {\n  conocimiento.push([\n    'Reglas sobre esta informacion:',\n    '- Para precios, plazos, politicas o caracteristicas del negocio, responde UNICAMENTE con lo de arriba.',\n    '- Si el dato no esta ahi, dilo con naturalidad y ofrece el contacto humano. NUNCA te inventes precios, plazos ni condiciones.',\n    '- Los precios de la lista de productos son los validos: no los redondees, no los estimes y no des rangos inventados.',\n    '- Si mencionas un producto concreto, incluye su enlace.',\n  ].join('\\n'));\n}\n\n// === Agenda ===\n// Solo para clientes con el modulo de agenda activo. Una tienda que no reserva\n// citas no debe recibir nada de esto: si le metes un calendario en el contexto,\n// el modelo acaba ofreciendo horas a quien preguntaba por un capazo.\nconst calendario = [];\n\nif (busqueda.tiene_agenda) {\n  // Los huecos los calcula la Agenda API, no este nodo: es la misma fuente que\n  // usa el agente de voz.\n  const agenda = $('Consultar agenda').first().json || {};\n  const libres = agenda.dias || [];\n  const duracion = agenda.duracion_min || 60;\n  const paso = agenda.paso_min || 15;\n\n  const aMin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };\n  const dosCifras = (n) => String(n).padStart(2, '0');\n  const aTexto = (m) => dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n\n  function rangos(horas) {\n    const out = [];\n    let ini = null;\n    let prev = null;\n    for (const h of horas) {\n      const m = aMin(h);\n      if (prev !== null && m === prev + paso) { prev = m; continue; }\n      if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n      ini = m;\n      prev = m;\n    }\n    if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n    return out.join(', ');\n  }\n\n  // La IA no sabe qué día de la semana cae cada fecha. Le damos los próximos\n  // 7 días: exactamente 7, para que cada nombre de día aparezca UNA sola vez.\n  const proximosDias = [];\n  for (let i = 0; i < 7; i++) {\n    const d = $now.plus({ days: i });\n    proximosDias.push(`${d.setLocale('es').toFormat('cccc')} = ${d.toFormat('yyyy-MM-dd')}`);\n  }\n\n  calendario.push([\n    '=== CALENDARIO REAL (esta es la unica fuente valida de fechas) ===',\n    `Hoy es ${$now.setLocale('es').toFormat('cccc')} ${$now.toFormat('yyyy-MM-dd')} (Europe/Madrid).`,\n    proximosDias.join('\\n'),\n    'Reglas de fechas:',\n    '- Si el usuario nombra un dia de la semana (\"el viernes\"), usa EXACTAMENTE la fecha de esta lista.',\n    '- Si nombra una fecha concreta (\"el 31 de julio\"), respetala tal cual y NO la corrijas.',\n    '- Los mensajes anteriores pueden contener fechas equivocadas: ignoralas y usa solo esta lista.',\n    '',\n    `=== HUECOS LIBRES (citas de ${duracion} min, pueden empezar cada ${paso} min) ===`,\n    libres.length\n      ? libres.map((d) => `${d.dia} ${d.fecha}: ${rangos(d.horas)}`).join('\\n')\n      : 'No queda ningun hueco libre en los proximos 7 dias.',\n    'Reglas de disponibilidad:',\n    `- Los rangos son horas de INICIO posibles: dentro de \"09:00-11:00\" vale cualquier hora en saltos de ${paso} minutos.`,\n    '- Si el usuario PREGUNTA que huecos hay, respondele usando esos rangos, sin inventarte ninguno.',\n    '- Si el usuario PIDE una hora concreta, NO juzgues si esta libre: limitate a rellenar date y time. De comprobarlo se encarga el sistema.',\n  ].join('\\n'));\n}\n\n// === Instrucciones ===\n// Dos juegos según el cliente reserve citas o solo atienda. El formato JSON de\n// salida es el mismo en los dos casos para no tener que tocar los nodos que\n// vienen después.\nconst instruccionesAgenda = [\n  'Tu tarea es EXTRAER datos y conversar. La disponibilidad la decide el sistema, nunca tu.',\n  '',\n  'Responde SIEMPRE en JSON con esta forma exacta:',\n  '{\"reply\": \"tu respuesta al usuario\", \"date\": \"YYYY-MM-DD\" o null, \"time\": \"HH:mm\" o null, \"email\": \"el email del usuario\" o null, \"motivo\": \"el servicio que pide\" o null, \"escalar\": true o false}',\n  '',\n  'Para reservar una cita hacen falta TRES datos: fecha, hora y email de contacto.',\n  '- date, time, email y motivo son los que el usuario haya dicho en CUALQUIER momento de la conversacion. Pon null solo si de verdad no lo ha dicho nunca.',\n  '- Rellena SIEMPRE date y time si el usuario ha mencionado un dia y una hora, AUNQUE creas que esa hora podria estar ocupada.',\n  '- NUNCA digas que una hora no esta disponible, y NUNCA ofrezcas alternativas por tu cuenta: de eso se encarga el sistema despues de ti.',\n  '- En reply: si falta alguno de los tres datos, pide UNICAMENTE el que falte. Si ya tienes los tres, escribe una confirmacion breve.',\n  '- No vuelvas a preguntar un dato que el usuario ya te dio antes.',\n].join('\\n');\n\nconst instruccionesTienda = [\n  'Atiendes a clientes de este negocio por WhatsApp. Tu trabajo es resolver dudas y',\n  'asesorar sobre los productos con informacion veraz.',\n  '',\n  'Responde SIEMPRE en JSON con esta forma exacta:',\n  '{\"reply\": \"tu respuesta al usuario\", \"date\": null, \"time\": null, \"email\": null, \"motivo\": null, \"escalar\": true o false}',\n  '',\n  '- Escribe como en un chat: breve, natural y directo. Nada de parrafadas ni de listas largas.',\n  '- Este negocio NO gestiona citas por aqui: no propongas ninguna ni pidas fecha, hora o email para reservar.',\n  '- Puedes recomendar y comparar productos, pero solo con los datos que tengas delante.',\n  '- Si te preguntan algo que no puedes resolver (un pedido concreto, una incidencia,',\n  '  un presupuesto a medida), dilo claramente y pasa el telefono o el correo del negocio.',\n  '- Ante la duda, es mejor decir \"eso te lo confirman mejor por telefono\" que arriesgar un dato.',\n].join('\\n');\n\nconst messages = [{ role: 'system', content: cfg.system_prompt || '' }];\n\n// Se mantiene por compatibilidad con los clientes que todavia usan el campo de\n// texto libre. Cuando su contenido este pasado a documentos, este bloque sobra.\nif (cfg.knowledge_base) {\n  messages.push({\n    role: 'system',\n    content: 'Base de conocimiento del negocio:\\n' + cfg.knowledge_base,\n  });\n}\n\nmessages.push({\n  role: 'system',\n  content: busqueda.tiene_agenda ? instruccionesAgenda : instruccionesTienda,\n});\n\n// === Cuándo avisar a una persona ===\n// El bot no deja de responder por su cuenta: contesta lo que diga su prompt y,\n// además, levanta la mano. Quien decide tomar el mando es la persona que mira\n// la bandeja, no el modelo.\nmessages.push({\n  role: 'system',\n  content: [\n    'Marca escalar: true cuando el usuario pida hablar con una persona, este enfadado o',\n    'insatisfecho, reclame algo, pregunte por un pedido o una incidencia concreta, o haga',\n    'una pregunta que no puedes responder con la informacion que tienes.',\n    'En el resto de casos, escalar: false. No lo menciones nunca en tu respuesta.',\n    'El campo escalar es OBLIGATORIO: tiene que aparecer siempre en el JSON, con true o con false.',\n  ].join('\\n'),\n});\n\nmessages.push(...previos);\n\n// El conocimiento y el calendario van DESPUES del historial, pegados al mensaje\n// actual. Si quedan enterrados al principio, el modelo se guia por lo que el\n// mismo dijo en mensajes anteriores en vez de por los datos buenos.\nif (conocimiento.length) {\n  messages.push({ role: 'system', content: conocimiento.join('\\n\\n') });\n}\nif (calendario.length) {\n  messages.push({ role: 'system', content: calendario.join('\\n') });\n}\n\nmessages.push({ role: 'user', content: $('Extraer mensaje').first().json.message_text });\n\nreturn [{ json: { messages } }];\n"
+        "jsCode": "// Historial: Supabase nos lo devuelve del más nuevo al más viejo,\n// así que lo invertimos para dárselo a la IA en orden cronológico.\nconst previos = $input.all()\n  .map((i) => i.json)\n  .filter((m) => m.role && m.content)\n  .reverse()\n  .map((m) => ({ role: m.role, content: m.content }));\n\n// Ojo: este nodo recibe varios items (uno por mensaje del historial), así que\n// hay que usar .first() y no .item, que aquí no existe.\nconst cfg = $('Buscar prompt del cliente').first().json;\n\nconst busqueda = $('Preparar búsqueda').first().json || {};\nconst fragmentos = ($('Recoger conocimiento').first().json || {}).fragmentos || [];\nconst productos = ($('Recoger productos').first().json || {}).productos || [];\n\n// === Conocimiento del negocio (RAG) ===\n// Lo recuperado para ESTA pregunta, no la base entera. Va como bloque propio y\n// con reglas explícitas: sin ellas el modelo rellena los huecos por su cuenta,\n// que es justo lo que no se quiere en una tienda de verdad.\nconst conocimiento = [];\n\nif (fragmentos.length) {\n  conocimiento.push('=== INFORMACION DEL NEGOCIO ===');\n  // El texto del fragmento ya viene con su título delante desde el indexado.\n  conocimiento.push(\n    fragmentos\n      .map((f) => f.content + (f.source_url ? '\\nMas informacion: ' + f.source_url : ''))\n      .join('\\n\\n')\n  );\n}\n\nif (productos.length) {\n  conocimiento.push('=== PRODUCTOS DEL CATALOGO ===');\n  conocimiento.push(\n    productos\n      .map((p) => {\n        const precio = p.price === null || p.price === undefined ? 'consultar' : p.price + ' ' + (p.currency || 'EUR');\n        return '- ' + p.name + ': ' + precio + (p.available === false ? ' (agotado)' : '') + ' -> ' + p.url;\n      })\n      .join('\\n')\n  );\n}\n\nif (conocimiento.length) {\n  conocimiento.push([\n    'Reglas sobre esta informacion:',\n    '- Para precios, plazos, politicas o caracteristicas del negocio, responde UNICAMENTE con lo de arriba.',\n    '- Si el dato no esta ahi, dilo con naturalidad y ofrece el contacto humano. NUNCA te inventes precios, plazos ni condiciones.',\n    '- Los precios de la lista de productos son los validos: no los redondees, no los estimes y no des rangos inventados.',\n    '- Si mencionas un producto concreto, incluye su enlace.',\n  ].join('\\n'));\n}\n\n// === Agenda ===\n// Solo para clientes con el modulo de agenda activo. Una tienda que no reserva\n// citas no debe recibir nada de esto: si le metes un calendario en el contexto,\n// el modelo acaba ofreciendo horas a quien preguntaba por un capazo.\nconst calendario = [];\n\nif (busqueda.tiene_agenda) {\n  // Los huecos los calcula la Agenda API, no este nodo: es la misma fuente que\n  // usa el agente de voz.\n  const agenda = $('Consultar agenda').first().json || {};\n  const libres = agenda.dias || [];\n  const duracion = agenda.duracion_min || 60;\n  const paso = agenda.paso_min || 15;\n\n  const aMin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };\n  const dosCifras = (n) => String(n).padStart(2, '0');\n  const aTexto = (m) => dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n\n  function rangos(horas) {\n    const out = [];\n    let ini = null;\n    let prev = null;\n    for (const h of horas) {\n      const m = aMin(h);\n      if (prev !== null && m === prev + paso) { prev = m; continue; }\n      if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n      ini = m;\n      prev = m;\n    }\n    if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n    return out.join(', ');\n  }\n\n  // La IA no sabe qué día de la semana cae cada fecha. Le damos los próximos\n  // 7 días: exactamente 7, para que cada nombre de día aparezca UNA sola vez.\n  const proximosDias = [];\n  for (let i = 0; i < 7; i++) {\n    const d = $now.plus({ days: i });\n    proximosDias.push(`${d.setLocale('es').toFormat('cccc')} = ${d.toFormat('yyyy-MM-dd')}`);\n  }\n\n  calendario.push([\n    '=== CALENDARIO REAL (esta es la unica fuente valida de fechas) ===',\n    `Hoy es ${$now.setLocale('es').toFormat('cccc')} ${$now.toFormat('yyyy-MM-dd')} (Europe/Madrid).`,\n    proximosDias.join('\\n'),\n    'Reglas de fechas:',\n    '- Si el usuario nombra un dia de la semana (\"el viernes\"), usa EXACTAMENTE la fecha de esta lista.',\n    '- Si nombra una fecha concreta (\"el 31 de julio\"), respetala tal cual y NO la corrijas.',\n    '- Los mensajes anteriores pueden contener fechas equivocadas: ignoralas y usa solo esta lista.',\n    '',\n    `=== HUECOS LIBRES (citas de ${duracion} min, pueden empezar cada ${paso} min) ===`,\n    libres.length\n      ? libres.map((d) => `${d.dia} ${d.fecha}: ${rangos(d.horas)}`).join('\\n')\n      : 'No queda ningun hueco libre en los proximos 7 dias.',\n    'Reglas de disponibilidad:',\n    `- Los rangos son horas de INICIO posibles: dentro de \"09:00-11:00\" vale cualquier hora en saltos de ${paso} minutos.`,\n    '- Si el usuario PREGUNTA que huecos hay, respondele usando esos rangos, sin inventarte ninguno.',\n    '- Si el usuario PIDE una hora concreta, NO juzgues si esta libre: limitate a rellenar date y time. De comprobarlo se encarga el sistema.',\n  ].join('\\n'));\n}\n\n// === Instrucciones ===\n// Dos juegos según el cliente reserve citas o solo atienda. El formato JSON de\n// salida es el mismo en los dos casos para no tener que tocar los nodos que\n// vienen después.\nconst instruccionesAgenda = [\n  'Tu tarea es EXTRAER datos y conversar. La disponibilidad la decide el sistema, nunca tu.',\n  '',\n  'Responde SIEMPRE en JSON con esta forma exacta:',\n  '{\"reply\": \"tu respuesta al usuario\", \"date\": \"YYYY-MM-DD\" o null, \"time\": \"HH:mm\" o null, \"email\": \"el email del usuario\" o null, \"motivo\": \"el servicio que pide\" o null, \"escalar\": true o false}',\n  '',\n  'Para reservar una cita hacen falta TRES datos: fecha, hora y email de contacto.',\n  '- date, time, email y motivo son los que el usuario haya dicho en CUALQUIER momento de la conversacion. Pon null solo si de verdad no lo ha dicho nunca.',\n  '- Rellena SIEMPRE date y time si el usuario ha mencionado un dia y una hora, AUNQUE creas que esa hora podria estar ocupada.',\n  '- NUNCA digas que una hora no esta disponible, y NUNCA ofrezcas alternativas por tu cuenta: de eso se encarga el sistema despues de ti.',\n  '- En reply: si falta alguno de los tres datos, pide UNICAMENTE el que falte. Si ya tienes los tres, escribe una confirmacion breve.',\n  '- No vuelvas a preguntar un dato que el usuario ya te dio antes.',\n].join('\\n');\n\nconst instruccionesTienda = [\n  'Atiendes a clientes de este negocio por WhatsApp. Tu trabajo es resolver dudas y',\n  'asesorar sobre los productos con informacion veraz.',\n  '',\n  'Responde SIEMPRE en JSON con esta forma exacta:',\n  '{\"reply\": \"tu respuesta al usuario\", \"date\": null, \"time\": null, \"email\": null, \"motivo\": null, \"escalar\": true o false}',\n  '',\n  '- Escribe como en un chat: breve, natural y directo. Nada de parrafadas ni de listas largas.',\n  '- Este negocio NO gestiona citas por aqui: no propongas ninguna ni pidas fecha, hora o email para reservar.',\n  '- Puedes recomendar y comparar productos, pero solo con los datos que tengas delante.',\n  '- Si te preguntan algo que no puedes resolver (un pedido concreto, una incidencia,',\n  '  un presupuesto a medida), dilo claramente y pasa el telefono o el correo del negocio.',\n  '- Ante la duda, es mejor decir \"eso te lo confirman mejor por telefono\" que arriesgar un dato.',\n].join('\\n');\n\nconst messages = [{ role: 'system', content: cfg.system_prompt || '' }];\n\n// Se mantiene por compatibilidad con los clientes que todavia usan el campo de\n// texto libre. Cuando su contenido este pasado a documentos, este bloque sobra.\nif (cfg.knowledge_base) {\n  messages.push({\n    role: 'system',\n    content: 'Base de conocimiento del negocio:\\n' + cfg.knowledge_base,\n  });\n}\n\nmessages.push({\n  role: 'system',\n  content: busqueda.tiene_agenda ? instruccionesAgenda : instruccionesTienda,\n});\n\n// === Cuándo avisar a una persona ===\n// El bot no deja de responder por su cuenta: contesta lo que diga su prompt y,\n// además, levanta la mano. Quien decide tomar el mando es la persona que mira\n// la bandeja, no el modelo.\nmessages.push({\n  role: 'system',\n  content: [\n    'Marca escalar: true cuando el usuario pida hablar con una persona, este enfadado o',\n    'insatisfecho, reclame algo, pregunte por un pedido o una incidencia concreta, o haga',\n    'una pregunta que no puedes responder con la informacion que tienes.',\n    'En el resto de casos, escalar: false. No lo menciones nunca en tu respuesta.',\n    'El campo escalar es OBLIGATORIO: tiene que aparecer siempre en el JSON, con true o con false.',\n  ].join('\\n'),\n});\n\nmessages.push(...previos);\n\n// El conocimiento y el calendario van DESPUES del historial, pegados al mensaje\n// actual. Si quedan enterrados al principio, el modelo se guia por lo que el\n// mismo dijo en mensajes anteriores en vez de por los datos buenos.\nif (conocimiento.length) {\n  messages.push({ role: 'system', content: conocimiento.join('\\n\\n') });\n}\nif (calendario.length) {\n  messages.push({ role: 'system', content: calendario.join('\\n') });\n}\n\n// === Adjuntos ===\n// Si lo que llego no era texto escrito, el modelo tiene que saberlo. Sin esto\n// trataria la transcripcion de un audio como si la persona la hubiera tecleado,\n// y ante una foto que no se ha podido abrir se inventaria que la ha visto.\nconst adjunto = $('Extraer mensaje').first().json.adjunto;\n\nif (adjunto) {\n  messages.push({\n    role: 'system',\n    content: adjunto.leido\n      ? 'El ultimo mensaje no es texto escrito: la persona ha enviado ' + adjunto.etiqueta +\n        ' y lo que sigue es lo que se ha podido leer de ahi. Respondele con naturalidad, sin ' +\n        'mencionar que lo has transcrito ni descrito.'\n      : 'La persona ha enviado ' + adjunto.etiqueta + '. No puedes acceder a su contenido: ' +\n        'dilo con naturalidad y pidele que te lo cuente por escrito. No te inventes que hay dentro.',\n  });\n}\n\nmessages.push({ role: 'user', content: $('Extraer mensaje').first().json.message_text });\n\nreturn [{ json: { messages } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        944,
+        2444,
         288
       ],
       "id": "a1c0de01-0003-4003-8003-000000000003",
@@ -291,7 +291,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1136,
+        2636,
         288
       ],
       "id": "c81725b5-543b-4eaf-9245-d341101a519f",
@@ -304,7 +304,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1328,
+        2828,
         288
       ],
       "id": "5c44a541-2cf7-4c1c-8e62-85d0e5e30937",
@@ -317,7 +317,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1520,
+        3020,
         288
       ],
       "id": "wa000002-0002-4002-8002-000000000002",
@@ -350,7 +350,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1712,
+        3212,
         288
       ],
       "id": "wa000003-0003-4003-8003-000000000003",
@@ -368,7 +368,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1904,
+        3404,
         192
       ],
       "id": "wa000004-0004-4004-8004-000000000004",
@@ -383,7 +383,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2096,
+        3596,
         192
       ],
       "id": "wa000005-0005-4005-8005-000000000005",
@@ -396,7 +396,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2096,
+        3596,
         400
       ],
       "id": "wa000006-0006-4006-8006-000000000006",
@@ -409,7 +409,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2288,
+        3788,
         288
       ],
       "id": "wa000007-0007-4007-8007-000000000007",
@@ -440,7 +440,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        2480,
+        3980,
         288
       ],
       "id": "e956314e-3cad-4061-a3af-7841c9a18385",
@@ -469,13 +469,13 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "=[\n  {\n    \"conversation_id\": {{ JSON.stringify($('Buscar o crear conversación').first().json.id) }},\n    \"role\": \"user\",\n    \"sender\": \"contact\",\n    \"content\": {{ JSON.stringify($('Extraer mensaje').first().json.message_text) }},\n    \"created_at\": \"{{ $now.toISO() }}\"\n  },\n  {\n    \"conversation_id\": {{ JSON.stringify($('Buscar o crear conversación').first().json.id) }},\n    \"role\": \"assistant\",\n    \"sender\": \"bot\",\n    \"content\": {{ JSON.stringify($('Respuesta final').first().json.reply) }},\n    \"created_at\": \"{{ $now.plus({ seconds: 1 }).toISO() }}\"\n  }\n]",
+        "jsonBody": "=[\n  {\n    \"conversation_id\": {{ JSON.stringify($('Buscar o crear conversación').first().json.id) }},\n    \"role\": \"user\",\n    \"sender\": \"contact\",\n    \"content\": {{ JSON.stringify($('Extraer mensaje').first().json.message_text) }},\n    \"created_at\": \"{{ $now.toISO() }}\",\n    \"media_path\": {{ JSON.stringify($('Extraer mensaje').first().json.media_path) }},\n    \"media_type\": {{ JSON.stringify($('Extraer mensaje').first().json.media_type) }},\n    \"media_name\": {{ JSON.stringify($('Extraer mensaje').first().json.media_name) }}\n  },\n  {\n    \"conversation_id\": {{ JSON.stringify($('Buscar o crear conversación').first().json.id) }},\n    \"role\": \"assistant\",\n    \"sender\": \"bot\",\n    \"content\": {{ JSON.stringify($('Respuesta final').first().json.reply) }},\n    \"created_at\": \"{{ $now.plus({ seconds: 1 }).toISO() }}\"\n  }\n]",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        2672,
+        4172,
         288
       ],
       "id": "72253213-bfda-4c9c-97d8-7d0fad6d6d0d",
@@ -504,7 +504,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        160,
+        1660,
         480
       ],
       "id": "rag-1a2b3c4d-0001-4000-8000-000000000001",
@@ -518,7 +518,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        352,
+        1852,
         480
       ],
       "id": "rag-1a2b3c4d-0002-4000-8000-000000000002",
@@ -549,7 +549,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        544,
+        2044,
         480
       ],
       "id": "rag-1a2b3c4d-0003-4000-8000-000000000003",
@@ -584,7 +584,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        736,
+        2236,
         480
       ],
       "id": "rag-1a2b3c4d-0004-4000-8000-000000000004",
@@ -598,7 +598,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        928,
+        2428,
         480
       ],
       "id": "rag-1a2b3c4d-0005-4000-8000-000000000005",
@@ -633,7 +633,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1120,
+        2620,
         480
       ],
       "id": "rag-1a2b3c4d-0006-4000-8000-000000000006",
@@ -647,7 +647,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1312,
+        2812,
         480
       ],
       "id": "rag-1a2b3c4d-0007-4000-8000-000000000007",
@@ -681,7 +681,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        656,
+        2156,
         288
       ],
       "id": "wa000010-0010-4010-8010-000000000010",
@@ -710,13 +710,13 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"conversation_id\": {{ JSON.stringify($('Buscar o crear conversación').first().json.id) }},\n  \"role\": \"user\",\n  \"sender\": \"contact\",\n  \"content\": {{ JSON.stringify($('Extraer mensaje').first().json.message_text) }},\n  \"created_at\": \"{{ $now.toISO() }}\"\n}",
+        "jsonBody": "={\n  \"conversation_id\": {{ JSON.stringify($('Buscar o crear conversación').first().json.id) }},\n  \"role\": \"user\",\n  \"sender\": \"contact\",\n  \"content\": {{ JSON.stringify($('Extraer mensaje').first().json.message_text) }},\n  \"created_at\": \"{{ $now.toISO() }}\",\n  \"media_path\": {{ JSON.stringify($('Extraer mensaje').first().json.media_path) }},\n  \"media_type\": {{ JSON.stringify($('Extraer mensaje').first().json.media_type) }},\n  \"media_name\": {{ JSON.stringify($('Extraer mensaje').first().json.media_name) }}\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        656,
+        2156,
         480
       ],
       "id": "wa000011-0011-4011-8011-000000000011",
@@ -752,7 +752,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2864,
+        4364,
         288
       ],
       "id": "wa000012-0012-4012-8012-000000000012",
@@ -787,7 +787,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        3056,
+        4556,
         240
       ],
       "id": "wa000013-0013-4013-8013-000000000013",
@@ -816,7 +816,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        3248,
+        4748,
         240
       ],
       "id": "wa000014-0014-4014-8014-000000000014",
@@ -853,7 +853,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3440,
+        4940,
         240
       ],
       "id": "wa000015-0015-4015-8015-000000000015",
@@ -880,7 +880,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        3632,
+        5132,
         240
       ],
       "id": "wa000016-0016-4016-8016-000000000016",
@@ -909,7 +909,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        3824,
+        5324,
         240
       ],
       "id": "wa000017-0017-4017-8017-000000000017",
@@ -945,7 +945,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3440,
+        4940,
         440
       ],
       "id": "wa000018-0018-4018-8018-000000000018",
@@ -976,13 +976,340 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        3632,
+        5132,
         440
       ],
       "id": "wa000019-0019-4019-8019-000000000019",
       "name": "Avisar al móvil",
       "onError": "continueRegularOutput",
       "notes": "El panel firma y envia la notificacion: la criptografia VAPID en un nodo Code serian cien lineas fragiles. Va con el mismo secreto compartido que el webhook de envio de WhatsApp."
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body;\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\n\n// Sin mensaje no hay nada que hacer: por este mismo webhook llegan acuses de\n// entrega y otros eventos que no son una conversacion.\nif (!message) {\n  return [];\n}\n\n// Una reaccion (un emoji sobre un mensaje) o un evento del sistema tampoco son\n// una pregunta. Contestarlas seria ruido.\nif (message.type === 'reaction' || message.type === 'system') {\n  return [];\n}\n\n// Meta manda el nombre del perfil de WhatsApp junto al mensaje. Puede no venir\n// (perfil sin nombre, o ajustes de privacidad), asi que es opcional. Se busca\n// por wa_id en vez de coger el primero: en un webhook agrupado podria haber\n// varios contactos y el primero no tiene por que ser el nuestro.\nconst contacto =\n  value?.contacts?.find((c) => c.wa_id === message.from) || value?.contacts?.[0];\nconst nombre = contacto?.profile?.name?.trim() || null;\n\n// Dos cosas distintas que antes se confundian:\n//   se_guarda -> se descarga de Meta y se sube a Storage, para que una persona\n//                pueda abrirlo desde la bandeja. Vale para todo.\n//   se_lee    -> ademas se convierte a texto para que el bot lo entienda. Solo\n//                audio (Whisper) e imagen (vision).\n// Un video o un PDF no los entiende el bot, pero quien atiende si: por eso se\n// guardan igual. Antes se descartaban en la primera linea del workflow y la\n// persona se quedaba esperando una respuesta que no llegaba nunca.\nconst ADJUNTOS = {\n  audio:    { etiqueta: 'una nota de voz', se_lee: true },\n  image:    { etiqueta: 'una foto',        se_lee: true },\n  video:    { etiqueta: 'un video',        se_lee: false },\n  document: { etiqueta: 'un documento',    se_lee: false },\n  sticker:  { etiqueta: 'un sticker',      se_lee: false },\n  location: { etiqueta: 'una ubicacion',   se_lee: false },\n  contacts: { etiqueta: 'un contacto',     se_lee: false },\n};\n\nconst tipo = message.type;\nconst adjunto = ADJUNTOS[tipo] || null;\nconst media = message[tipo] || {};\n\n// El tipo de archivo viene en el propio webhook, no hace falta preguntarselo a\n// Meta. Importa: gracias a esto la ruta en Storage se puede calcular tanto\n// aqui como al final, sin depender de nodos que quiza no se hayan ejecutado.\nconst mime = String(media.mime_type || '').split(';')[0].trim();\nconst ext = (mime.split('/')[1] || 'bin').replace(/[^a-z0-9]/gi, '');\n\nreturn [{\n  json: {\n    phone_number_id: value.metadata.phone_number_id,\n    from: message.from,\n    contact_name: nombre,\n    tipo,\n    texto: tipo === 'text' ? (message.text?.body || '') : '',\n    // El pie de foto o de video: lo que la persona escribio al enviarlo.\n    pie: String(media.caption || '').trim(),\n    media_id: media.id || null,\n    mime: mime || null,\n    ext,\n    // Meta solo manda nombre de archivo en los documentos.\n    nombre_archivo: media.filename || null,\n    se_lee: Boolean(adjunto && adjunto.se_lee),\n    etiqueta: adjunto\n      ? adjunto.etiqueta\n      : (tipo === 'text' ? null : 'un archivo'),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        288
+      ],
+      "id": "wa000026-0026-4026-8026-000000000026",
+      "name": "Leer webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "wa-cond-adjunto",
+              "leftValue": "={{ $('Leer webhook').first().json.media_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        288
+      ],
+      "id": "wa000027-0027-4027-8027-000000000027",
+      "name": "¿Trae un adjunto?"
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/{{ $env.META_API_VERSION || 'v25.0' }}/{{ $('Leer webhook').first().json.media_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Buscar cliente Whatsapp').first().json.config.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        352,
+        480
+      ],
+      "id": "wa000020-0020-4020-8020-000000000020",
+      "name": "Pedir URL del medio",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Buscar cliente Whatsapp').first().json.config.access_token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        736,
+        480
+      ],
+      "id": "wa000021-0021-4021-8021-000000000021",
+      "name": "Descargar medio",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "wa-cond-audio",
+              "leftValue": "={{ $('Leer webhook').first().json.tipo }}",
+              "rightValue": "audio",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        512
+      ],
+      "id": "wa000022-0022-4022-8022-000000000022",
+      "name": "¿Es una nota de voz?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-1"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1312,
+        448
+      ],
+      "id": "wa000023-0023-4023-8023-000000000023",
+      "name": "Transcribir audio",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const bin = $input.first().binary?.data;\n\n// Si la descarga fallo no hay binario. No se corta el flujo: se sigue sin\n// descripcion y el bot dira que no ha podido abrir la foto.\nif (!bin || !bin.data) {\n  return [{ json: { data_uri: null } }];\n}\n\nreturn [{\n  json: {\n    data_uri: 'data:' + (bin.mimeType || 'image/jpeg') + ';base64,' + bin.data,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        624
+      ],
+      "id": "wa000024-0024-4024-8024-000000000024",
+      "name": "Imagen a base64"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'gpt-4o',\n  max_tokens: 300,\n  messages: [\n    { role: 'system', content: 'Describe en espanol, en dos o tres frases, lo que se ve en la foto que un cliente envia por WhatsApp a una tienda. Ve al grano: objeto, material, color, forma y estado. Si es una captura de pantalla o un documento, resume lo que pone. No saludes ni anadas nada mas.' },\n    { role: 'user', content: [{ type: 'image_url', image_url: { url: $json.data_uri } }] }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1504,
+        624
+      ],
+      "id": "wa000025-0025-4025-8025-000000000025",
+      "name": "Describir imagen",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "wa-cond-tamano",
+              "leftValue": "={{ $json.file_size }}",
+              "rightValue": 26214400,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        544,
+        480
+      ],
+      "id": "wa000028-0028-4028-8028-000000000028",
+      "name": "¿Cabe el archivo?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/storage/v1/object/adjuntos/{{ $('Buscar cliente Whatsapp').first().json.client_id }}/{{ $('Leer webhook').first().json.media_id }}.{{ $('Leer webhook').first().json.ext }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "={{ $('Leer webhook').first().json.mime || 'application/octet-stream' }}"
+            },
+            {
+              "name": "x-upsert",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        928,
+        352
+      ],
+      "id": "wa000029-0029-4029-8029-000000000029",
+      "name": "Subir a Storage",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "wa-cond-selee",
+              "leftValue": "={{ $('Leer webhook').first().json.se_lee }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        512
+      ],
+      "id": "wa000030-0030-4030-8030-000000000030",
+      "name": "¿Lo entiende el bot?"
     }
   ],
   "connections": {
@@ -1019,7 +1346,7 @@
       "main": [
         [
           {
-            "node": "Extraer mensaje",
+            "node": "Leer webhook",
             "type": "main",
             "index": 0
           }
@@ -1030,7 +1357,7 @@
       "main": [
         [
           {
-            "node": "Buscar cliente Whatsapp",
+            "node": "Buscar prompt del cliente",
             "type": "main",
             "index": 0
           }
@@ -1041,7 +1368,7 @@
       "main": [
         [
           {
-            "node": "Buscar prompt del cliente",
+            "node": "¿Trae un adjunto?",
             "type": "main",
             "index": 0
           }
@@ -1387,6 +1714,149 @@
           }
         ],
         []
+      ]
+    },
+    "Leer webhook": {
+      "main": [
+        [
+          {
+            "node": "Buscar cliente Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Trae un adjunto?": {
+      "main": [
+        [
+          {
+            "node": "Pedir URL del medio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedir URL del medio": {
+      "main": [
+        [
+          {
+            "node": "¿Cabe el archivo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar medio": {
+      "main": [
+        [
+          {
+            "node": "Subir a Storage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "¿Lo entiende el bot?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es una nota de voz?": {
+      "main": [
+        [
+          {
+            "node": "Transcribir audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Imagen a base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribir audio": {
+      "main": [
+        [
+          {
+            "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Imagen a base64": {
+      "main": [
+        [
+          {
+            "node": "Describir imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Describir imagen": {
+      "main": [
+        [
+          {
+            "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Cabe el archivo?": {
+      "main": [
+        [
+          {
+            "node": "Descargar medio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Lo entiende el bot?": {
+      "main": [
+        [
+          {
+            "node": "¿Es una nota de voz?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

@@ -112,6 +112,110 @@ WhatsApp la bandeja se entera. Las conversaciones anteriores a este cambio sigue
 saliendo por el número hasta que esa persona vuelva a escribir: no se pueden
 rellenar hacia atrás, porque el nombre nunca llegó a guardarse.
 
+### Fotos, notas de voz y lo que no se puede abrir
+
+Hasta este cambio, todo lo que no fuera texto moría en la primera línea del
+workflow: `message.type !== 'text'` devolvía `[]` y la ejecución terminaba ahí.
+Ni respuesta, ni mensaje guardado, ni aviso. Quien mandaba una foto preguntando
+«¿tenéis algo así?» recibía silencio y no tenía forma de saberlo.
+
+Ahora el arranque tiene tres ramas que vuelven a juntarse:
+
+```
+Leer webhook → Buscar cliente Whatsapp → ¿Trae un adjunto?
+   ├── sí → Pedir URL del medio → Descargar medio → ¿Es una nota de voz?
+   │            ├── sí → Transcribir audio ────────┐
+   │            └── no → Imagen a base64 → Describir imagen ─┐
+   └── no ──────────────────────────────────────────────────┴→ Extraer mensaje
+```
+
+Tres decisiones que explican por qué está así:
+
+- **`Extraer mensaje` conserva su nombre y su contrato.** Trece nodos leen
+  `$('Extraer mensaje').first().json` esperando `from`, `message_text`,
+  `contact_name` y `client_id`. Se movió al final de la rama en vez de crear un
+  nodo nuevo, y así no hubo que tocar ninguno de los trece.
+- **La descarga va después de `Buscar cliente Whatsapp`**, no antes: bajar un
+  medio de Meta exige el `access_token` del cliente, que sale de ahí.
+- **`Extraer mensaje` mira la forma del item, no de qué nodo viene.** Whisper
+  devuelve `{ text }` y el modelo de visión `{ choices }`; con eso basta para
+  saber por dónde se ha pasado. Preguntar por un nodo que no se ha ejecutado
+  —`$('Transcribir audio')` cuando llegó una foto— da error en n8n.
+
+Los tres nodos de red van con `onError: continueRegularOutput`. Si Meta no
+entrega el medio o Whisper falla, el item de error sigue adelante, `Extraer
+mensaje` no encuentra texto y el bot contesta que no ha podido abrirlo. Se
+pierde el contenido, pero **nunca la respuesta**, que era el problema original.
+
+| Llega | Texto en la bandeja | Archivo guardado | Lo entiende el bot |
+| --- | --- | --- | --- |
+| Nota de voz | la transcripción | sí | sí |
+| Foto | el pie y `En la foto se ve: …` | sí | sí |
+| Vídeo | el pie, o `[un video]` | sí | no |
+| Documento | `[un documento]` | sí | no |
+| Ubicación, contacto | `[una ubicacion]` | no (no hay archivo) | no |
+| Reacción, evento de sistema | nada: no son una pregunta | — | — |
+
+Son **dos cosas distintas y conviene no mezclarlas**: `se_guarda` (se descarga y
+se sube a Storage, para que una persona lo abra) y `se_lee` (además se convierte
+a texto para el modelo). Un vídeo o un PDF no los entiende el bot, pero quien
+atiende sí, y por eso se guardan igual.
+
+El modelo recibe además una línea de sistema diciendo si lo que llegó era texto
+o no, y si se pudo leer. Sin ella pasan dos cosas malas: trata la transcripción
+como si la persona la hubiera tecleado, y ante una foto que no pudo abrir se
+inventa que la ha visto.
+
+📌 **Efecto secundario bueno:** la descripción de la foto entra en la búsqueda
+del catálogo. Alguien manda la foto de un cesto y el bot le encuentra productos
+parecidos, sin que nadie escribiera una palabra.
+
+💶 **Coste:** Whisper va por minuto de audio y la visión por imagen. Son céntimos
+por mensaje, pero se paga por cada foto que llegue, incluida la publicidad que
+alguien reenvíe.
+
+### Dónde acaban los archivos (`0012_adjuntos.sql`)
+
+En un bucket de Supabase Storage llamado `adjuntos`, **privado**, con la ruta
+`{client_id}/{media_id}.{ext}`. En `messages` quedan `media_path`, `media_type`
+y `media_name`.
+
+⚠️ **Privado, a diferencia de `contenido`.** Aquel es público porque Instagram
+descarga los medios por URL y no acepta otra cosa. Esto son conversaciones
+privadas: la foto de un albarán, un DNI que alguien manda sin pensar. Un bucket
+público aquí sería una filtración esperando a que alguien pruebe una URL.
+
+Se guarda **la ruta, no una URL**. El enlace se firma en el momento de mirarlo,
+con la sesión de quien mira, y caduca en una hora. Una URL guardada en la base
+de datos o caducaría o sería pública para siempre.
+
+Quién puede leerlos lo decide una política sobre `storage.objects`: la primera
+carpeta de la ruta es el `client_id`, y sobre eso valen las mismas funciones que
+el resto de tablas (`es_agencia_del_cliente` / `es_usuario_del_cliente`).
+Escribir no puede nadie: solo n8n con la `service_role`, que se salta la RLS.
+
+Tres detalles del workflow que no son evidentes:
+
+- **`Subir a Storage` cuelga de `Descargar medio` en paralelo, no en línea.** Un
+  nodo HTTP sustituye el item por su respuesta, así que ponerlo en medio le
+  quitaría el binario a Whisper y al modelo de visión.
+- **Va colocado más arriba que la otra rama.** Con `executionOrder: v1` n8n
+  recorre primero la rama cuyo nodo está más alto. Si fuera al revés, el mensaje
+  llegaría a la bandeja por Realtime con una ruta que todavía no existe, y quien
+  atiende vería un adjunto roto durante unos segundos.
+- **La ruta se calcula al final, no se arrastra.** Con el `client_id` y el
+  `media_id` basta, y ambos están disponibles vengas por la rama que vengas. El
+  `mime_type` sale del propio webhook de Meta, no de la llamada a la API, justo
+  para que esto sea posible.
+
+📌 **Tope de 25 MB.** WhatsApp deja mandar documentos de hasta 100 MB y n8n se
+los cargaría enteros en memoria. Lo que pasa de ahí no se descarga: el mensaje se
+guarda igual y el bot dice que era demasiado grande.
+
+🍏 **Las notas de voz no suenan en iPhone.** WhatsApp las manda en Ogg/Opus y
+Safari no lo reproduce. Por eso debajo del reproductor hay siempre un enlace de
+descarga: en iOS es la única salida.
+
 ---
 
 ## 3. El chat con relevo humano
@@ -347,8 +451,12 @@ revierten solas: si hubiera que deshacer la 0008, las políticas viejas están e
   de prometer la sección.
 - **Marca blanca.** Hoy el cliente ve el logotipo de Kivuk. Si tiene que ver el
   suyo, hace falta logo y colores por cliente.
-- **Adjuntos.** La bandeja solo entiende texto. Meta manda imágenes y audios, y
-  el workflow los descarta desde el primer día (`message.type !== 'text'`).
+- **Que el bot entienda vídeos y PDF.** Hoy se guardan y los abre quien atiende,
+  pero al modelo no le llegan. El PDF sería extraer su texto; el vídeo, sacar
+  fotogramas o el audio. Ambos caben en la misma rama, después de `Subir a
+  Storage`.
+- **Mandar archivos desde la bandeja.** El relevo humano solo escribe texto. Si
+  alguien pide una foto del producto, hay que salir a WhatsApp para mandarla.
 
 ---
 
