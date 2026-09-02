@@ -86,6 +86,19 @@ export default async function PanelLayout({
       : Promise.resolve({ count: 0 }),
   ]);
 
+  // Las facturas no dependen de ningún módulo: se le factura a todo el mundo.
+  // Pero la sección solo aparece cuando ya hay alguna emitida, para no enseñar
+  // una pantalla vacía a un cliente recién dado de alta.
+  const { data: facturas } = await supabase
+    .from("invoices")
+    .select("estado")
+    .eq("client_id", contexto.clientId)
+    .neq("estado", "borrador");
+
+  const facturasPendientes = (facturas ?? []).filter(
+    (f) => f.estado === "emitida" || f.estado === "enviada"
+  ).length;
+
   const sinLeer = (conversaciones ?? []).reduce(
     (total, c) => total + (c.unread_count ?? 0),
     0
@@ -123,6 +136,16 @@ export default async function PanelLayout({
             titulo: "Contenido",
             url: "/panel/contenido",
             aviso: porRevisar ?? 0,
+          },
+        ]
+      : []),
+    ...(facturas?.length
+      ? [
+          {
+            clave: "facturas",
+            titulo: "Facturas",
+            url: "/panel/facturas",
+            aviso: facturasPendientes,
           },
         ]
       : []),

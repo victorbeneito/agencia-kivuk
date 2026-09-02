@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Images, MessageSquare, UserRound, type LucideIcon } from "lucide-react";
+import {
+  Home,
+  Images,
+  MessageSquare,
+  ReceiptEuro,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,6 +28,7 @@ const ICONOS: Record<string, LucideIcon> = {
   inicio: Home,
   conversaciones: MessageSquare,
   contenido: Images,
+  facturas: ReceiptEuro,
   cuenta: UserRound,
 };
 

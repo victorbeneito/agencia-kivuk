@@ -7,6 +7,7 @@ import {
   Home,
   Images,
   MessageSquare,
+  ReceiptEuro,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const ICONOS: Record<string, LucideIcon> = {
   inicio: Home,
   conversaciones: MessageSquare,
   contenido: Images,
+  facturas: ReceiptEuro,
   cuenta: UserRound,
 };
 

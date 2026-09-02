@@ -72,6 +72,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(inicio, request.url));
   }
 
+  // Rutas que no son ninguno de los dos paneles (el PDF de una factura, que
+  // abren tanto la agencia como el cliente) solo pasan por aquí para que la
+  // sesión se refresque antes de leer con RLS. No hay nada que repartir.
+  if (!esZonaPrivada) return response;
+
   // La agencia sí puede estar en `/panel` si ha pulsado «Ver su panel»: la
   // cookie dice de qué cliente. Aquí solo se mira que exista — de quién es ese
   // cliente lo comprueba `clienteDelPanel()` en cada carga, que es donde se
@@ -89,5 +94,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/panel/:path*", "/login"],
+  matcher: [
+    "/dashboard/:path*",
+    "/panel/:path*",
+    "/login",
+    // El PDF se sirve con la sesión del usuario: si el token ha caducado y no
+    // se refresca antes, la consulta con RLS no devuelve nada y la factura
+    // parecería no existir.
+    "/api/facturas/:path*",
+  ],
 };

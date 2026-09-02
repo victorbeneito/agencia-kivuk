@@ -8,6 +8,7 @@ import {
   Images,
   MessageSquare,
   Mic,
+  ReceiptEuro,
   Settings,
   Users,
   type LucideIcon,
@@ -47,6 +48,12 @@ const GRUPOS: { titulo: string; items: ItemNav[] }[] = [
     titulo: "Día a día",
     items: [
       { titulo: "Conversaciones", url: "/dashboard/conversaciones", icon: MessageSquare },
+    ],
+  },
+  {
+    titulo: "Negocio",
+    items: [
+      { titulo: "Facturación", url: "/dashboard/facturacion", icon: ReceiptEuro },
     ],
   },
   {

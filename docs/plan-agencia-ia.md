@@ -96,7 +96,11 @@ retome ese módulo, y probar el `render` de contenido de punta a punta.
 
 ---
 
-## Fase 3 — Agente de voz (3-4 semanas)
+## Fase 3 — Agente de voz (3-4 semanas) ⏸️ EMPEZADA, EN PAUSA
+
+Hay workflow de Vapi (`n8n/workflows/voz-vapi.json`) pero su webhook sigue
+apuntando al n8n local de antes de la Fase 1.5. Se retoma cuando haya un cliente
+que lo pida: hasta entonces, es coste de mantenimiento sin ingresos.
 
 Dos etapas:
 
@@ -110,7 +114,7 @@ Dos etapas:
 
 ---
 
-## Fase 4 — Marketing e Instagram (3-4 semanas)
+## Fase 4 — Marketing e Instagram (3-4 semanas) ✅ COMPLETADA
 
 **Corrección sobre el plan inicial:** aquí se dijo "DALL-E o Stable Diffusion para
 las imágenes". Para un cliente con tienda real es un error: una imagen generada
@@ -142,16 +146,47 @@ Facebook. Es innegociable para publicar por API.
 
 ---
 
-## Fase 5 — Escalar plantillas + facturación + lanzamiento (4-6 semanas)
+## Fase 5 — Escalar plantillas + facturación + lanzamiento (4-6 semanas) 🔧 EN CURSO
 
-**Qué construir:**
-- Consolidar las plantillas de n8n como "módulos" claros y documentados (WhatsApp, Calendar, Voz, Email, Instagram) para poder clonar y asignar a un cliente nuevo en minutos.
-- Stripe para facturación por agencia/cliente y planes.
-- Onboarding: alta de agencia nueva y activación de módulos desde el dashboard sin que tú toques nada a mano.
+**Hecho — facturación completa dentro del panel** (`docs/facturacion.md`):
+datos fiscales de la agencia y de cada cliente, catálogo de servicios con sus
+tarifas, servicios contratados por cliente, generación de las facturas del
+periodo con un botón, numeración correlativa por serie y ejercicio, PDF y envío
+por correo con el adjunto, y las facturas visibles para el cliente en su panel.
+Migración `0013_facturacion.sql`.
+
+**Pendiente:**
+- **Cobro automático con Stripe.** Hoy se pega a mano un enlace de pago en la
+  factura. Falta crear el `Customer` y la suscripción desde la ficha del
+  cliente, y el webhook que marque la factura como pagada.
+- **Cron de la facturación mensual**: un workflow de n8n que llame a la
+  generación el día 1 y avise de lo que quede sin borrador.
+- **Recordatorio de facturas vencidas**, al cliente y a la agencia.
+- **Verifactu**: si se pasa a emitir las facturas oficiales desde aquí y no a
+  través de la gestoría, hay que cumplir el reglamento antifraude (registro
+  encadenado, QR, envío a la AEAT) antes de hacerlo.
+- **Onboarding**: alta de una agencia nueva y activación de módulos sin tocar
+  SQL. Solo hace falta el día que la plataforma se le venda a otra agencia; para
+  Kivuk como agencia única, no bloquea nada.
+- Documentar las plantillas de n8n como módulos clonables (hay `README.md` en
+  `n8n/workflows`, pero no un procedimiento de «cliente nuevo en 20 minutos»).
 
 **Herramientas:** Stripe (sin coste fijo, comisión por venta).
 
 **Entregable:** producto vendible con cobro automático, listo para los primeros clientes reales.
+
+---
+
+## Fase 6 — Marketing y captación
+
+La plataforma sabe atender y publicar; las dos cosas son reactivas. Falta lo que
+sale a buscar: campañas de WhatsApp con plantillas aprobadas, Google Business
+Profile, email marketing, panel de resultados por cliente — y, del lado de la
+agencia, un CRM de captación y la propia Kivuk dada de alta como cliente de sí
+misma para poder enseñar el producto funcionando.
+
+El plan entero, con el orden propuesto y el porqué de cada paso, está en
+**`docs/marketing-y-captacion.md`**.
 
 ---
 
@@ -169,11 +204,39 @@ Gratis o casi gratis para empezar: Supabase, Vercel, Docker/n8n self-hosted, ngr
 4. Cuando tengas n8n instalado (local o VPS), puedes conectar aquí el conector oficial de n8n para que te ayude directamente a revisar y depurar workflows desde esta conversación.
 5. Pasamos a la siguiente fase.
 
-## Próximo paso concreto (esta semana): Fase 0
+## Repaso: qué falta para tener la agencia completa
 
-1. Crear proyecto Next.js + Supabase con el esquema multi-cliente descrito arriba.
-2. Instalar Docker Desktop.
-3. Levantar n8n local con `docker-compose` y crear un workflow de prueba (webhook → respuesta simple).
-4. Probar con ngrok que ese webhook es alcanzable desde fuera.
+Estado a 2 de septiembre de 2026, de más urgente a menos.
 
-Cuando quieras arrancar, dime "empecemos la Fase 0" y te doy el esquema de base de datos exacto, la estructura de carpetas de Next.js y el `docker-compose.yml` para levantar n8n.
+**Para cobrar y operar (Fase 5)**
+
+- [ ] Aplicar la migración `0013_facturacion.sql` en Supabase y rellenar los
+      datos fiscales de Kivuk en `/dashboard/configuracion`.
+- [ ] `RESEND_API_KEY` y `FACTURAS_REMITENTE` en el entorno del panel, para
+      poder enviar las facturas.
+- [ ] Cargar el catálogo de servicios con los precios reales y asignárselos a
+      los clientes que ya hay.
+- [ ] Cron mensual de la generación de facturas + aviso de vencidas.
+- [ ] Stripe, cuando haya suficientes cuotas que perseguir a mano.
+
+**Para vender (Fase 6, ver `docs/marketing-y-captacion.md`)**
+
+- [ ] Kivuk dada de alta como cliente de sí misma: bot propio en un WhatsApp de
+      la agencia, con sus servicios y precios, que agende llamadas.
+- [ ] Caso con números de Cestería Aparici y de la tienda propia.
+- [ ] CRM de captación (`leads`) con embudo corto y conversión a cliente.
+- [ ] Panel de resultados por cliente (lo que justifica la cuota).
+- [ ] Campañas de WhatsApp con plantillas aprobadas y opt-out.
+
+**Pendientes menores que siguen abiertos**
+
+- [ ] Cestería Aparici: falta lo de Meta (ver la nota del cliente).
+- [ ] Reapuntar el webhook de Vapi si se retoma el agente de voz.
+- [ ] Módulo de correo: hoy solo manda confirmaciones, no campañas.
+
+## Cómo seguir
+
+Dime en qué punto de la lista quieres entrar y lo construimos. El orden que
+recomiendo es: terminar de poner en marcha la facturación (es una tarde de
+configuración, no de código), y después el CRM de captación — porque sin dónde
+guardar a quien todavía no es cliente, todo el esfuerzo de marketing se evapora.

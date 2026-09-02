@@ -9,6 +9,7 @@ const SECCIONES = [
   { slug: "contenido", etiqueta: "Contenido" },
   { slug: "conocimiento", etiqueta: "Conocimiento" },
   { slug: "conversaciones", etiqueta: "Conversaciones" },
+  { slug: "facturacion", etiqueta: "Facturación" },
   { slug: "configuracion", etiqueta: "Configuración" },
 ];
 

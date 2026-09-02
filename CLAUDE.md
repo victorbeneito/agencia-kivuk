@@ -78,4 +78,14 @@ Es además una PWA instalable, pensada para usarse desde el móvil como si fuera
 WhatsApp. Cómo funciona cada pieza y por qué está decidida así:
 `docs/panel-cliente-siguientes-pasos.md`.
 
+**Facturación** (migración `0013`): datos fiscales de la agencia y de cada
+cliente, catálogo de servicios y tarifas, servicios contratados, generación de
+las facturas del periodo, numeración correlativa que reparte la base de datos,
+PDF con `pdf-lib` y envío por correo con el adjunto. El cliente ve las suyas en
+`/panel/facturas`. Detalle y decisiones: `docs/facturacion.md`. Falta el cobro
+automático con Stripe.
+
+Lo siguiente es el marketing —campañas, captación y un CRM de leads— y está
+razonado en `docs/marketing-y-captacion.md`.
+
 Ver tareas y progreso general en `docs/plan-agencia-ia.md`.
