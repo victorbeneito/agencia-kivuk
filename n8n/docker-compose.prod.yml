@@ -55,6 +55,12 @@ services:
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:info@agenciakivuk.com}
+      # Envío de facturas por correo. Es la cuenta de Resend de la AGENCIA
+      # (dominio agenciakivuk.com), no la del cliente que usan los avisos: en una
+      # factura quien escribe eres tú, no su negocio. Sin estas dos, el botón de
+      # enviar avisa en pantalla en vez de fallar en silencio.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      FACTURAS_REMITENTE: ${FACTURAS_REMITENTE:-}
     depends_on:
       - n8n
       - render
