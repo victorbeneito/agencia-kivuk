@@ -2,13 +2,22 @@
 #
 # Tres etapas para que la imagen final no lleve ni el código fuente ni las
 # dependencias de compilación: solo el servidor `standalone` que produce Next.
+#
+# Base Debian (`slim`) y no Alpine, aunque Alpine sea más pequeña. Motivo: Next
+# compila con Turbopack, que necesita su binario nativo (`@next/swc-*`). Alpine
+# usa musl y necesita la variante `-musl`, que es una dependencia OPCIONAL de
+# npm — y las opcionales que fallan al instalarse se ignoran en silencio. El
+# resultado era una imagen que parecía correcta y reventaba al compilar con
+# «Turbopack is not supported on this platform», sin pista de por qué. Con
+# glibc funciona la variante `-gnu`, que es la que npm instala de forma fiable.
+# La imagen pesa unas decenas de megas más; el disco del VPS va sobrado.
 
-FROM node:22-alpine AS deps
+FROM node:22-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -26,15 +35,17 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
 
-FROM node:22-alpine AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# No correr como root dentro del contenedor.
-RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+# No correr como root dentro del contenedor. En Debian los comandos son
+# `groupadd`/`useradd`, no los `addgroup`/`adduser` de Alpine.
+RUN groupadd --system --gid 1001 nodejs \
+  && useradd --system --uid 1001 --gid nodejs nextjs
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

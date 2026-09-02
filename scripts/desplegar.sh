@@ -52,10 +52,25 @@ cd "$REPO/n8n"
 # --- Panel de Next.js -------------------------------------------------------
 if cambio "app/"; then
   titulo "El panel ha cambiado: reconstruyendo"
-  if $DC up -d --build panel 2>&1 | tail -3 | sed 's/^/  /'; then
+
+  # La salida entera va a un archivo y solo se enseña si algo falla. Antes se
+  # tuberia a `tail -3`, y eso tenia dos problemas: el codigo de salida que se
+  # miraba era el del `tail` (que siempre va bien, asi que un build roto se
+  # daba por bueno) y las tres ultimas lineas de un error de compilacion no
+  # dicen nunca cual es el error.
+  LOG=$(mktemp)
+  if $DC up -d --build panel > "$LOG" 2>&1; then
+    tail -3 "$LOG" | sed 's/^/  /'
     ok "Panel desplegado."
+    rm -f "$LOG"
   else
-    echo "  FALLO al reconstruir el panel."
+    echo ""
+    tail -40 "$LOG" | sed 's/^/  /'
+    echo ""
+    echo "  FALLO al reconstruir el panel. El log completo esta en $LOG"
+    echo "  El panel sigue sirviendo la version ANTERIOR. Se para aqui para no"
+    echo "  dar por bueno un despliegue que no ha desplegado nada."
+    exit 1
   fi
 fi
 
