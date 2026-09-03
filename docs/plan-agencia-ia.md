@@ -185,6 +185,11 @@ Profile, email marketing, panel de resultados por cliente — y, del lado de la
 agencia, un CRM de captación y la propia Kivuk dada de alta como cliente de sí
 misma para poder enseñar el producto funcionando.
 
+**Hecho — la web corporativa** (`docs/web-corporativa.md`): landing de una página
+en `agenciakivuk.com`, dentro de la misma aplicación que el panel, con el chat de
+ejemplo, el formulario de contacto por Resend y los textos legales. Era el punto 0
+porque todo lo demás la necesita como destino.
+
 El plan entero, con el orden propuesto y el porqué de cada paso, está en
 **`docs/marketing-y-captacion.md`**.
 
@@ -221,8 +226,15 @@ Estado a 2 de septiembre de 2026, de más urgente a menos.
 
 **Para vender (Fase 6, ver `docs/marketing-y-captacion.md`)**
 
+- [x] **Web corporativa en `agenciakivuk.com`** — landing de una página con el
+      chat de ejemplo, formulario de contacto por Resend, aviso legal y
+      privacidad. Construida dentro del propio panel (`docs/web-corporativa.md`).
+- [ ] Publicarla: datos fiscales del titular en `lib/web/kivuk.ts` (hoy vacíos y
+      obligatorios por LSSI) y el DNS del dominio apuntando al despliegue.
 - [ ] Kivuk dada de alta como cliente de sí misma: bot propio en un WhatsApp de
-      la agencia, con sus servicios y precios, que agende llamadas.
+      la agencia, con sus servicios y precios, que agende llamadas. Es lo que
+      convierte la web de folleto en demostración: se rellena
+      `NEXT_PUBLIC_KIVUK_WHATSAPP` y los botones pasan a abrir el bot.
 - [ ] Caso con números de Cestería Aparici y de la tienda propia.
 - [ ] CRM de captación (`leads`) con embudo corto y conversión a cliente.
 - [ ] Panel de resultados por cliente (lo que justifica la cuota).

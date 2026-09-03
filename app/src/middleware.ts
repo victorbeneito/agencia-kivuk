@@ -98,6 +98,10 @@ export const config = {
     "/dashboard/:path*",
     "/panel/:path*",
     "/login",
+    // El reparto por rol al entrar. Pasa por aquí solo para que la sesión
+    // recién creada en el navegador llegue refrescada al servidor; el que
+    // decide a qué panel va es la propia página.
+    "/entrar",
     // El PDF se sirve con la sesión del usuario: si el token ha caducado y no
     // se refresca antes, la consulta con RLS no devuelve nada y la factura
     // parecería no existir.

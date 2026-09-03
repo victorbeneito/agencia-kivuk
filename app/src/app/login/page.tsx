@@ -40,9 +40,10 @@ function Formulario() {
       return;
     }
 
-    // A la raíz, no a un panel concreto: es ella la que sabe si este usuario es
-    // de la agencia o de un cliente. Así el login no tiene que enterarse.
-    router.replace("/");
+    // A `/entrar`, no a un panel concreto: es esa ruta la que sabe si este
+    // usuario es de la agencia o de un cliente. Así el login no tiene que
+    // enterarse. (La raíz `/` es la web pública desde que existe la landing.)
+    router.replace("/entrar");
     router.refresh();
   }
 

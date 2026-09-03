@@ -23,6 +23,16 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  /* Los colores de marca en crudo, como utilidades (`bg-kivuk-pizarra`). El
+     panel se pinta con los papeles semánticos de arriba (`primary`, `muted`...)
+     porque son los que cambian en modo oscuro; la web corporativa sí necesita
+     los colores tal cual, que ahí la marca es el mensaje. */
+  --color-kivuk-azul: var(--kivuk-azul);
+  --color-kivuk-azul-hondo: var(--kivuk-azul-hondo);
+  --color-kivuk-gris: var(--kivuk-gris);
+  --color-kivuk-arena: var(--kivuk-arena);
+  --color-kivuk-terracota: var(--kivuk-terracota);
+  --color-kivuk-pizarra: var(--kivuk-pizarra);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
