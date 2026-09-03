@@ -1,7 +1,25 @@
+# Los tres nombres que sirve el VPS. Caddy pide y renueva el certificado de cada
+# uno por su cuenta, pero solo si el DNS ya apunta aquí: si un dominio no
+# resuelve a esta máquina, Let's Encrypt falla y acaba aplicando límites de
+# reintentos. Primero el DNS, después esto.
+
 n8n.agenciakivuk.com {
     reverse_proxy n8n:5678
 }
 
 panel.agenciakivuk.com {
     reverse_proxy panel:3000
+}
+
+# La web corporativa. Es la misma aplicación que el panel —la raíz `/` es la
+# landing y `/panel` sigue siendo el panel—, así que apunta al mismo contenedor.
+agenciakivuk.com {
+    reverse_proxy panel:3000
+}
+
+# `www` redirige al dominio sin www y no sirve una copia: dos direcciones con el
+# mismo contenido compiten entre sí en Google. El canónico de la web ya dice
+# `https://agenciakivuk.com`, así que ese es el que gana.
+www.agenciakivuk.com {
+    redir https://agenciakivuk.com{uri} permanent
 }

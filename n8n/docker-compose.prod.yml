@@ -36,6 +36,10 @@ services:
         # Las NEXT_PUBLIC_ se incrustan al compilar la imagen, no al arrancarla:
         # si cambia, hay que reconstruir con `--build`, no basta con reiniciar.
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+        # WhatsApp de la agencia, el botón principal de la web corporativa.
+        # Vacío mientras no exista el bot propio: los botones caen entonces al
+        # formulario de contacto.
+        NEXT_PUBLIC_KIVUK_WHATSAPP: ${NEXT_PUBLIC_KIVUK_WHATSAPP:-}
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
@@ -61,6 +65,11 @@ services:
       # enviar avisa en pantalla en vez de fallar en silencio.
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       FACTURAS_REMITENTE: ${FACTURAS_REMITENTE:-}
+      # Formulario de contacto de la web corporativa. Reusa la misma cuenta de
+      # Resend; si se dejan vacías, escribe a info@agenciakivuk.com desde el
+      # remitente de facturación.
+      CONTACTO_DESTINATARIO: ${CONTACTO_DESTINATARIO:-}
+      CONTACTO_REMITENTE: ${CONTACTO_REMITENTE:-}
     depends_on:
       - n8n
       - render

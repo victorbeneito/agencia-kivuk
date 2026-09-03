@@ -40,9 +40,14 @@ que todo funciona aunque los mensajes los esté procesando la otra.
 | Pieza | Dónde | URL |
 | --- | --- | --- |
 | n8n + render + Caddy | VPS Contabo | `https://n8n.agenciakivuk.com` |
-| Panel Next.js | local / Vercel | `localhost:3000` |
-| Web corporativa | el mismo despliegue del panel | `https://agenciakivuk.com` |
+| Panel Next.js | VPS Contabo (servicio `panel`) | `https://panel.agenciakivuk.com` |
+| Web corporativa | el mismo contenedor `panel`, en la raíz `/` | `https://agenciakivuk.com` |
+| Panel en desarrollo | local | `localhost:3000` |
 | Datos, Auth, Storage | Supabase gestionado | — |
+
+El panel **ya no está en Vercel**: se movió al VPS y lo sirve Caddy, igual que
+n8n. Los cuatro nombres (`n8n`, `panel`, el apex y `www`) resuelven a la misma
+máquina; el dominio se compró en Hostalia, que es donde se edita la zona DNS.
 
 Operar el servidor (`ssh kivuk@<IP>`, luego `cd ~/agencia-kivuk/n8n`):
 

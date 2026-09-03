@@ -114,8 +114,8 @@ export default function Privacidad() {
           almacenamiento de la plataforma.
         </li>
         <li>
-          <strong>Vercel</strong> y <strong>Contabo</strong> — alojamiento de la
-          web, del panel y del motor de automatizaciones.
+          <strong>Contabo</strong> — el servidor donde se alojan la web, el panel
+          y el motor de automatizaciones.
         </li>
         <li>
           <strong>Resend</strong> — envío de los correos (respuestas, avisos y

@@ -154,9 +154,9 @@ Nada de esto es código. Sin lo primero, la web no se puede publicar.
    `fiscal.nif`, `fiscal.domicilio`). Los obliga el art. 10 de la LSSI y hoy
    están vacíos: el aviso legal y la política de privacidad marcan el hueco en
    rojo a propósito, para que no se publique así sin darse cuenta.
-2. **DNS**: `agenciakivuk.com` (y `www`) al mismo despliegue que ya sirve
-   `panel.agenciakivuk.com`. Son registros del mismo dominio, no interfieren con
-   `n8n.agenciakivuk.com`, que sigue apuntando a la IP del VPS.
+2. **DNS y Caddy** (ver «Publicar el dominio», abajo): el apex y el `www` tienen
+   que apuntar al VPS y el `Caddyfile` tiene que conocer los dos nombres. Una
+   cosa sin la otra no sirve.
 3. **Variables de entorno** del panel (`app/.env.local.example` las documenta):
    - `CONTACTO_DESTINATARIO` y `CONTACTO_REMITENTE` — si se dejan vacías se usan
      `info@agenciakivuk.com` y el remitente de facturación. Lo imprescindible es
@@ -168,6 +168,76 @@ Nada de esto es código. Sin lo primero, la web no se puede publicar.
    los tratamientos y los proveedores reales de la plataforma (Supabase, Vercel,
    Contabo, Resend, Meta, Google, OpenRouter y OpenAI), pero un repaso de alguien
    que responda de ello no sobra.
+
+---
+
+## Publicar el dominio
+
+La web la sirve **el mismo contenedor `panel` del VPS** que ya sirve
+`panel.agenciakivuk.com`: es una sola aplicación, con la landing en `/` y el
+panel en `/panel`. Así que no hay nada que desplegar aparte — solo hay que
+decirle al mundo, y a Caddy, que ese dominio es de esta máquina.
+
+Estado del que se parte (comprobado el 3/9/2026):
+
+| Nombre | Apunta a | Qué es |
+| --- | --- | --- |
+| `n8n.agenciakivuk.com` | `169.58.123.119` | el VPS (`vmi3485800.contaboserver.net`) |
+| `panel.agenciakivuk.com` | `169.58.123.119` | el VPS, el mismo |
+| `agenciakivuk.com` | `217.116.0.191` | **el hosting de Hostalia**, no nuestro |
+| `www.agenciakivuk.com` | `217.116.0.191` | ídem |
+
+### 1. DNS, en el panel de Hostalia
+
+En la zona DNS del dominio —el mismo sitio donde se crearon `n8n` y `panel`—,
+**editar los dos registros A que ya existen** en vez de crear otros nuevos: si se
+queda el viejo, el dominio responderá unas veces desde Hostalia y otras desde el
+VPS, que es el fallo más difícil de diagnosticar de todos.
+
+```
+@      A    169.58.123.119
+www    A    169.58.123.119
+```
+
+Si Hostalia no deja tocar el registro del `@` porque el dominio tiene contratado
+un alojamiento o un redireccionamiento suyo, hay que desactivar ese servicio
+primero: mientras esté activo, vuelve a escribir su IP.
+
+**No tocar nada más.** Los registros MX y los TXT de SPF/DKIM son los que hacen
+que Resend pueda mandar las facturas y los avisos desde `agenciakivuk.com`. Se
+quedan exactamente como están.
+
+Comprobar antes de seguir, y no fiarse del navegador (guarda el DNS en caché):
+
+```bash
+dig +short agenciakivuk.com www.agenciakivuk.com
+# las dos líneas tienen que devolver 169.58.123.119
+```
+
+### 2. Caddy, en el VPS
+
+El `Caddyfile` del repo ya trae los dos bloques nuevos: `agenciakivuk.com` al
+contenedor del panel y `www` redirigido al dominio sin www. Solo hay que
+desplegar:
+
+```bash
+ssh kivuk@169.58.123.119
+cd ~/agencia-kivuk/n8n
+alias dc='docker compose -f docker-compose.yml -f docker-compose.prod.yml'
+git pull
+dc up -d --build panel caddy
+dc logs -f caddy        # ver que emite el certificado sin errores
+```
+
+**El orden importa.** Caddy pide el certificado a Let's Encrypt en cuanto
+arranca, y para emitirlo Let's Encrypt tiene que llegar a esta máquina por ese
+nombre. Si se despliega antes de que el DNS resuelva, falla y se acumulan
+reintentos hasta topar con los límites de la autoridad, que tardan horas en
+levantarse. DNS primero, comprobado con `dig`, y después esto.
+
+Hecho eso, `https://agenciakivuk.com` sirve la landing y `www` redirige a ella.
+
+---
 
 ## Lo siguiente
 
