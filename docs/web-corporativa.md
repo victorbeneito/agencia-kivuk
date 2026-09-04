@@ -116,8 +116,16 @@ app/src/app/(web)/
 
 app/src/app/robots.ts       en la raíz de `app/`, no en el grupo (*)
 app/src/app/entrar/page.tsx el reparto por rol que antes vivía en `/`
-app/src/components/web/     cabecera, pie, chat de ejemplo, marco legal
 app/src/lib/web/kivuk.ts    datos de la agencia y enlaces de WhatsApp
+
+app/src/components/web/
+├── cabecera.tsx, pie.tsx
+├── chat-demo.tsx           el ejemplo de WhatsApp del hero y de su pestaña
+├── servicios-tabs.tsx      "use client" — las pestañas de Servicios
+├── demo-agenda.tsx, demo-redes.tsx    mockups de servicios en producción
+├── demo-voz.tsx, demo-correo.tsx      mockups de servicios "en desarrollo"
+├── badge-en-desarrollo.tsx
+└── pagina-legal.tsx        marco de aviso-legal y privacidad
 ```
 
 (*) Dentro de `(web)/`, Next no recoge `robots.ts` y `/robots.txt` sale 404 sin
@@ -130,7 +138,7 @@ alguien no abriría la conversación:
 | --- | --- |
 | Hero + chat de ejemplo | «No entiendo qué es esto» |
 | El problema | «A mí eso no me pasa» |
-| Qué hace | «¿Y esto qué incluye?» |
+| Servicios (pestañas) | «¿Y esto qué incluye?» — ver detalle abajo |
 | Cuando entras tú, el bot se calla | «Que una máquina no le conteste una tontería a un cliente bueno» |
 | Cómo funciona | «Esto será un lío de montar» |
 | Casos | «¿A quién se lo has hecho?» |
@@ -138,11 +146,63 @@ alguien no abriría la conversación:
 | Preguntas | Las cinco que salen siempre |
 | Contacto | La acción |
 
-Los casos dicen la verdad: la tienda propia con su nombre, y Cestería Aparici en
-genérico («una cestería artesanal») hasta que autoricen que se les nombre. No hay
-logotipos de empresas que no nos conocen ni cifras inventadas — el día que haya
-números reales de conversaciones atendidas, van aquí y esta sección pasa a ser la
-que más vende.
+### Servicios, en pestañas
+
+Antes era una cuadrícula de cuatro tarjetas de texto (`QueHace`). Se cambió el
+3/9/2026 a pestañas (`ServiciosTabs`) porque el sitio ya tenía un canal —
+WhatsApp— con su propio mockup en el hero, y la petición fue que **cada**
+servicio tuviera el suyo, no solo texto. Es el único componente `"use client"`
+de la landing: necesita recordar qué pestaña está abierta, y eso exige
+`useState`. El resto de la página sigue siendo estática.
+
+Cinco pestañas, en un orden deliberado — primero lo real, después lo que viene:
+
+| Pestaña | Estado | Mockup |
+| --- | --- | --- |
+| WhatsApp | en producción | reutiliza `ChatDemo`, el mismo del hero |
+| Agenda y citas | en producción | `demo-agenda.tsx` |
+| Redes sociales | en producción | `demo-redes.tsx` |
+| Voz | **en desarrollo** | `demo-voz.tsx`, en gris |
+| Correo | **en desarrollo** | `demo-correo.tsx`, en gris |
+
+**La foto de Redes es real, no un mockup.** Es la publicación de
+`@hogardetusuenos` del estor con la Torre Eiffel, con el pie de foto tal cual se
+publicó. El archivo vive en `public/casos/hogar-estor-paris.png` (1080×1350,
+formato 4:5 de Instagram) y el origen es `Pomelli/` en la raíz del repo —
+gitignorado a propósito, son los brutos de las piezas de contenido, no algo que
+versionar. Por esto mismo la tarjeta usa la identidad de la propia tienda
+(«Hogar de tus Sueños», no la cestería): es el único de los tres servicios en
+producción donde la tienda propia sí tiene algo real que enseñar.
+
+Voz y Correo llevan `enDesarrollo: true` en el array `SERVICIOS` de
+`servicios-tabs.tsx`. Esa marca es la única fuente de verdad: pinta
+`BadgeEnDesarrollo` en la pestaña y en el panel, y pone el mockup en gris
+(`grayscale`). El día que alguno pase a producción, el cambio es borrar esa
+línea ahí — no hay que tocar copy suelto por la página.
+
+**Ojo con lo que significa «Correo» aquí.** No son las campañas de email
+marketing de `docs/marketing-y-captacion.md` (mandar correo a una lista); es la
+idea contraria — que la IA **lea** la bandeja del cliente, resuma, marque lo
+importante y sugiera respuesta. Son dos funcionalidades distintas y ninguna de
+las dos existe todavía; que no se fusionen por error el día que se construya
+una de las dos.
+
+**Por qué no está el asistente de voz enseñado como si funcionara.** La Fase 3
+del plan (`docs/plan-agencia-ia.md`) está en pausa, no en producción. El mockup
+lo dice en gris y con la etiqueta encima, y el texto de la pestaña habla en
+futuro («estamos llevando», no «ya hace»).
+
+Por el mismo motivo que Voz va marcada «en desarrollo», **Hogar de tus Sueños
+salió de la sección de Casos el 3/9/2026**: afirmaba que de la tienda propia
+«sale el asistente de WhatsApp», y hoy ahí hay un chat de recomendación de
+producto en la web, no un bot de WhatsApp. Vuelve como caso en cuanto sea
+cierto.
+
+Solo queda un caso, Cestería Aparici, en genérico («una cestería artesanal»)
+hasta que autoricen que se les nombre. No hay logotipos de
+empresas que no nos conocen ni cifras inventadas — el día que haya números
+reales de conversaciones atendidas, van aquí y esta sección pasa a ser la que
+más vende.
 
 ---
 
@@ -154,9 +214,8 @@ Nada de esto es código. Sin lo primero, la web no se puede publicar.
    `fiscal.nif`, `fiscal.domicilio`). Los obliga el art. 10 de la LSSI y hoy
    están vacíos: el aviso legal y la política de privacidad marcan el hueco en
    rojo a propósito, para que no se publique así sin darse cuenta.
-2. **DNS y Caddy** (ver «Publicar el dominio», abajo): el apex y el `www` tienen
-   que apuntar al VPS y el `Caddyfile` tiene que conocer los dos nombres. Una
-   cosa sin la otra no sirve.
+2. ~~DNS y Caddy~~ — **hecho el 3/9/2026.** La zona se movió a Cloudflare y el
+   `Caddyfile` ya sirve el apex y el `www`. El porqué, en «Publicar el dominio».
 3. **Variables de entorno** del panel (`app/.env.local.example` las documenta):
    - `CONTACTO_DESTINATARIO` y `CONTACTO_REMITENTE` — si se dejan vacías se usan
      `info@agenciakivuk.com` y el remitente de facturación. Lo imprescindible es
@@ -165,9 +224,11 @@ Nada de esto es código. Sin lo primero, la web no se puede publicar.
 4. **Instagram de la agencia**: `KIVUK.instagram` está vacío y por eso el enlace
    no se pinta en el pie. Se rellena con el handle sin arroba.
 5. **Revisar los textos legales con quien lleve la gestoría.** Están escritos con
-   los tratamientos y los proveedores reales de la plataforma (Supabase, Vercel,
-   Contabo, Resend, Meta, Google, OpenRouter y OpenAI), pero un repaso de alguien
-   que responda de ello no sobra.
+   los tratamientos y los proveedores reales de la plataforma (Supabase, Contabo,
+   Resend, Meta, Google, OpenRouter y OpenAI), pero un repaso de alguien que
+   responda de ello no sobra. Falta además confirmar en qué país está el centro
+   de datos del VPS: si no es la UE, es una transferencia internacional y hay que
+   decirlo en la política de privacidad.
 
 ---
 
@@ -178,40 +239,61 @@ La web la sirve **el mismo contenedor `panel` del VPS** que ya sirve
 panel en `/panel`. Así que no hay nada que desplegar aparte — solo hay que
 decirle al mundo, y a Caddy, que ese dominio es de esta máquina.
 
-Estado del que se parte (comprobado el 3/9/2026):
+### 1. El DNS lo lleva Cloudflare, no Hostalia
+
+Esto costó una mañana entera, así que conviene entender por qué.
+
+El dominio se compró en Hostalia dentro de un «Plan Dominio», y ese plan trae un
+servicio llamado **«Tu Web»** que estaba **activo y publicado sobre
+`agenciakivuk.com`**. Ese servicio es el dueño del registro A del apex y del
+`www`: se pueden editar en su zona DNS, el panel los guarda y los enseña
+correctamente, pero **sus servidores autoritativos siguen sirviendo la IP de «Tu
+Web»** (`217.116.0.191`). El cambio nunca llega a publicarse y no hay ningún
+error que lo diga.
+
+Y no hay forma de soltarlo desde el panel: el menú del dominio → **Destino Web**
+solo ofrece «Página Web», «Página de Cortesía» y «Redirección Web». Las tres
+apuntan a un servicio de Hostalia. No existe un «ninguno» ni un «servidor
+externo».
+
+La salida fue **mover los servidores de nombres a Cloudflare** (plan gratuito).
+Con la zona fuera de Hostalia, su «Destino Web» deja de pintar nada. De paso, los
+cambios de DNS pasan a tardar segundos en vez de horas, que con más clientes y
+más subdominios se agradece.
+
+Cómo se hizo, por si hay que repetirlo con otro dominio:
+
+1. **Descargar la zona** desde Hostalia (DNS → Descargar) como red de seguridad.
+2. Añadir el dominio en Cloudflare. Importa los registros solo: fueron **15**,
+   que son los 18 de Hostalia menos sus tres `NS`, que Cloudflare sustituye por
+   los suyos.
+3. **Poner todos los registros A en «DNS only»** (nube gris). Cloudflare los crea
+   proxeados por defecto, y eso rompe dos cosas: el correo —`mx`, `smtp`, `pop3`,
+   `imap` y `webmail` proxeados devuelven las IPs de Cloudflare y ningún servidor
+   puede entregarte nada— y el certificado, porque con el proxy delante Caddy no
+   puede emitir ni renovar el suyo.
+4. Corregir el apex y el `www` a `169.58.123.119`.
+5. En Hostalia: **Dominios y SSL → agenciakivuk.com → CAMBIAR DNS**, quitar los
+   tres `servicio-online.net` y poner los dos de Cloudflare.
+
+Estado final de la zona:
 
 | Nombre | Apunta a | Qué es |
 | --- | --- | --- |
-| `n8n.agenciakivuk.com` | `169.58.123.119` | el VPS (`vmi3485800.contaboserver.net`) |
-| `panel.agenciakivuk.com` | `169.58.123.119` | el VPS, el mismo |
-| `agenciakivuk.com` | `217.116.0.191` | **el hosting de Hostalia**, no nuestro |
-| `www.agenciakivuk.com` | `217.116.0.191` | ídem |
+| `agenciakivuk.com`, `www` | `169.58.123.119` | la web corporativa, en el VPS |
+| `panel`, `n8n` | `169.58.123.119` | el mismo VPS (`vmi3485800.contaboserver.net`) |
+| `mx`, `smtp`, `pop3`, `imap`, `webmail` | `217.116.0.x` | **el correo, que sigue en Hostalia** |
+| MX, SPF, DMARC, `resend._domainkey`, `send` | — | Resend y el correo. **No se tocan nunca** |
 
-### 1. DNS, en el panel de Hostalia
+Sin esos últimos no salen ni las facturas ni los avisos. Es lo primero que hay
+que verificar después de cualquier maniobra con el DNS.
 
-En la zona DNS del dominio —el mismo sitio donde se crearon `n8n` y `panel`—,
-**editar los dos registros A que ya existen** en vez de crear otros nuevos: si se
-queda el viejo, el dominio responderá unas veces desde Hostalia y otras desde el
-VPS, que es el fallo más difícil de diagnosticar de todos.
-
-```
-@      A    169.58.123.119
-www    A    169.58.123.119
-```
-
-Si Hostalia no deja tocar el registro del `@` porque el dominio tiene contratado
-un alojamiento o un redireccionamiento suyo, hay que desactivar ese servicio
-primero: mientras esté activo, vuelve a escribir su IP.
-
-**No tocar nada más.** Los registros MX y los TXT de SPF/DKIM son los que hacen
-que Resend pueda mandar las facturas y los avisos desde `agenciakivuk.com`. Se
-quedan exactamente como están.
-
-Comprobar antes de seguir, y no fiarse del navegador (guarda el DNS en caché):
+Comprobar preguntando al autoritativo, que es el único que no miente. El `dig` a
+secas usa el resolver del sistema, que guarda en caché y te enseña lo de ayer:
 
 ```bash
-dig +short agenciakivuk.com www.agenciakivuk.com
-# las dos líneas tienen que devolver 169.58.123.119
+dig +short @chip.ns.cloudflare.com agenciakivuk.com www.agenciakivuk.com
+dig +short @8.8.8.8 agenciakivuk.com     # y este, antes de tocar Caddy
 ```
 
 ### 2. Caddy, en el VPS
@@ -231,9 +313,37 @@ dc logs -f caddy        # ver que emite el certificado sin errores
 
 **El orden importa.** Caddy pide el certificado a Let's Encrypt en cuanto
 arranca, y para emitirlo Let's Encrypt tiene que llegar a esta máquina por ese
-nombre. Si se despliega antes de que el DNS resuelva, falla y se acumulan
-reintentos hasta topar con los límites de la autoridad, que tardan horas en
-levantarse. DNS primero, comprobado con `dig`, y después esto.
+nombre. DNS primero, comprobado, y después esto.
+
+### 3. El certificado tarda, y eso es normal
+
+Entre que el DNS es correcto y que `https://agenciakivuk.com` funciona pueden
+pasar horas. No es un fallo:
+
+- Let's Encrypt valida **desde varios puntos a la vez y exige que todos
+  acierten**. Basta con que uno de sus resolvers conserve la IP antigua en caché
+  para que la petición acabe en Hostalia, que no tiene el token, y falle.
+- El registro viejo tenía **TTL de 24 horas**, así que hay resolvers rezagados
+  durante todo ese tiempo. Se vio en directo: Cloudflare, Quad9 y OpenDNS ya
+  daban la IP nueva mientras Google seguía con la vieja.
+
+Cómo saber en qué punto está:
+
+```bash
+# ¿Caddy conoce el dominio? Si por el puerto 80 responde 308 con Server: Caddy, sí.
+curl -sI http://agenciakivuk.com/ | head -3
+
+# ¿Ya tiene certificado?
+curl -sI https://agenciakivuk.com/ | head -1     # HTTP/2 200 = listo
+
+# Los errores del apex, sin tragarse el log entero
+dc logs caddy | grep -v "n8n\.\|panel\." | grep agenciakivuk | tail -20
+```
+
+**No reiniciar Caddy para acelerarlo.** Reintenta solo, con esperas crecientes.
+Cada reinicio lanza intentos nuevos y Let's Encrypt limita a cinco validaciones
+fallidas por dominio y hora: lo único que se consigue es agotar el cupo y
+retrasarlo más.
 
 Hecho eso, `https://agenciakivuk.com` sirve la landing y `www` redirige a ella.
 

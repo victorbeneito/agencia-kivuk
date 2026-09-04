@@ -21,9 +21,9 @@ export const KIVUK = {
 
   /** Identificación del titular para el aviso legal y la política de privacidad. */
   fiscal: {
-    titular: "",
-    nif: "",
-    domicilio: "",
+    titular: "Víctor Beneito Lluch",
+    nif: "52.717.119-S",
+    domicilio: "Partida La Solana, 30-87, 46870 Ontinyent (València)",
   },
 } as const;
 

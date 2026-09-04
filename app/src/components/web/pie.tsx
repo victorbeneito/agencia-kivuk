@@ -36,8 +36,8 @@ export function Pie() {
             {/* Con `/` delante y no solo el ancla: el pie sale también en el
                 aviso legal y en privacidad, donde esas secciones no existen. */}
             <li>
-              <Link href="/#que-hace" className="transition-colors hover:text-white">
-                Qué hace
+              <Link href="/#servicios" className="transition-colors hover:text-white">
+                Servicios
               </Link>
             </li>
             <li>

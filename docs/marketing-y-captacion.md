@@ -71,6 +71,13 @@ Falta la lista, la segmentación y las campañas. Con Resend ya montado, el salt
 es corto: una tabla de contactos con su origen y su consentimiento, un editor
 sencillo, y el mismo circuito de aprobación que el contenido de redes.
 
+Esto es **mandar** correo (campañas de salida). Es un concepto distinto de una
+idea posterior planteada el 3/9/2026: que la IA **lea** el correo que le llega
+al cliente — resumir la bandeja, marcar lo importante, sugerir respuesta — algo
+tipo copiloto de bandeja de entrada, no un canal de marketing. No tiene nada
+construido; aparece como pestaña «en desarrollo» en `docs/web-corporativa.md`
+para no confundirla con esta.
+
 **e) Medición.** Lo que renueva un contrato no es una gráfica bonita, es poder
 decir «este mes 43 conversaciones, 12 citas, 7 ventas». Hoy los datos están en
 Supabase pero nadie los cuenta. Un panel de resultados por cliente — y el mismo

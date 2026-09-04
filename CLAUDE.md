@@ -47,7 +47,15 @@ que todo funciona aunque los mensajes los esté procesando la otra.
 
 El panel **ya no está en Vercel**: se movió al VPS y lo sirve Caddy, igual que
 n8n. Los cuatro nombres (`n8n`, `panel`, el apex y `www`) resuelven a la misma
-máquina; el dominio se compró en Hostalia, que es donde se edita la zona DNS.
+máquina.
+
+**El DNS se gestiona en Cloudflare, no en Hostalia.** El dominio se compró allí,
+pero su servicio «Tu Web» pisaba el registro A del apex y no hay forma de
+desactivarlo desde su panel, así que los servidores de nombres se movieron a
+Cloudflare (`chip`/`evelyn.ns.cloudflare.com`). Hostalia sigue llevando **solo el
+correo** (`mx`, `smtp`, `pop3`, `imap`, `webmail` en `217.116.0.x`), y esos
+registros más los MX/SPF/DMARC/DKIM de Resend no se tocan nunca: de ahí salen las
+facturas y los avisos. La historia completa, en `docs/web-corporativa.md`.
 
 Operar el servidor (`ssh kivuk@<IP>`, luego `cd ~/agencia-kivuk/n8n`):
 

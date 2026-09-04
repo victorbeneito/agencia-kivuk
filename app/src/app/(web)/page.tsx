@@ -5,14 +5,12 @@ import {
   BellRing,
   CalendarCheck,
   Check,
-  Images,
-  LayoutDashboard,
   MessageCircle,
   Moon,
   Sparkles,
-  Store,
 } from "lucide-react";
 import { ChatDemo } from "@/components/web/chat-demo";
+import { ServiciosTabs } from "@/components/web/servicios-tabs";
 import { FormularioContacto } from "./formulario-contacto";
 import { KIVUK, enlaceContacto, hayWhatsApp } from "@/lib/web/kivuk";
 
@@ -43,7 +41,7 @@ export default function Home() {
     <>
       <Hero />
       <Problema />
-      <QueHace />
+      <Servicios />
       <Relevo />
       <ComoFunciona />
       <Casos />
@@ -185,58 +183,23 @@ function Problema() {
 
 /* ------------------------------------------------------------------ */
 
-const MODULOS = [
-  {
-    icono: MessageCircle,
-    titulo: "Asistente de WhatsApp",
-    texto:
-      "Responde por tu catálogo, tus precios y tus horarios. No se inventa lo que no le has contado: cuando no lo sabe, lo dice y te pasa la conversación.",
-  },
-  {
-    icono: CalendarCheck,
-    titulo: "Agenda y confirmaciones",
-    texto:
-      "Propone un hueco libre, crea la cita en tu Google Calendar y manda el correo de confirmación. Sin cuaderno y sin dobles reservas.",
-  },
-  {
-    icono: Images,
-    titulo: "Contenido para redes",
-    texto:
-      "De tu catálogo a la publicación en Instagram y Facebook. Tú apruebas cada pieza desde el móvil antes de que salga; nada se publica a tus espaldas.",
-  },
-  {
-    icono: LayoutDashboard,
-    titulo: "Tu panel",
-    texto:
-      "Todas las conversaciones en una bandeja que se usa igual que WhatsApp, tus facturas y tu contenido. Se instala en el móvil como una aplicación más.",
-  },
-];
-
-function QueHace() {
+function Servicios() {
   return (
-    <Seccion id="que-hace" tono="claro">
+    <Seccion id="servicios" tono="claro">
       <Titulo
-        eyebrow="Qué hace"
-        titulo="Cuatro piezas, y contratas las que quieras"
-        texto="Casi todo el mundo empieza por el WhatsApp y añade el resto cuando ya se fía. La plataforma está hecha así de fábrica: cada módulo se activa por separado."
+        eyebrow="Servicios"
+        titulo="Cada canal, explicado y en marcha"
+        texto="Casi todo el mundo empieza por el WhatsApp y añade el resto cuando ya se fía. Cada servicio se contrata por separado — mira cómo funciona cada uno."
       />
 
-      <div className="mt-12 grid gap-5 sm:grid-cols-2">
-        {MODULOS.map((m) => (
-          <div
-            key={m.titulo}
-            className="flex gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm"
-          >
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent">
-              <m.icono className="size-5 text-kivuk-azul-hondo" aria-hidden />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-kivuk-pizarra">{m.titulo}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-kivuk-gris">{m.texto}</p>
-            </div>
-          </div>
-        ))}
+      <div className="mt-12">
+        <ServiciosTabs />
       </div>
+
+      <p className="mt-6 text-sm text-kivuk-gris">
+        Todo esto vive en un panel único, instalable en el móvil: la bandeja de
+        conversaciones, tus facturas y el contenido pendiente de aprobar.
+      </p>
     </Seccion>
   );
 }
@@ -308,7 +271,7 @@ const PASOS = [
   {
     titulo: "Conectamos tu WhatsApp",
     texto:
-      "Se puede usar tu número actual: se pasa a la API de WhatsApp Business de Meta. Nos ocupamos nosotros de la verificación y del traspaso.",
+      "Tu número de siempre o uno nuevo dedicado a esto: lo vemos en la primera llamada según cómo trabajes hoy. Nos ocupamos nosotros de la verificación y de la conexión.",
   },
   {
     titulo: "Una semana con nosotros mirando",
@@ -357,34 +320,12 @@ function Casos() {
     <Seccion id="casos">
       <Titulo
         eyebrow="Dónde está funcionando"
-        titulo="Empezamos por nuestra propia tienda"
+        titulo="Así funciona ya, con un cliente real"
         texto="No enseñamos logotipos de empresas que no nos conocen. Esto es lo que hay, y es real."
       />
 
-      <div className="mt-12 grid gap-5 lg:grid-cols-2">
-        <article className="rounded-2xl border border-border bg-card p-7 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-xl bg-accent">
-              <Store className="size-5 text-kivuk-azul-hondo" aria-hidden />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-kivuk-pizarra">
-                Hogar de tus Sueños
-              </h3>
-              <p className="text-sm text-kivuk-gris">
-                Tienda de decoración · nuestra
-              </p>
-            </div>
-          </div>
-          <p className="mt-5 text-sm leading-relaxed text-kivuk-gris">
-            Es nuestra propia tienda y es donde se prueba todo antes que en
-            ningún cliente: el asistente de WhatsApp, la agenda y el contenido de
-            Instagram salen de aquí. Si algo no aguanta en nuestra casa, no se lo
-            montamos a nadie.
-          </p>
-        </article>
-
-        <article className="rounded-2xl border border-border bg-card p-7 shadow-sm">
+      <div className="mt-12 flex justify-center">
+        <article className="w-full max-w-xl rounded-2xl border border-border bg-card p-7 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-xl bg-accent">
               <Sparkles className="size-5 text-kivuk-azul-hondo" aria-hidden />
@@ -499,7 +440,7 @@ function Precio() {
 const PREGUNTAS = [
   {
     p: "¿Tengo que cambiar de número?",
-    r: "No. Se usa el número que ya tienes: se pasa a la API de WhatsApp Business de Meta, que es la vía oficial. A cambio, ese número deja de abrirse en la app del móvil — pasa a atenderlo el asistente, y tú contestas desde tu panel, que se usa exactamente igual.",
+    r: "No hace falta, pero conviene que sepas el efecto antes de decidir: llevar tu número actual a la API oficial de WhatsApp Business significa que deja de abrirse en la app del móvil — a partir de ahí se atiende desde tu panel, no desde el teléfono. Si prefieres conservar tu número tal cual está, montamos uno nuevo dedicado a esto. Lo hablamos en la primera llamada según cómo trabajes hoy.",
   },
   {
     p: "¿Y si el asistente se equivoca?",
