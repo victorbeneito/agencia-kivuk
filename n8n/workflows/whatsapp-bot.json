@@ -1161,7 +1161,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const bin = $input.first().binary?.data;\n\n// Si la descarga fallo no hay binario. No se corta el flujo: se sigue sin\n// descripcion y el bot dira que no ha podido abrir la foto.\nif (!bin || !bin.data) {\n  return [{ json: { data_uri: null } }];\n}\n\nreturn [{\n  json: {\n    data_uri: 'data:' + (bin.mimeType || 'image/jpeg') + ';base64,' + bin.data,\n  }\n}];"
+        "jsCode": "const bin = $input.first().binary?.data;\n\n// Si la descarga fallo no hay binario. No se corta el flujo: se sigue sin\n// descripcion y el bot dira que no ha podido abrir la foto.\nif (!bin) {\n  return [{ json: { data_uri: null } }];\n}\n\n// OJO: bin.data NO es el base64 cuando n8n guarda los binarios en disco\n// (N8N_DEFAULT_BINARY_DATA_MODE=filesystem). En ese modo vale 'filesystem-v2',\n// que es el identificador del fichero, y pegarlo en el data URI hace que OpenAI\n// responda invalid_image_format. Hay que pedirle los bytes al helper.\n// Con el modo 'memory' el helper devuelve lo mismo, asi que sirve para los dos.\nlet base64 = '';\ntry {\n  const buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\n  base64 = buffer.toString('base64');\n} catch (e) {\n  // Respaldo por si el helper no estuviera disponible: solo se acepta si de\n  // verdad parece base64 y no un identificador corto.\n  base64 = typeof bin.data === 'string' && bin.data.length > 200 ? bin.data : '';\n}\n\nif (!base64) {\n  return [{ json: { data_uri: null } }];\n}\n\nreturn [{\n  json: {\n    data_uri: 'data:' + (bin.mimeType || 'image/jpeg') + ';base64,' + base64,\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
