@@ -99,13 +99,15 @@ El paso 3 es el que más importa y el que más depende de ti: la calidad de las 
 ```
 ¿Cómo os contacto? ¿Puedo hablar con una persona? ¿Tenéis teléfono o correo? ¿Podéis llamarme?
 
-Puedes hablar con una persona cuando quieras: dilo por aquí y avisamos a alguien del equipo para que te conteste.
-
-También puedes escribirnos por correo a info@agenciakivuk.com, o seguir por este mismo WhatsApp, que es el 623 96 27 33.
+Puedes hablar con una persona cuando quieras. No hace falta que te vayas a ningún sitio: dilo por aquí y aviso yo a alguien del equipo para que siga la conversación contigo.
 
 Si prefieres que te llamemos, déjanos tu nombre, un teléfono y a qué hora te viene bien, y te llamamos nosotros.
 
+Nuestro correo es info@agenciakivuk.com y nuestro teléfono es el 623962733, que es este mismo WhatsApp.
+
 Nuestro horario de atención es de lunes a viernes, de 9:00 a 19:00. Si nos escribes fuera de ese horario o justo cuando estamos ocupados, te contestamos o te devolvemos la llamada lo antes posible.
+
+En cualquier caso, lo más cómodo es que sigas escribiendo por aquí: la conversación se queda guardada y una persona la retoma donde la hayas dejado.
 ```
 
 ---
@@ -223,7 +225,7 @@ Precio base: desde 500 € de puesta en marcha y 60 € al mes, que incluyen 100
 - **URL de origen:** https://agenciakivuk.com
 
 ```
-¿Hacéis páginas web? ¿Me podéis hacer una web? ¿Diseñáis webs? ¿Y si no tengo página?
+¿Hacéis páginas web? ¿Me podéis hacer una web? ¿Diseñáis webs? ¿Y si no tengo página? ¿El dominio va incluido? ¿Quién paga el dominio? ¿Puedo elegir el nombre de la web?
 
 Sí, hacemos páginas web corporativas para negocios que no tienen ninguna o que tienen una que se les ha quedado vieja.
 
