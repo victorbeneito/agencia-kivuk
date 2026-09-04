@@ -33,7 +33,7 @@ pregunta.
 
 Kivuk es una agencia que monta asistentes con inteligencia artificial para pequeños negocios. La idea es sencilla: que un negocio no pierda clientes por no poder atender el teléfono o el WhatsApp mientras está trabajando.
 
-Lo que hacemos se agrupa en cinco cosas:
+Lo que hacemos se agrupa en estas cosas:
 
 - Un agente de WhatsApp que responde dudas de tus clientes (productos, precios, envíos, horarios) sin que tengas que estar tú.
 - Un agente de WhatsApp que gestiona citas contra tu calendario, dando las horas que de verdad tienes libres.
@@ -225,7 +225,7 @@ Precio base: desde 500 € de puesta en marcha y 60 € al mes, que incluyen 100
 - **URL de origen:** https://agenciakivuk.com
 
 ```
-¿Hacéis páginas web? ¿Me podéis hacer una web? ¿Diseñáis webs? ¿Y si no tengo página? ¿El dominio va incluido? ¿Quién paga el dominio? ¿Puedo elegir el nombre de la web?
+¿Hacéis páginas web? ¿Me podéis hacer una web? ¿Diseñáis webs? ¿Y si no tengo página?
 
 Sí, hacemos páginas web corporativas para negocios que no tienen ninguna o que tienen una que se les ha quedado vieja.
 
@@ -235,16 +235,33 @@ La cuota mensual cubre el alojamiento en el servidor y el mantenimiento, así qu
 
 Y encaja bien con lo demás: si tienes también el agente de WhatsApp o el de voz, la web lleva el botón para abrir la conversación directamente, y quien entra pasa de mirar a preguntar sin buscar tu teléfono.
 
-El dominio va incluido: te registramos un dominio .es estándar, sujeto a disponibilidad. Si lo que quieres es un dominio concreto de precio superior, ese coste lo asume el cliente, porque el dominio es suyo y él es el propietario.
+Precio base: desde 500 € la página y 60 € al mes de mantenimiento y servidor. Es para una página corporativa sencilla, del estilo de la nuestra: quién eres, qué haces y cómo contactarte. Si el proyecto requiere una web más elaborada, la estudiamos y te pasamos un presupuesto de la construcción.
 
-Se registra a tu nombre desde el primer día. El dominio es tuyo, no nuestro, y te lo llevas si algún día decides dejarlo.
-
-Precio base: desde 500 € la página y 60 € al mes de mantenimiento y servidor. Ese precio incluye un dominio .es estándar si está libre, y si quieres uno concreto que cueste más, ese sobreprecio lo pones tú. Es para una página corporativa sencilla, del estilo de la nuestra: quién eres, qué haces y cómo contactarte. Si el proyecto requiere una web más elaborada, la estudiamos y te pasamos un presupuesto de la construcción.
+Si quieres saber cómo va el tema del dominio, pregúntamelo y te lo explico.
 ```
 
 ---
 
-## 11. Campañas de marketing (en desarrollo)
+## 11. El dominio de tu página web
+
+- **Categoría:** Productos
+- **URL de origen:** https://agenciakivuk.com
+
+```
+¿El dominio va incluido? ¿Quién paga el dominio? ¿Puedo elegir el nombre de la web? ¿Y si quiero un dominio concreto? ¿El dominio es mío? ¿Tengo que pagar el dominio aparte?
+
+El dominio va incluido en el precio de la página siempre que sea un .es estándar y esté libre.
+
+Si te has decidido por un dominio concreto que cuesta más de lo normal, esa diferencia la pones tú. No es una condición nuestra: el dominio se registra a tu nombre y es tuyo, así que ese sobreprecio es una compra tuya, no nuestra.
+
+Se registra a tu nombre desde el primer día, no al nuestro. Eso significa que es tuyo de verdad y que te lo llevas si algún día decides dejarlo.
+
+La renovación anual va dentro de la cuota mensual mientras sigas con nosotros, así que no tienes que estar pendiente de que caduque.
+```
+
+---
+
+## 12. Campañas de marketing (en desarrollo)
 
 - **Categoría:** Productos
 - **URL de origen:** https://agenciakivuk.com
@@ -261,7 +278,7 @@ Todavía estamos definiendo la estrategia y los métodos, así que no podemos da
 
 ---
 
-## 12. Gestión del correo (en desarrollo)
+## 13. Gestión del correo (en desarrollo)
 
 - **Categoría:** Productos
 - **URL de origen:** https://agenciakivuk.com
@@ -280,7 +297,7 @@ Todavía no tenemos fecha. Si es justo lo que necesitas, dínoslo y lo hablamos 
 
 ---
 
-## 13. Precios de todos los servicios
+## 14. Precios de todos los servicios
 
 - **Categoría:** Pagos
 - **URL de origen:** https://agenciakivuk.com
@@ -295,7 +312,7 @@ Todos los servicios tienen un pago inicial de puesta en marcha y una cuota mensu
 - Los dos juntos (atención + citas): desde 800 € y 80 €/mes.
 - Agente de voz para tu página web: desde 500 € y 60 €/mes, con 100 minutos de conversación incluidos.
 - Gestión de redes sociales: desde 300 € y 60 €/mes.
-- Página web corporativa: desde 500 € y 60 €/mes de mantenimiento y servidor. Incluye un dominio .es estándar si está libre; uno concreto más caro lo paga el cliente.
+- Página web corporativa: desde 500 € y 60 €/mes de mantenimiento y servidor.
 - Campañas de marketing: desde 500 € y 60 €/mes (servicio en desarrollo).
 - Gestión del correo: desde 500 € y 60 €/mes (servicio en desarrollo).
 
@@ -308,7 +325,7 @@ Para darte un precio cerrado necesitamos hablar de tu caso. Es rápido y no comp
 
 ---
 
-## 14. Por qué hay un pago inicial y qué incluye la cuota
+## 15. Por qué hay un pago inicial y qué incluye la cuota
 
 - **Categoría:** Pagos
 - **URL de origen:** https://agenciakivuk.com
@@ -325,7 +342,7 @@ Y algo que importa más de lo que parece: ir mejorando la base de conocimiento. 
 
 ---
 
-## 15. Formas de pago, facturación y permanencia
+## 16. Formas de pago, facturación y permanencia
 
 - **Categoría:** Pagos
 - **URL de origen:** https://agenciakivuk.com
@@ -344,7 +361,7 @@ Cada mes recibes tu factura por correo electrónico, con el detalle de lo que ti
 
 ---
 
-## 16. Qué necesitáis de mí para empezar
+## 17. Qué necesitáis de mí para empezar
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -363,7 +380,7 @@ Si contratas el agente de WhatsApp, hará falta un número de teléfono para él
 
 ---
 
-## 17. El número de teléfono del agente de WhatsApp
+## 18. El número de teléfono del agente de WhatsApp
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -384,7 +401,7 @@ Y no te quedas sin poder escribir: desde tu panel tienes una bandeja igual que W
 
 ---
 
-## 18. Qué pasa cuando el agente no sabe algo
+## 19. Qué pasa cuando el agente no sabe algo
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -403,7 +420,7 @@ Un agente que inventa respuestas hace más daño que uno que dice que no lo sabe
 
 ---
 
-## 19. ¿Esto sustituye a una persona?
+## 20. ¿Esto sustituye a una persona?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -420,7 +437,7 @@ La alternativa real no es "una persona atiende mejor". La alternativa real es qu
 
 ---
 
-## 20. ¿Necesito tener web o tienda online?
+## 21. ¿Necesito tener web o tienda online?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -439,7 +456,7 @@ Y si lo que quieres es tener página y no la tienes, también las hacemos nosotr
 
 ---
 
-## 21. ¿Cuánto tarda en estar funcionando?
+## 22. ¿Cuánto tarda en estar funcionando?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -456,7 +473,7 @@ Prefiero no darte un plazo por aquí y que luego no se cumpla. Es de las primera
 
 ---
 
-## 22. ¿Los datos son míos? ¿Y si me quiero dar de baja?
+## 23. ¿Los datos son míos? ¿Y si me quiero dar de baja?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -473,7 +490,7 @@ Si algún día decides dejarlo, no te quedas con nada bloqueado: el número sigu
 
 ---
 
-## 23. ¿Puedo ver una demostración?
+## 24. ¿Puedo ver una demostración?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -490,7 +507,7 @@ Y si prefieres verlo con calma y con alguien que te lo enseñe aplicado a tu neg
 
 ---
 
-## 24. ¿Dónde trabajáis? ¿Hace falta que estemos cerca?
+## 25. ¿Dónde trabajáis? ¿Hace falta que estemos cerca?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com

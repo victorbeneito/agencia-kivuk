@@ -137,6 +137,44 @@ por emparejamiento de items, y los nodos nuevos agrupan varias filas en una, con
 lo que ese emparejamiento se pierde. Aquí cada ejecución atiende un solo mensaje,
 así que `.first()` es equivalente y no depende de él.
 
+### Un matiz que el modelo no puede resumir hay que subirlo de rango
+
+Caso real (Kivuk, 04/09/2026). El documento decía que la web incluye un dominio
+`.es` estándar **y** que uno más caro lo paga el cliente. El bot contaba siempre
+la primera mitad y se comía la segunda, que es justo la que evita una promesa que
+después hay que retirar.
+
+Se intentó pedírselo de tres formas, cada una más contundente, y **fallaron las
+tres**:
+
+1. Las dos ideas en el documento, en dos frases. Cita la primera.
+2. Las dos en **la misma frase**, la del precio, que es la que copia. La parte
+   en la mitad de atrás, y la recorta igual.
+3. Un bloque propio en el `system_prompt`, en mayúsculas, con las frases
+   literales, marcado como REGLA ABSOLUTA y con una orden de prioridad
+   explícita: *«si tienes que acortar, quita cualquier otra cosa antes que
+   esta»*. Siguió recortándola.
+
+Conviene subrayarlo porque el intento 3 parece infalible y no lo es. En la misma
+sesión, un bloque idéntico en forma —`[SI TE PIDEN HABLAR CON UNA PERSONA]`, con
+su REGLA ABSOLUTA— sí se cumplió a la primera. **La misma técnica funcionó para
+una regla y no para otra**, así que no hay forma de saber de antemano si va a
+agarrar.
+
+Lo que sí funcionó fue dejar de pedírselo: **quitarle la posibilidad de decirlo
+mal.** El dominio se sacó del documento de la web y se le dio uno propio. Si el
+contexto no habla de dominios, el modelo no puede prometer nada sobre ellos; y
+cuando preguntan por el dominio, se recupera un documento donde las dos mitades
+son la respuesta entera, no un adorno de otra cosa.
+
+**La lección, que es la misma que ya está escrita en
+`docs/traspaso-whatsapp-cliente-real.md`: un prompt no es una garantía.** Si algo
+*tiene* que aparecer siempre —un aviso legal, una condición de precio, un
+descargo—, no se pide en el prompt: o se diseña el contexto para que no exista la
+versión incompleta, o se comprueba en código después de la respuesta. Pedírselo
+al modelo funciona la mayoría de las veces, y «la mayoría de las veces» no sirve
+para una condición comercial.
+
 ## Un bot que no reserva citas
 
 No todos los clientes tienen agenda: una tienda solo asesora. En vez de duplicar
@@ -566,6 +604,78 @@ docker exec n8n-postgres-1 psql -U n8n -d n8n -c \
    from workflow_entity w join workflow_history h on h.\"versionId\" = w.\"activeVersionId\" \
    where w.id = '6evfnfBUlZHCuobt';"
 ```
+
+## ⚠️ Una ejecución en verde no significa que funcione
+
+Los tres fallos del 04/09/2026 tenían la misma forma: **el bot respondía con
+normalidad, n8n marcaba la ejecución como *Succeeded*, y aun así no hacía lo que
+debía.** Uno llevaba roto un mes sin que nadie lo notara.
+
+La causa común es que varios nodos están configurados con `onError:
+continueRegularOutput` — decisión correcta, porque más vale contestar sin la foto
+que dejar al cliente esperando. Pero el efecto secundario es que **el error deja
+de ser un error** y se convierte en un item vacío que sigue camino.
+
+Regla práctica: **cuando algo "no hace nada" pero no hay rojo, no mires el estado
+de la ejecución, mira la salida del nodo sospechoso.** Y cuando el síntoma sea
+"la base de datos no tiene lo que debería", compáralo contra la tabla: la fecha
+del último registro bueno te dice qué cambio lo rompió.
+
+### Caso 1 — Insertar varias filas: todas deben tener las mismas claves
+
+`Guardar mensajes` inserta dos filas de golpe (la del usuario y la del bot).
+PostgREST responde `400 Bad request — All object keys must match` si los objetos
+del array no tienen **exactamente** el mismo juego de claves.
+
+La migración `0012_adjuntos` añadió `media_path`, `media_type` y `media_name` al
+primer objeto y no al segundo. Resultado: **no se guardaba ninguno de los dos**,
+ni el del bot ni el del usuario, desde el 06/08/2026. El bot seguía contestando
+porque el guardado va *después* de `Responder por Whatsapp`.
+
+Al añadir una columna a una inserción múltiple, hay que añadirla a **todos** los
+objetos, aunque sea con `null`.
+
+### Caso 2 — `binary.data.data` no es el base64
+
+`Imagen a base64` construía el data URI con `bin.data`. Con
+`N8N_DEFAULT_BINARY_DATA_MODE=filesystem` —el modo por defecto en producción—
+ese campo **no contiene los bytes**: contiene un identificador, literalmente la
+cadena `filesystem-v2`. El data URI salía como
+`data:image/jpeg;base64,filesystem-v2` y OpenAI devolvía `invalid_image_format`.
+
+Se arregla pidiendo los bytes al helper, que funciona en los dos modos:
+
+```js
+const buffer = await this.helpers.getBinaryDataBuffer(0, 'data');
+const base64 = buffer.toString('base64');
+```
+
+Ojo con el respaldo: si se hace un `catch` que se conforme con `bin.data`, se
+vuelve al mismo fallo. El del workflow comprueba además que la cadena **parezca**
+base64 (más de 200 caracteres) y no un identificador corto. Esa comprobación es
+la que habría delatado el fallo en agosto en vez de dejarlo llegar a OpenAI
+disfrazado de imagen válida.
+
+Los nodos HTTP sí resuelven la referencia solos: `Transcribir audio` manda el
+fichero sin problema. Solo falla cuando un nodo Code manipula el binario a mano.
+
+### Caso 3 — Un fallo hunde toda la cadena que va detrás
+
+`Guardar mensajes` no es una hoja del árbol:
+
+```
+Responder por Whatsapp → Guardar mensajes → ¿Pide una persona? → Marcar que pide persona
+                                                                 → avisar por correo
+                                                                 → avisar al móvil
+```
+
+Al reventar el guardado, **murieron también el relevo humano y los tres canales
+de aviso**. Se investigaron como tres fallos distintos durante un buen rato: eran
+uno. Antes de dar por hecho que hay varios problemas, mira si comparten rama.
+
+> Hubo un cuarto fallo el mismo día, este en el panel y no en n8n: el botón
+> Guardar de los avisos apagaba el `push` que acababa de encender el móvil. Está
+> contado en `docs/panel-cliente-siguientes-pasos.md`, sección 6.
 
 ## Importar en n8n
 

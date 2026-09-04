@@ -104,7 +104,16 @@ export async function POST(request: Request) {
             keys: { p256dh: d.p256dh, auth: d.auth },
           },
           carga,
-          { TTL: 3600 }
+          // `urgency: high` no es un adorno. Sin él la librería envía con
+          // urgencia «normal», y con esa urgencia Android puede retrasar la
+          // entrega hasta que el móvil salga del modo de ahorro: el aviso
+          // aparece minutos después, o cuando desbloqueas la pantalla. El
+          // servidor de push lo acepta igual y `fallos` se queda a 0, así que
+          // desde aquí parece que todo ha ido bien.
+          //
+          // Esto avisa de que una persona está esperando respuesta al otro
+          // lado. Si llega tarde, no sirve.
+          { TTL: 3600, urgency: "high" }
         );
         enviados++;
       } catch (e) {

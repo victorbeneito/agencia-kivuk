@@ -539,6 +539,39 @@ para descartar ninguno.
 hasta que Chrome se da cuenta, que puede tardar días. Para probarlo: desinstalar
 la app del móvil y volver a instalarla.
 
+### ⚠️ El botón Guardar apagaba el push que activaba el móvil (04/09/2026)
+
+`client_notification_settings.push` lo enciende `registrarDispositivo()` cuando
+el móvil concede el permiso. Pero `guardarAvisos()` lo incluía también en su
+`upsert`, mandando el valor que el formulario traía **desde que se cargó la
+página**.
+
+La secuencia que rompía todo era la más natural del mundo: entras en Cuenta,
+pulsas *Activar* en el bloque del móvil (`push` → `true`), y a continuación
+pulsas *Guardar* para asegurarte. Ese Guardar mandaba `push: false` y lo pisaba.
+
+El resultado no se parecía a un fallo: el dispositivo quedaba **suscrito**
+(fila en `push_subscriptions`), el aviso en pantalla seguía funcionando, y
+simplemente no llegaba nada al móvil. Nada en la interfaz lo delataba, porque el
+bloque del móvil lee su estado del navegador y no de esa columna.
+
+Arreglado quitando `push` del `upsert` de `guardarAvisos()`: ese campo lo
+gobierna el dispositivo y nada más.
+
+**La lección general:** si un ajuste se guarda por dos caminos distintos —aquí,
+un botón que guarda todo el formulario y un componente que se guarda solo—, uno
+de los dos acabará pisando al otro. O lo escribe uno, o lo escribe el otro, pero
+no los dos.
+
+Para diagnosticarlo, la consulta que lo dejó claro en diez segundos:
+
+```sql
+select push from client_notification_settings where client_id = '<id>';
+select count(*) from push_subscriptions where client_id = '<id>';
+```
+
+Suscripción a 1 y `push` a `false` es exactamente este caso.
+
 Dos decisiones de fondo:
 
 - **El correo cuelga de «pide una persona», no de cada mensaje.** Avisar de todo
