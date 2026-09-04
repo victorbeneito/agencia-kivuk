@@ -239,7 +239,7 @@ El dominio va incluido: te registramos un dominio .es estándar, sujeto a dispon
 
 Se registra a tu nombre desde el primer día. El dominio es tuyo, no nuestro, y te lo llevas si algún día decides dejarlo.
 
-Precio base: desde 500 € la página, con el dominio incluido, y 60 € al mes de mantenimiento y servidor. Ese precio es para una página corporativa sencilla, del estilo de la nuestra: quién eres, qué haces y cómo contactarte. Si el proyecto requiere una web más elaborada, la estudiamos y te pasamos un presupuesto de la construcción.
+Precio base: desde 500 € la página y 60 € al mes de mantenimiento y servidor. Ese precio incluye un dominio .es estándar si está libre, y si quieres uno concreto que cueste más, ese sobreprecio lo pones tú. Es para una página corporativa sencilla, del estilo de la nuestra: quién eres, qué haces y cómo contactarte. Si el proyecto requiere una web más elaborada, la estudiamos y te pasamos un presupuesto de la construcción.
 ```
 
 ---
@@ -295,7 +295,7 @@ Todos los servicios tienen un pago inicial de puesta en marcha y una cuota mensu
 - Los dos juntos (atención + citas): desde 800 € y 80 €/mes.
 - Agente de voz para tu página web: desde 500 € y 60 €/mes, con 100 minutos de conversación incluidos.
 - Gestión de redes sociales: desde 300 € y 60 €/mes.
-- Página web corporativa: desde 500 €, con el dominio incluido, y 60 €/mes de mantenimiento y servidor.
+- Página web corporativa: desde 500 € y 60 €/mes de mantenimiento y servidor. Incluye un dominio .es estándar si está libre; uno concreto más caro lo paga el cliente.
 - Campañas de marketing: desde 500 € y 60 €/mes (servicio en desarrollo).
 - Gestión del correo: desde 500 € y 60 €/mes (servicio en desarrollo).
 

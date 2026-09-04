@@ -37,13 +37,21 @@ export async function guardarAvisos(avisos: Avisos): Promise<Resultado> {
 
   const admin = createServiceRoleClient();
 
+  // `push` NO se escribe aquí a propósito. Ese interruptor no es una casilla de
+  // este formulario: lo gobierna el permiso que da cada dispositivo, y lo pone a
+  // true `registrarDispositivo()` al suscribir el móvil.
+  //
+  // Cuando sí se escribía, pasaba esto: el usuario activaba el aviso en el móvil
+  // (push -> true) y a continuación pulsaba Guardar, que mandaba el `push` que
+  // traía el formulario desde que se cargó la página —false— y lo pisaba. El
+  // dispositivo quedaba suscrito y el canal apagado, así que no llegaba ninguna
+  // notificación y nada lo delataba.
   const { error } = await admin.from("client_notification_settings").upsert(
     {
       client_id: clientId,
       en_panel: avisos.enPanel,
       por_email: avisos.porEmail,
       email: email || null,
-      push: avisos.push,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "client_id" }
