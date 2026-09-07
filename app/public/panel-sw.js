@@ -149,16 +149,21 @@ self.addEventListener("message", (evento) => {
 });
 
 /**
- * Le pregunta a una ventana si es la app instalada, y espera su respuesta.
+ * Le pregunta a una ventana si es la app instalada.
  *
- * Es lo que sustituye a fiarse de `VENTANAS_APP`: esa lista se pierde cada vez
- * que Android para el service worker, que es precisamente lo que ha pasado
+ * Devuelve `true` (es la app), `false` (es una pestaña) o `null` (no ha
+ * contestado a tiempo). **El `null` no es un `false`**: una ventana en segundo
+ * plano puede estar congelada y no llegar a responder, y estar en segundo plano
+ * es justo el caso que hay que resolver bien. Confundirlos hacía que la app
+ * abierta detrás se descartara.
+ *
+ * Esto sustituye a fiarse de `VENTANAS_APP`: esa lista se pierde cada vez que
+ * Android para el service worker, que es precisamente lo que acaba de pasar
  * cuando llega una notificación con el móvil dormido. Las ventanas, en cambio,
- * siguen ahí y saben perfectamente si están en modo app o en una pestaña.
+ * siguen ahí y saben si están en modo app o en una pestaña.
  *
- * El plazo es corto a propósito. Una página en segundo plano puede estar
- * congelada y no contestar nunca, y más vale enfocar la ventana equivocada que
- * dejar la notificación sin hacer nada mientras el usuario mira el móvil.
+ * El plazo es corto porque hay una persona mirando el móvil con el dedo en la
+ * notificación.
  */
 function preguntarSiEsApp(cliente) {
   return new Promise((resolve) => {
@@ -169,19 +174,20 @@ function preguntarSiEsApp(cliente) {
       resolve(valor);
     };
 
-    const plazo = setTimeout(() => terminar(false), 400);
+    const plazo = setTimeout(() => terminar(null), 400);
 
     try {
       const canal = new MessageChannel();
       canal.port1.onmessage = (respuesta) => {
         clearTimeout(plazo);
-        if (respuesta.data === true) VENTANAS_APP.add(cliente.id);
-        terminar(respuesta.data === true);
+        const esApp = respuesta.data === true;
+        if (esApp) VENTANAS_APP.add(cliente.id);
+        terminar(esApp);
       };
       cliente.postMessage({ tipo: "¿eres-la-app?" }, [canal.port2]);
     } catch {
       clearTimeout(plazo);
-      terminar(false);
+      terminar(null);
     }
   });
 }
@@ -207,36 +213,46 @@ self.addEventListener("notificationclick", (evento) => {
         (v) => v.url.startsWith(alcance) && "focus" in v
       );
 
-      // La app antes que una pestaña suelta, si sabemos cuál es cuál.
-      //
-      // Primero la vía rápida: lo que nos dijeron al cargarse. Casi nunca sirve
-      // —Android mata el service worker entre aviso y aviso y esto se vacía justo
-      // cuando hace falta—, pero cuando sirve, ahorra el ida y vuelta.
+      // Vía rápida: lo que nos dijeron al cargarse. Casi nunca sirve —Android
+      // mata el service worker entre aviso y aviso y esto se vacía justo cuando
+      // hace falta—, pero cuando sirve, ahorra el ida y vuelta.
       let elegida = candidatas.find((v) => VENTANAS_APP.has(v.id));
 
-      // Y si no, se les pregunta ahora. Recordar no funciona; preguntar sí,
-      // porque las ventanas siguen vivas aunque nosotros hayamos muerto.
-      if (!elegida) {
+      if (!elegida && candidatas.length) {
+        // Se les pregunta ahora. Recordar no funciona; preguntar sí, porque las
+        // ventanas siguen vivas aunque nosotros hayamos muerto.
+        //
+        // Tres respuestas posibles, y las tres importan:
+        //   true  -> es la app. La mejor.
+        //   null  -> no ha contestado a tiempo. Casi seguro que ES la app: una
+        //            ventana en segundo plano puede estar congelada, y estar en
+        //            segundo plano es exactamente el caso que queremos resolver.
+        //   false -> es una pestaña del navegador. La peor, pero mejor que nada.
         const respuestas = await Promise.all(candidatas.map(preguntarSiEsApp));
-        elegida = candidatas.find((_, i) => respuestas[i]);
+        const conRespuesta = (valor) =>
+          candidatas.find((_, i) => respuestas[i] === valor);
+
+        elegida = conRespuesta(true) || conRespuesta(null) || conRespuesta(false);
       }
 
-      // Si ninguna se ha identificado, NO se enfoca a ciegas. Antes se cogía la
-      // primera candidata, y la primera candidata suele ser la pestaña de Chrome
-      // que quedó abierta: el usuario pedía la app y aterrizaba en el navegador.
-      //
-      // Es mejor caer en `openWindow`, porque el manifiesto declara
-      // `launch_handler: navigate-existing`: al pedir abrir una URL dentro del
-      // scope, el navegador reutiliza la app instalada en vez de duplicarla. O
-      // sea, que aquí abrir ventana es el camino que lleva a la app, y enfocar
-      // el que lleva al navegador.
       if (elegida) {
-        // `navigate` falla si la ventana no la controla este service worker.
-        // Da igual: enfocarla ya deja al usuario donde quería estar.
+        // ⚠️ El orden importa y estuvo mal: `navigate()` devuelve una ventana
+        // NUEVA y deja obsoleta la anterior, así que enfocar después no traía
+        // nada al frente. Con la app en segundo plano, la notificación no hacía
+        // absolutamente nada.
+        //
+        // Enfocar primero, además, aprovecha el gesto del usuario: es lo que
+        // permite sacar la app al frente. Navegar puede esperar.
+        const enfocada = await elegida.focus();
+
         try {
-          await elegida.navigate(destino);
-        } catch {}
-        return elegida.focus();
+          await (enfocada || elegida).navigate(destino);
+        } catch {
+          // `navigate` falla si la ventana no la controla este service worker.
+          // Da igual: ya está en pantalla, aunque sea en otra sección.
+        }
+
+        return enfocada;
       }
 
       // No hay nada abierto, o lo que hay no ha sabido decir que es la app.

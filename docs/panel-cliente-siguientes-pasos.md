@@ -553,6 +553,30 @@ service worker no es un estado, es una caché.** Todo lo que tenga que sobrevivi
 a que el navegador lo pare hay que volver a averiguarlo en el momento, o
 guardarlo en disco.
 
+⚠️ **`focus()` antes que `navigate()`, y «no contesta» no es «no».** Aun con lo
+anterior arreglado, quedaba un caso que fallaba entero: **con la app abierta en
+segundo plano, pulsar la notificación no hacía nada.** Con la app cerrada sí
+funcionaba, lo que descartaba el manifiesto y el WebAPK y señalaba a la rama que
+enfoca una ventana en vez de abrirla. Dos errores encadenados:
+
+1. **El orden.** Estaba `await elegida.navigate(url)` y después
+   `elegida.focus()`. `navigate()` devuelve una ventana **nueva** y deja
+   obsoleta la anterior, así que el `focus()` se aplicaba a un objeto que ya no
+   valía y no traía nada al frente. Va al revés: enfocar primero —que además
+   aprovecha el gesto del usuario, que es lo que permite sacar la app delante— y
+   navegar después, sobre la ventana que devuelve `focus()`.
+2. **El tiempo de espera se trataba como una negativa.** Al preguntar a cada
+   ventana «¿eres la app?», una que no contesta en 400 ms se daba por pestaña. Y
+   una ventana que no contesta es, casi siempre, **una app en segundo plano
+   congelada** — precisamente la que había que elegir. Ahora se distinguen tres
+   respuestas: `true` (la app), `null` (no contesta, se prefiere igualmente
+   sobre una pestaña) y `false` (pestaña confirmada, la última opción).
+
+Para diagnosticar esto sirvió una sola pregunta, que conviene recordar: **¿falla
+con la app cerrada, o solo con la app abierta detrás?** Son dos ramas de código
+distintas —`openWindow` y `focus`— y saber cuál falla ahorra días de mirar la
+que funciona.
+
 📌 **Android guarda una copia del manifiesto al instalar** (el WebAPK). Tocar
 `id` o `launch_handler` no cambia nada en un móvil que ya lo tenía instalado
 hasta que Chrome se da cuenta, que puede tardar días. Para probarlo: desinstalar
