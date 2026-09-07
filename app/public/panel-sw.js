@@ -28,16 +28,18 @@ const CACHE = "kivuk-panel-v3";
  * renovado. Sin esto no hay forma de distinguir «el arreglo no funciona» de «el
  * arreglo no ha llegado», y son dos problemas con soluciones opuestas.
  */
-const VERSION_SW = "2026-09-07-c";
+const VERSION_SW = "2026-09-07-d";
 
 /**
  * Modo diagnóstico: al pulsar una notificación, enseña otra contando qué
- * ventanas ha encontrado y por qué camino se ha ido.
+ * ventanas ha encontrado, qué ha contestado cada una y por qué camino se ha ido.
  *
- * Es temporal, para depurar el caso de «la notificación no abre la app» sin
- * tener que conectar el móvil por USB. PONER A `false` cuando esté resuelto.
+ * Se queda apagado, pero se queda. Depurar esto sin él costó varios días de
+ * cambiar código a ciegas, porque no había forma de distinguir «el arreglo no
+ * funciona» de «el arreglo no ha llegado al móvil». Encenderlo es una línea, y
+ * evita tener que conectar el teléfono por USB para leer la consola.
  */
-const DIAGNOSTICO = true;
+const DIAGNOSTICO = false;
 
 // Lo mínimo para que la pantalla de «sin conexión» no dependa de la red.
 const BASICOS = ["/icon-192.png"];

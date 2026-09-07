@@ -577,6 +577,25 @@ con la app cerrada, o solo con la app abierta detrás?** Son dos ramas de códig
 distintas —`openWindow` y `focus`— y saber cuál falla ahorra días de mirar la
 que funciona.
 
+**Y una herramienta que se queda.** `panel-sw.js` tiene dos constantes puestas a
+raíz de esto:
+
+- `VERSION_SW`, una marca de versión.
+- `DIAGNOSTICO`, apagada. Al encenderla, cada clic en una notificación muestra
+  **otra notificación** con la versión del service worker, las ventanas
+  encontradas con su URL y su `visibilityState`, lo que ha contestado cada una y
+  la rama tomada.
+
+Lo segundo existe porque leer la consola de un service worker en Android obliga
+a conectar el móvil por USB y abrir `chrome://inspect`. Una notificación se lee
+de un vistazo y se captura en pantalla.
+
+Lo primero, `VERSION_SW`, resultó ser lo más valioso de los dos: **sin una marca
+de versión visible desde el propio móvil no hay forma de distinguir «el arreglo
+no funciona» de «el arreglo no ha llegado»**, y son dos problemas con soluciones
+opuestas. Se perdieron días cambiando código que ya estaba bien porque el
+teléfono seguía ejecutando el service worker anterior.
+
 📌 **Android guarda una copia del manifiesto al instalar** (el WebAPK). Tocar
 `id` o `launch_handler` no cambia nada en un móvil que ya lo tenía instalado
 hasta que Chrome se da cuenta, que puede tardar días. Para probarlo: desinstalar
