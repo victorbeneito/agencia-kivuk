@@ -221,10 +221,15 @@ self.addEventListener("notificationclick", (evento) => {
         elegida = candidatas.find((_, i) => respuestas[i]);
       }
 
-      // Ninguna se ha identificado: o son pestañas, o estaban congeladas y no
-      // han contestado a tiempo. Enfocar una es mejor que no hacer nada.
-      elegida = elegida || candidatas[0];
-
+      // Si ninguna se ha identificado, NO se enfoca a ciegas. Antes se cogía la
+      // primera candidata, y la primera candidata suele ser la pestaña de Chrome
+      // que quedó abierta: el usuario pedía la app y aterrizaba en el navegador.
+      //
+      // Es mejor caer en `openWindow`, porque el manifiesto declara
+      // `launch_handler: navigate-existing`: al pedir abrir una URL dentro del
+      // scope, el navegador reutiliza la app instalada en vez de duplicarla. O
+      // sea, que aquí abrir ventana es el camino que lleva a la app, y enfocar
+      // el que lleva al navegador.
       if (elegida) {
         // `navigate` falla si la ventana no la controla este service worker.
         // Da igual: enfocarla ya deja al usuario donde quería estar.
@@ -234,9 +239,14 @@ self.addEventListener("notificationclick", (evento) => {
         return elegida.focus();
       }
 
-      // Nada abierto. Aquí decide el navegador si esto se abre en la app
-      // instalada o en una pestaña, y lo que le inclina hacia la app es el
-      // manifiesto: `id`, `scope` y `launch_handler`. Ver panel.webmanifest.
+      // No hay nada abierto, o lo que hay no ha sabido decir que es la app.
+      // Aquí decide el navegador si esto se abre en la app instalada o en una
+      // pestaña, y lo que le inclina hacia la app es el manifiesto: `id`,
+      // `scope` y `launch_handler`. Ver panel.webmanifest.
+      //
+      // Si aquí se abre el navegador y no la app, el problema ya no es de este
+      // archivo: es que Android no tiene la PWA instalada como aplicación de
+      // verdad (WebAPK), sino como acceso directo.
       return self.clients.openWindow(destino);
     })()
   );
