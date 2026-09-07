@@ -2,6 +2,15 @@
 
 import { useEffect } from "react";
 
+/** Si esta ventana es la app instalada y no una pestaña del navegador. */
+function enModoApp() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    // Safari en iOS no implementa display-mode y usa esto.
+    (window.navigator as { standalone?: boolean }).standalone === true
+  );
+}
+
 /**
  * Registra el service worker del panel.
  *
@@ -16,18 +25,25 @@ export function RegistrarPwa() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
+    // El service worker pregunta esto al pulsar una notificación, para decidir
+    // si enfoca esta ventana o abre la app. Antes solo se lo decíamos al
+    // cargar la página, y él lo guardaba en memoria — memoria que Android borra
+    // cada vez que para el service worker, o sea, justo antes de necesitarla.
+    // Contestando en el momento da igual cuántas veces lo hayan matado.
+    const responder = (evento: MessageEvent) => {
+      if (evento.data?.tipo === "¿eres-la-app?" && evento.ports?.[0]) {
+        evento.ports[0].postMessage(enModoApp());
+      }
+    };
+
+    navigator.serviceWorker.addEventListener("message", responder);
+
     navigator.serviceWorker
       .register("/panel-sw.js", { scope: "/panel" })
       .then(() => {
-        // Si esto es la app instalada y no una pestaña, decírselo al service
-        // worker: es lo único que le permite distinguirlas, y lo necesita para
-        // que al pulsar una notificación se abra la app y no el navegador.
-        const enLaApp =
-          window.matchMedia("(display-mode: standalone)").matches ||
-          // Safari en iOS no implementa display-mode y usa esto.
-          (window.navigator as { standalone?: boolean }).standalone === true;
-
-        if (!enLaApp) return;
+        // Vía rápida: avisar de una vez de que esto es la app, para que no
+        // tenga ni que preguntar si la lista sigue viva cuando llegue el aviso.
+        if (!enModoApp()) return;
 
         // `controller` es null en la primera carga tras instalar el service
         // worker: todavía no controla esta página. `ready` espera a que lo haga.
@@ -39,6 +55,10 @@ export function RegistrarPwa() {
         // Sin service worker no hay instalación ni notificaciones, pero el
         // panel se usa igual desde el navegador. No merece molestar al usuario.
       });
+
+    return () => {
+      navigator.serviceWorker.removeEventListener("message", responder);
+    };
   }, []);
 
   return null;

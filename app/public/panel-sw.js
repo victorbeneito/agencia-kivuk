@@ -148,6 +148,44 @@ self.addEventListener("message", (evento) => {
   }
 });
 
+/**
+ * Le pregunta a una ventana si es la app instalada, y espera su respuesta.
+ *
+ * Es lo que sustituye a fiarse de `VENTANAS_APP`: esa lista se pierde cada vez
+ * que Android para el service worker, que es precisamente lo que ha pasado
+ * cuando llega una notificación con el móvil dormido. Las ventanas, en cambio,
+ * siguen ahí y saben perfectamente si están en modo app o en una pestaña.
+ *
+ * El plazo es corto a propósito. Una página en segundo plano puede estar
+ * congelada y no contestar nunca, y más vale enfocar la ventana equivocada que
+ * dejar la notificación sin hacer nada mientras el usuario mira el móvil.
+ */
+function preguntarSiEsApp(cliente) {
+  return new Promise((resolve) => {
+    let resuelto = false;
+    const terminar = (valor) => {
+      if (resuelto) return;
+      resuelto = true;
+      resolve(valor);
+    };
+
+    const plazo = setTimeout(() => terminar(false), 400);
+
+    try {
+      const canal = new MessageChannel();
+      canal.port1.onmessage = (respuesta) => {
+        clearTimeout(plazo);
+        if (respuesta.data === true) VENTANAS_APP.add(cliente.id);
+        terminar(respuesta.data === true);
+      };
+      cliente.postMessage({ tipo: "¿eres-la-app?" }, [canal.port2]);
+    } catch {
+      clearTimeout(plazo);
+      terminar(false);
+    }
+  });
+}
+
 self.addEventListener("notificationclick", (evento) => {
   evento.notification.close();
   const destino = new URL(
@@ -170,8 +208,22 @@ self.addEventListener("notificationclick", (evento) => {
       );
 
       // La app antes que una pestaña suelta, si sabemos cuál es cuál.
-      const elegida =
-        candidatas.find((v) => VENTANAS_APP.has(v.id)) || candidatas[0];
+      //
+      // Primero la vía rápida: lo que nos dijeron al cargarse. Casi nunca sirve
+      // —Android mata el service worker entre aviso y aviso y esto se vacía justo
+      // cuando hace falta—, pero cuando sirve, ahorra el ida y vuelta.
+      let elegida = candidatas.find((v) => VENTANAS_APP.has(v.id));
+
+      // Y si no, se les pregunta ahora. Recordar no funciona; preguntar sí,
+      // porque las ventanas siguen vivas aunque nosotros hayamos muerto.
+      if (!elegida) {
+        const respuestas = await Promise.all(candidatas.map(preguntarSiEsApp));
+        elegida = candidatas.find((_, i) => respuestas[i]);
+      }
+
+      // Ninguna se ha identificado: o son pestañas, o estaban congeladas y no
+      // han contestado a tiempo. Enfocar una es mejor que no hacer nada.
+      elegida = elegida || candidatas[0];
 
       if (elegida) {
         // `navigate` falla si la ventana no la controla este service worker.

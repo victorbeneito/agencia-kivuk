@@ -528,11 +528,30 @@ estable de la aplicación), `scope` (que la URL del aviso caiga dentro) y
 `launch_handler: navigate-existing`. Están puestos en `panel.webmanifest`.
 
 Con el panel abierto a la vez en la app y en una pestaña, se prefiere la app.
-La API no distingue una ventana de otra, así que lo cuenta la propia página:
-`registrar-pwa` mira `display-mode: standalone` y avisa al service worker, que
-apunta el id. Es una pista y no un registro fiable —el navegador puede parar el
-service worker y se vacía—, por eso solo sirve para ordenar candidatos, nunca
-para descartar ninguno.
+La API no distingue una ventana de otra, así que hay que preguntárselo a ellas:
+`registrar-pwa` mira `display-mode: standalone` y contesta.
+
+⚠️ **Recordarlo no funciona; preguntarlo sí (07/09/2026).** La primera versión
+avisaba una sola vez al cargar la página y el service worker guardaba el id en un
+`Set` en memoria. Sobre el papel bastaba. En la práctica no funcionaba casi
+nunca, y el motivo es una ironía: **Android para el service worker cuando el
+móvil está inactivo, que es exactamente el rato previo a que llegue una
+notificación.** Revivía sin recordar nada, no distinguía la app de la pestaña, y
+enfocaba la primera ventana que encontraba — normalmente Chrome.
+
+Ahora, al pulsar el aviso, el service worker **pregunta a cada ventana candidata**
+por `MessageChannel` y espera 400 ms. Las ventanas siguen vivas aunque él haya
+muerto, así que la respuesta llega. El `Set` se conserva solo como vía rápida
+cuando da la casualidad de que sigue poblado.
+
+El plazo es corto a propósito: una página en segundo plano puede estar congelada
+y no contestar nunca, y más vale enfocar la ventana equivocada que dejar la
+notificación sin hacer nada mientras el usuario mira el móvil.
+
+La lección general, otra vez la misma: **un estado en memoria dentro de un
+service worker no es un estado, es una caché.** Todo lo que tenga que sobrevivir
+a que el navegador lo pare hay que volver a averiguarlo en el momento, o
+guardarlo en disco.
 
 📌 **Android guarda una copia del manifiesto al instalar** (el WebAPK). Tocar
 `id` o `launch_handler` no cambia nada en un móvil que ya lo tenía instalado
