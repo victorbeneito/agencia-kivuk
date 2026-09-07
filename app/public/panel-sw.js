@@ -18,7 +18,26 @@
 
 // Al subir el número se borra la caché anterior entera (ver `activate`). Hay que
 // subirlo siempre que cambie algo que ya estuviera cacheado.
-const CACHE = "kivuk-panel-v2";
+const CACHE = "kivuk-panel-v3";
+
+/**
+ * Marca de versión, solo para diagnosticar.
+ *
+ * Sirve para saber, desde el propio móvil, si el service worker que está
+ * corriendo es el que acabamos de desplegar o uno viejo que el navegador no ha
+ * renovado. Sin esto no hay forma de distinguir «el arreglo no funciona» de «el
+ * arreglo no ha llegado», y son dos problemas con soluciones opuestas.
+ */
+const VERSION_SW = "2026-09-07-c";
+
+/**
+ * Modo diagnóstico: al pulsar una notificación, enseña otra contando qué
+ * ventanas ha encontrado y por qué camino se ha ido.
+ *
+ * Es temporal, para depurar el caso de «la notificación no abre la app» sin
+ * tener que conectar el móvil por USB. PONER A `false` cuando esté resuelto.
+ */
+const DIAGNOSTICO = true;
 
 // Lo mínimo para que la pantalla de «sin conexión» no dependa de la red.
 const BASICOS = ["/icon-192.png"];
@@ -192,7 +211,34 @@ function preguntarSiEsApp(cliente) {
   });
 }
 
+/**
+ * Enseña la traza como una notificación aparte. Temporal, ver `DIAGNOSTICO`.
+ *
+ * Se hace así, y no con `console.log`, porque leer la consola de un service
+ * worker en Android obliga a conectar el móvil por USB y abrir
+ * `chrome://inspect`. Una notificación se lee de un vistazo y se puede
+ * capturar en pantalla.
+ */
+async function diagnosticar(traza) {
+  if (!DIAGNOSTICO) return;
+  try {
+    await self.registration.showNotification("Kivuk · diagnóstico", {
+      body: traza.join("\n"),
+      icon: "/icon-192.png",
+      tag: "kivuk-diagnostico",
+      renotify: true,
+      requireInteraction: true,
+    });
+  } catch {}
+}
+
 self.addEventListener("notificationclick", (evento) => {
+  // La notificación de diagnóstico no dispara nada: solo se cierra.
+  if (evento.notification.tag === "kivuk-diagnostico") {
+    evento.notification.close();
+    return;
+  }
+
   evento.notification.close();
   const destino = new URL(
     (evento.notification.data && evento.notification.data.url) || "/panel",
@@ -213,10 +259,20 @@ self.addEventListener("notificationclick", (evento) => {
         (v) => v.url.startsWith(alcance) && "focus" in v
       );
 
+      const traza = [
+        "v" + VERSION_SW,
+        "ventanas:" + ventanas.length,
+        "candidatas:" + candidatas.length,
+        ...ventanas.map(
+          (v) => "· " + v.url.replace(self.location.origin, "") + " [" + v.visibilityState + "]"
+        ),
+      ];
+
       // Vía rápida: lo que nos dijeron al cargarse. Casi nunca sirve —Android
       // mata el service worker entre aviso y aviso y esto se vacía justo cuando
       // hace falta—, pero cuando sirve, ahorra el ida y vuelta.
       let elegida = candidatas.find((v) => VENTANAS_APP.has(v.id));
+      if (elegida) traza.push("via:memoria");
 
       if (!elegida && candidatas.length) {
         // Se les pregunta ahora. Recordar no funciona; preguntar sí, porque las
@@ -233,6 +289,7 @@ self.addEventListener("notificationclick", (evento) => {
           candidatas.find((_, i) => respuestas[i] === valor);
 
         elegida = conRespuesta(true) || conRespuesta(null) || conRespuesta(false);
+        traza.push("respuestas:" + JSON.stringify(respuestas));
       }
 
       if (elegida) {
@@ -243,15 +300,26 @@ self.addEventListener("notificationclick", (evento) => {
         //
         // Enfocar primero, además, aprovecha el gesto del usuario: es lo que
         // permite sacar la app al frente. Navegar puede esperar.
-        const enfocada = await elegida.focus();
+        traza.push("rama:focus");
+
+        let enfocada = null;
+        try {
+          enfocada = await elegida.focus();
+          traza.push("focus:ok");
+        } catch (e) {
+          traza.push("focus:ERROR " + (e && e.name));
+        }
 
         try {
           await (enfocada || elegida).navigate(destino);
-        } catch {
+          traza.push("navigate:ok");
+        } catch (e) {
           // `navigate` falla si la ventana no la controla este service worker.
           // Da igual: ya está en pantalla, aunque sea en otra sección.
+          traza.push("navigate:falla " + (e && e.name));
         }
 
+        await diagnosticar(traza);
         return enfocada;
       }
 
@@ -263,7 +331,12 @@ self.addEventListener("notificationclick", (evento) => {
       // Si aquí se abre el navegador y no la app, el problema ya no es de este
       // archivo: es que Android no tiene la PWA instalada como aplicación de
       // verdad (WebAPK), sino como acceso directo.
-      return self.clients.openWindow(destino);
+      traza.push("rama:openWindow");
+      const abierta = await self.clients.openWindow(destino);
+      traza.push("openWindow:" + (abierta ? "ok" : "null"));
+
+      await diagnosticar(traza);
+      return abierta;
     })()
   );
 });
