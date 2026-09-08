@@ -8,6 +8,59 @@ montemos nada encima. Si algo falla, falla ahí y no en mitad de una publicació
 
 ---
 
+## Cómo se organizan las cuentas en Meta
+
+Conviene tenerlo claro antes de tocar nada, porque la intuición —«creo un
+Facebook de la agencia»— lleva justo al error más caro.
+
+```
+Perfil personal (una persona real, administra todo)
+        │
+        ▼
+Portfolio empresarial  ← el centro de todo
+        │
+        ├── Página de Facebook ── vinculada a ── Cuenta de Instagram
+        ├── Cuenta de WhatsApp (WABA)
+        ├── Aplicaciones (agencia_kivuk para WhatsApp, Kivuk Social para redes)
+        └── Cuenta publicitaria
+```
+
+**No se crea un segundo perfil de Facebook para el negocio.** Meta permite uno
+por persona; un perfil «de empresa» es un perfil falso, y cuando lo detecta
+—mismo móvil, misma IP, mismo navegador— cierra la cuenta y **se lleva por
+delante todo lo que administra**: portfolio, WABA, cuenta publicitaria y los
+Instagram de los clientes. La figura que se busca es la **página**, que no tiene
+inicio de sesión propio y cuelga del portfolio.
+
+El centro tampoco es la página: es el **portfolio**. La página es un activo más,
+y no todos los productos dependen de ella:
+
+| Producto | ¿Necesita página de Facebook? |
+|---|---|
+| WhatsApp Cloud API | **No.** Le basta el portfolio y el negocio verificado |
+| Publicar en Instagram | **Sí** |
+| Publicar en Facebook | Sí |
+| Campañas de pago | Sí |
+
+### Quién debe ser dueño de los activos de un cliente
+
+Dos modelos, y la decisión se corrige mal una vez tomada:
+
+- **Kivuk es dueña de todo.** Cómodo al principio, mala idea después: si el
+  cliente se va hay que traspasarle activos que son suyos; si un cliente hace
+  algo que a Meta no le gusta, la sanción cae sobre *nuestro* portfolio y
+  salpica a los demás.
+- **El cliente es dueño y nos da acceso como socio** (botón «Asignar socio», con
+  el id de nuestro portfolio). Publicamos igual, y si se va se le retira el
+  acceso y ya está.
+
+**Regla: modelo de socio para todo cliente; propiedad directa solo para lo que
+es realmente nuestro** (Kivuk Agencia, El Hogar de tus Sueños). La pega honesta
+del modelo de socio es que el cliente tiene que crear su portfolio y verificar
+su negocio, y eso son papeles con gente que no es técnica. Es una vez.
+
+---
+
 ## Antes de empezar: los dos requisitos que más fallan
 
 ### 1. La cuenta de Instagram tiene que ser profesional
@@ -32,12 +85,44 @@ personal, hay que crear una página — y ojo, **los seguidores no se traspasan
 solos**; Facebook tiene una herramienta para convertir un perfil en página que
 sí los conserva.
 
-La vinculación se hace desde Instagram:
+**No se hace desde el Centro de cuentas de Instagram.** Esa pantalla enlaza
+*perfiles personales* entre sí (tu Facebook con tus Instagram) y las páginas ni
+siquiera aparecen ahí; tocar «Añadir cuentas» solo consigue mezclar la identidad
+personal con la del negocio. Es un callejón sin salida que parece el camino.
 
-> Instagram → Configuración → **Centro de cuentas** → Cuentas → Añadir → Facebook
+La vinculación se hace en el portfolio empresarial:
 
-Comprobación rápida: si en la app de Instagram, en tu perfil, aparece la página
-de Facebook enlazada, vas bien. El script te lo confirma igualmente.
+> [business.facebook.com](https://business.facebook.com) → Ajustes → Cuentas →
+> **Páginas** → *la página* → **Conectar activos** → *Cuenta de Instagram* →
+> **Iniciar sesión en Instagram**
+
+⚠️ Nunca **«Crear perfil de Instagram»**: ese botón crea una cuenta nueva y
+distinta, y acabas con dos perfiles del mismo negocio. Y verifica el usuario que
+propone el diálogo antes de aceptar — si tienes varias cuentas en el navegador,
+te ofrece la de la sesión abierta, que rara vez es la que quieres.
+
+Se puede hacer por la puerta contraria (Cuentas de Instagram → la cuenta →
+Conectar activos → Páginas), pero solo funciona si la página ya existe en el
+portfolio; si no, el diálogo no ofrece «Páginas» como tipo de activo y parece
+que la herramienta está rota.
+
+Comprobación rápida: en Ajustes → Cuentas → Páginas → *la página* → pestaña
+**Activos conectados** debe salir la cuenta de Instagram. Si el botón «Conectar
+activos» está en gris con un aviso de *«You can only connect one Instagram
+Account to each Facebook Page»*, no es un error: es que **ya está vinculada**, y
+esa pestaña te dice a cuál.
+
+### La página se crea desde el portfolio, no desde Facebook
+
+> Ajustes → Cuentas → **Páginas** → **Añadir** → *Crear una página nueva*
+
+Así nace siendo propiedad del portfolio y te ahorras el paso de reclamarla. Si
+la página ya existía (con seguidores), entonces **Añadir → Reclamar una
+página**; no crear una segunda.
+
+Esta página no necesita contenido: existe como anclaje técnico, porque es el
+requisito de Meta para publicar en Instagram por API y para que el token no
+caduque. Nadie va a visitarla.
 
 ---
 
@@ -156,6 +241,21 @@ node scripts/conectar-meta.js --guardar <client_id>
 
 Guarda las cuentas en `social_accounts`. Se puede repetir sin duplicar.
 
+### Un token con varias páginas: `--pagina`
+
+Si el token cubre las páginas de más de un cliente, hay que decir cuál se guarda
+en cada pasada:
+
+```bash
+node scripts/conectar-meta.js --guardar <client_id> --pagina <page_id>
+```
+
+Sin ese filtro, `--guardar` escribiría **todas** las páginas encontradas bajo el
+mismo `client_id`. Con un solo cliente no se notaba; el día que el token trajo
+dos páginas, guardar Kivuk habría metido también la página y el Instagram de El
+Hogar de tus Sueños en la ficha de Kivuk. El script se planta si detecta más de
+una página y te escribe los comandos que necesitas, uno por cliente.
+
 ---
 
 ## Sobre la caducidad
@@ -191,10 +291,70 @@ instagram_basic            -> 17841428825124919
 instagram_content_publish  -> 17841428825124919
 ```
 
-El script lo mira y lo dice con esas palabras. Si te pasa, quita la app en
-[facebook.com/settings?tab=business_tools](https://www.facebook.com/settings?tab=business_tools)
-antes de volver a generar el token: si no la quitas, Facebook recuerda tus
-respuestas anteriores y se salta las pantallas de selección.
+El script lo mira y lo dice con esas palabras. Si te pasa, hay que revocar la
+autorización anterior antes de volver a generar el token: si no, Facebook
+recuerda tus respuestas y se salta las pantallas de selección.
+
+### Cómo revocar la autorización de verdad
+
+La ruta `facebook.com/settings?tab=business_tools` que circula por todas partes
+**ya no lleva a ninguna sección de aplicaciones**; redirige a la configuración
+general. Buscarla por la interfaz es perder el rato, y además solo aparece si
+estás navegando con tu perfil personal y no «como la página» (si Facebook te
+enseña opciones raras o le faltan secciones, mira el avatar de arriba a la
+derecha: es lo primero a descartar).
+
+Se hace desde el propio Explorador de la API, que no falla:
+
+1. Cambia **GET** por **DELETE**.
+2. Ruta: `me/permissions`.
+3. **Enviar** → `{"success": true}`.
+
+Eso borra todos los permisos concedidos a esa app. Vuelve a poner **GET** antes
+de seguir, y genera el token otra vez.
+
+Al regenerarlo saldrá un diálogo con dos botones, y **el que parece razonable es
+el equivocado**:
+
+> *¿Continuar como Fulano? Habías vinculado la app a Facebook. ¿Quieres
+> continuar con la configuración anterior?* → **[Editar configuración]**
+> **[Continuar]**
+
+«Continuar» significa literalmente *reusar la autorización vieja*, que es la que
+no tenía las páginas. Hay que pulsar **Editar configuración** y marcar los
+activos uno a uno. Es el punto exacto donde se pierde media hora.
+
+## ⚠️ «Ninguna página» puede significar que está todo bien
+
+Esta es la trampa más cara de todas, porque el diagnóstico se contradice con la
+realidad y te manda a rehacer un token que ya era correcto.
+
+`/me/accounts` **solo devuelve las páginas donde eres administrador por el
+sistema clásico de roles de página**. Si la página pertenece a un *portfolio
+empresarial* y tu acceso te viene de ahí —que es como queda al crearla desde
+Ajustes → Cuentas → Páginas—, esa llamada responde `{"data": []}` aunque el
+token tenga las páginas perfectamente concedidas:
+
+```
+granular_scopes:
+  pages_show_list  -> 1344729918716695, 513163282041285   <- las dos, concedidas
+
+GET /me/accounts   -> {"data": []}                        <- y aquí, ninguna
+```
+
+Las páginas sí responden si se piden **por su id**, y cada una devuelve su
+`access_token` de página (`type: PAGE`, `expires_at: 0`, o sea, sin caducidad).
+Por eso el script, desde este arreglo, cae al plan B: si `/me/accounts` viene
+vacío pero `granular_scopes` trae ids de página, las pide de una en una. Lo
+avisa en la salida:
+
+```
+/me/accounts vino vacío; buscándolas por granular_scopes…
+```
+
+Nada de esto está en la documentación de Meta. La regla práctica es que
+**`granular_scopes` manda sobre `/me/accounts`**: si los ids están ahí, el token
+es bueno aunque la lista salga vacía.
 
 ## Instagram no necesita el token de página
 
@@ -226,7 +386,8 @@ Con uno de página ese campo queda a `null`.
 
 | Lo que ves | Lo que pasa |
 |---|---|
-| «Ninguna página» | Mira `granular_scopes`: el permiso puede estar y la página no |
+| «Ninguna página» | Mira `granular_scopes`. Si trae ids, no hay nada roto: es `/me/accounts` vacío con páginas de portfolio, y el script las busca por id. Si viene vacío, entonces sí faltó marcarlas al autorizar |
+| «/me/accounts vino vacío» | Normal con páginas de un portfolio empresarial. Es un aviso, no un error |
 | «instagram sin vincular» | La cuenta no es profesional, o está unida a un perfil y no a una página |
 | `code 190` | El token caducó — genera otro, tienes una hora |
 | `code 200` | Falta un permiso; el script te dice cuál |

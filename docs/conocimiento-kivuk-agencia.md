@@ -261,7 +261,26 @@ La renovación anual va dentro de la cuota mensual mientras sigas con nosotros, 
 
 ---
 
-## 12. Campañas de marketing (en desarrollo)
+## 12. Con qué hacemos las webs, y qué pasa si ya tienes una tienda online
+
+- **Categoría:** Productos
+- **URL de origen:** https://agenciakivuk.com
+
+```
+¿Con qué hacéis las webs? ¿Usáis WordPress? ¿Trabajáis con PrestaShop? ¿Y si mi tienda es de Shopify? ¿Me la podéis hacer en WordPress? ¿Podéis trabajar con mi tienda online? ¿Tengo que cambiar de tienda?
+
+Las páginas las construimos nosotros a medida, con nuestra propia tecnología. No montamos webs sobre WordPress, PrestaShop ni Shopify: las hacemos nosotros para que sean rápidas, sencillas de mantener y no dependan de plantillas ni de complementos que un día dejan de funcionar.
+
+Pero eso es solo para hacer páginas nuevas. Si ya tienes una tienda online, da igual con qué esté hecha: no hace falta que la cambies, no hace falta que la migres, y nosotros no te la tocamos.
+
+Y sobre todo: el agente de WhatsApp sí puede trabajar con ella. Se conecta a tu catálogo y responde a tus clientes con tus productos y tus precios de verdad, sean de PrestaShop, WooCommerce, Shopify, Odoo o lo que uses. Ahora mismo tenemos funcionando un cliente cuya tienda está hecha en Odoo.
+
+Si tu caso necesita algo distinto, dínoslo y lo estudiamos. Preferimos mirarlo antes que prometerlo.
+```
+
+---
+
+## 13. Campañas de marketing (en desarrollo)
 
 - **Categoría:** Productos
 - **URL de origen:** https://agenciakivuk.com
@@ -278,7 +297,7 @@ Todavía estamos definiendo la estrategia y los métodos, así que no podemos da
 
 ---
 
-## 13. Gestión del correo (en desarrollo)
+## 14. Gestión del correo (en desarrollo)
 
 - **Categoría:** Productos
 - **URL de origen:** https://agenciakivuk.com
@@ -297,7 +316,7 @@ Todavía no tenemos fecha. Si es justo lo que necesitas, dínoslo y lo hablamos 
 
 ---
 
-## 14. Precios de todos los servicios
+## 15. Precios de todos los servicios
 
 - **Categoría:** Pagos
 - **URL de origen:** https://agenciakivuk.com
@@ -325,7 +344,7 @@ Para darte un precio cerrado necesitamos hablar de tu caso. Es rápido y no comp
 
 ---
 
-## 15. Por qué hay un pago inicial y qué incluye la cuota
+## 16. Por qué hay un pago inicial y qué incluye la cuota
 
 - **Categoría:** Pagos
 - **URL de origen:** https://agenciakivuk.com
@@ -342,7 +361,7 @@ Y algo que importa más de lo que parece: ir mejorando la base de conocimiento. 
 
 ---
 
-## 16. Formas de pago, facturación y permanencia
+## 17. Formas de pago, facturación y permanencia
 
 - **Categoría:** Pagos
 - **URL de origen:** https://agenciakivuk.com
@@ -361,7 +380,7 @@ Cada mes recibes tu factura por correo electrónico, con el detalle de lo que ti
 
 ---
 
-## 17. Qué necesitáis de mí para empezar
+## 18. Qué necesitáis de mí para empezar
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -380,7 +399,7 @@ Si contratas el agente de WhatsApp, hará falta un número de teléfono para él
 
 ---
 
-## 18. El número de teléfono del agente de WhatsApp
+## 19. El número de teléfono del agente de WhatsApp
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -401,7 +420,7 @@ Y no te quedas sin poder escribir: desde tu panel tienes una bandeja igual que W
 
 ---
 
-## 19. Qué pasa cuando el agente no sabe algo
+## 20. Qué pasa cuando el agente no sabe algo
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -420,7 +439,7 @@ Un agente que inventa respuestas hace más daño que uno que dice que no lo sabe
 
 ---
 
-## 20. ¿Esto sustituye a una persona?
+## 21. ¿Esto sustituye a una persona?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -437,7 +456,7 @@ La alternativa real no es "una persona atiende mejor". La alternativa real es qu
 
 ---
 
-## 21. ¿Necesito tener web o tienda online?
+## 22. ¿Necesito tener web o tienda online?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -456,7 +475,7 @@ Y si lo que quieres es tener página y no la tienes, también las hacemos nosotr
 
 ---
 
-## 22. ¿Cuánto tarda en estar funcionando?
+## 23. ¿Cuánto tarda en estar funcionando?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -473,7 +492,7 @@ Prefiero no darte un plazo por aquí y que luego no se cumpla. Es de las primera
 
 ---
 
-## 23. ¿Los datos son míos? ¿Y si me quiero dar de baja?
+## 24. ¿Los datos son míos? ¿Y si me quiero dar de baja?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -490,7 +509,7 @@ Si algún día decides dejarlo, no te quedas con nada bloqueado: el número sigu
 
 ---
 
-## 24. ¿Puedo ver una demostración?
+## 25. ¿Puedo ver una demostración?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com
@@ -507,7 +526,7 @@ Y si prefieres verlo con calma y con alguien que te lo enseñe aplicado a tu neg
 
 ---
 
-## 25. ¿Dónde trabajáis? ¿Hace falta que estemos cerca?
+## 26. ¿Dónde trabajáis? ¿Hace falta que estemos cerca?
 
 - **Categoría:** Preguntas frecuentes
 - **URL de origen:** https://agenciakivuk.com

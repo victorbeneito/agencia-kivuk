@@ -147,7 +147,7 @@ async function main() {
     fields: "id,name,access_token,instagram_business_account{id,username}",
   });
 
-  const paginas = cuentas.data || [];
+  let paginas = cuentas.data || [];
   const encontradas = [];
 
   // Tener el permiso y tener activos concedidos son cosas distintas: con el
@@ -160,6 +160,37 @@ async function main() {
     const g = granular.find((x) => x.scope === scope);
     return (g && g.target_ids) || [];
   };
+
+  // `/me/accounts` solo devuelve las páginas donde eres administrador por el
+  // sistema clásico de roles. Si la página pertenece a un portfolio empresarial
+  // y tu acceso te viene de ahí, la lista llega vacía **aunque el token tenga
+  // esa página concedida**. Pasó con Agencia Kivuk y El Hogar de tus Sueños:
+  // `granular_scopes` traía las dos y aquí no salía ninguna, y el script lo
+  // diagnosticaba como «ninguna página» mandando a rehacer un token que ya
+  // estaba bien.
+  //
+  // Los ids sí están en `granular_scopes`, así que se piden de una en una. Cada
+  // página devuelve su propio `access_token` —el que no caduca—, que es justo
+  // lo que se venía perdiendo por este camino.
+  if (!paginas.length && activosDe("pages_show_list").length) {
+    console.log("   /me/accounts vino vacío; buscándolas por granular_scopes…");
+    const porId = [];
+    for (const id of activosDe("pages_show_list")) {
+      try {
+        const p = await graph(`/${id}`, {
+          access_token: tokenUsuario,
+          fields: "id,name,access_token,instagram_business_account{id,username}",
+        });
+        // Sin `access_token` la página no sirve: sería volver a guardar el de
+        // usuario, que es el problema que estamos resolviendo.
+        if (p.access_token) porId.push(p);
+        else console.log(`   ${p.name || id}: sin token de página, se ignora.`);
+      } catch (e) {
+        console.log(`   ${id}: ${e.message}`);
+      }
+    }
+    paginas = porId;
+  }
 
   if (!paginas.length) {
     console.log("   Ninguna página.\n");
@@ -203,6 +234,21 @@ async function main() {
     }
   }
 
+  // Un token puede llevar las páginas de varios clientes a la vez, y `--guardar`
+  // escribe todo lo encontrado bajo un único `client_id`. Sin filtro, guardar
+  // Kivuk metería también la página y el Instagram de El Hogar de tus Sueños en
+  // la ficha de Kivuk. `--pagina` acota qué página se guarda en esta pasada; se
+  // lanza el script una vez por cliente.
+  const iPagina = process.argv.indexOf("--pagina");
+  const soloPagina = iPagina > -1 ? process.argv[iPagina + 1] : null;
+  if (soloPagina) {
+    paginas = paginas.filter((p) => p.id === soloPagina);
+    if (!paginas.length) {
+      console.error(`\n   Ninguna página con id ${soloPagina} entre las concedidas.`);
+      process.exit(1);
+    }
+  }
+
   for (const p of paginas) {
     const ig = p.instagram_business_account;
     console.log(`\n   Página «${p.name}»`);
@@ -241,6 +287,15 @@ async function main() {
 
   if (incompleto) {
     console.error("\n\nNo se guarda: faltan permisos y el token no serviría para publicar.");
+    process.exit(1);
+  }
+
+  // Red de seguridad del filtro de arriba: guardar varias páginas de golpe bajo
+  // un solo cliente no es un caso de uso, es un descuido.
+  if (paginas.length > 1) {
+    console.error(`\n\nNo se guarda: el token trae ${paginas.length} páginas y todas irían al mismo cliente.`);
+    console.error("Repite el comando una vez por cliente añadiendo --pagina <page_id>:\n");
+    for (const p of paginas) console.error(`   --pagina ${p.id}   (${p.name})`);
     process.exit(1);
   }
 
