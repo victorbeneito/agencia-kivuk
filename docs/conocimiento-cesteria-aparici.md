@@ -335,15 +335,50 @@ El número del capazo no es una talla cualquiera: es el número de vueltas compl
 Hay seis tamaños. Estas son sus medidas aproximadas, en ancho x fondo x alto:
 
 - N°4 — 28 x 15 x 14 cm, base redonda. Es el pequeño: bolso de mano para lo justo, cesto para cosméticos o recipiente para un regalo.
-- N°5 — 32 cm de ancho y 17 de alto, base ovalada. Bolso de mano de diario, algo más amplio que el N°4.
+- N°5 — 32 x 18 x 17 cm, base ovalada. Bolso de mano de diario, algo más amplio que el N°4.
 - N°6 — 38 x 20 x 22 cm. Para la compra en el mercado y para llevar de picnic.
 - N°7 — 42 x 23 x 25 cm. Es el tamaño estándar y el más conocido. Vale igual para la playa y para la ciudad, y como cesta de la compra semanal.
 - N°8 — 45 x 25 x 27 cm. El capazo de playa familiar: caben toallas, juguetes y cremas. También para compras voluminosas o como cesto de almacenaje en casa.
 - N°9 — 55 x 28 x 35 cm. El más grande de todos. Para la compra semanal grande o un día de playa en familia sin dejarse nada.
 
-Las medidas son aproximadas porque cada capazo se trenza a mano: entre dos unidades del mismo número puede haber diferencias de varios centímetros.
+Estas medidas son siempre aproximadas, y conviene decirlo de entrada: cada capazo se trenza a mano, así que es muy difícil encontrar dos exactamente iguales y puede haber unos centímetros de diferencia entre dos del mismo número. No es un fallo ni un descuido: es la diferencia entre una pieza hecha a mano y una fabricada en serie, y es lo que hace que cada capazo sea único. Se cuenta como lo que es, algo bueno, no como una pega ni pidiendo disculpas.
 
-Las medidas exactas de cada producto están en su ficha de la web.
+Las medidas de cada producto concreto están en su ficha de la web.
+```
+
+---
+
+## 17. Dónde ver el estado de un pedido y el seguimiento del envío
+
+- **Categoría:** Envíos
+- **URL de origen:** https://cesteriaaparici.es/my/orders
+
+```
+¿Dónde está mi pedido? ¿Cuándo me llega? ¿Lo habéis enviado ya? ¿Me pasáis el número de seguimiento? Quiero saber cómo va mi pedido. ¿Ha salido ya del taller?
+
+El estado de cada pedido se consulta en el área de cliente de la web. Entrando con los datos de acceso de la cuenta con la que se hizo la compra, en el apartado "Mis pedidos" aparece cada pedido y en qué punto está: pendiente, en preparación, enviado.
+
+El enlace directo es este:
+https://cesteriaaparici.es/my/orders
+
+Si lo que quiere saber es por dónde va el paquete una vez ha salido, esos datos están en el correo que se envía al expedir el pedido: ahí van el enlace de seguimiento y los datos del transportista. Si no lo encuentra, conviene que mire también la carpeta de spam.
+
+Si aun así no lo resuelve, o si el pedido lleva más tiempo del previsto, entonces sí hay que pasar la conversación a una persona del equipo.
+```
+
+---
+
+## 18. Si venden en Amazon o en otras plataformas
+
+- **Categoría:** Preguntas frecuentes
+- **URL de origen:** https://cesteriaaparici.es
+
+```
+¿Vendéis en Amazon? ¿Estáis en Amazon? ¿Se os puede comprar en otro sitio? ¿Tenéis tienda en algún marketplace?
+
+Sí, algunos productos de Cestería Aparici están también a la venta en Amazon.
+
+La tienda propia, cesteriaaparici.es, es donde está el catálogo completo y donde se compra directamente al taller.
 ```
 
 ---
@@ -353,7 +388,14 @@ Las medidas exactas de cada producto están en su ficha de la web.
 Resueltos el 03/08/2026 por el cliente: **horario** (9:00-13:00), **formas de
 pago** (tarjeta, Bizum, PayPal y transferencia) e **IVA** (incluido para
 particulares, excluido en la tarifa profesional). Están ya en los documentos 13
-y 14. Queda esto:
+y 14.
+
+Resueltos el 10/09/2026: **el fondo del capazo N°5** (18 cm, era una errata del
+blog que se comió el 1), **el estado del pedido** (área de cliente → Mis
+pedidos, y el correo de expedición para el seguimiento) y **Amazon** (sí venden,
+pero sin dirigir a nadie allí). Están en los documentos 16, 17 y 18.
+
+Queda esto:
 
 1. **Qué días cubre el horario de 9 a 13.** El cliente ha dado la franja pero no
    los días. Si abren sábados, o si el horario cambia fuera de verano, el bot lo
@@ -380,17 +422,7 @@ y 14. Queda esto:
    proyecto grande no los debe cerrar un bot. Hay que decidir el criterio y a
    qué teléfono o correo deriva.
 
-8. **El fondo del capazo N°5.** Su blog publica «32x8x17cm», y 8 cm de fondo no
-   encaja: el N°4 tiene 15 y el N°6 tiene 20. Parece una errata de un 18. En el
-   documento 16 se ha puesto solo el ancho y el alto para no dar una medida
-   falsa; en cuanto lo confirmen, se completa. Las medidas de los otros cinco
-   tamaños sí son las que publican.
-
-9. **El estado de un pedido.** Es la pregunta más frecuente de una tienda online
-   y ahora el bot solo desvía. Hace falta saber dónde puede consultarlo el
-   cliente por su cuenta (correo de confirmación, área de cliente de Odoo, enlace
-   de seguimiento del transportista) para poder decírselo en vez de pasarlo a una
-   persona cada vez.
-
-10. **¿Venden en Amazon o en otros marketplaces?** Lo preguntaron en las pruebas
-    y no está en la base. Sí o no, y si es sí, con qué nombre de vendedor.
+8. **La errata del blog.** La guía de tamaños publica «32x8x17cm» para el N°5 y
+   el fondo real es 18: se comieron el 1. Está corregido en el documento 16,
+   pero **la errata sigue en su web** y conviene que la arreglen ellos, o el día
+   que alguien compare el bot con el blog no cuadrará.
