@@ -87,15 +87,66 @@ async function mergeModuleConfig(
   return error;
 }
 
+/**
+ * Comprueba que un valor tiene la forma que Meta le da, antes de guardarlo.
+ *
+ * Existe porque el campo del token aceptó una vez el volcado de una terminal
+ * —`PS I:\...> npx tsx …` y su traza de error— y lo guardó tan contento. El
+ * único síntoma fue un bot mudo: el número estaba registrado, el webhook
+ * suscrito y todo verde, así que el rato se fue en mirar Meta y n8n antes de
+ * pensar en el portapapeles.
+ *
+ * Los identificadores de Meta son siempre numéricos y sus tokens empiezan por
+ * `EAA` y no llevan espacios. Comprobarlo son cuatro líneas y convierte media
+ * hora de diagnóstico en un mensaje.
+ *
+ * Se hace también aquí y no solo con `pattern` en el formulario: la validación
+ * del navegador es para avisar rápido, no una garantía.
+ */
+function exigirFormato(
+  valor: string,
+  etiqueta: string,
+  patron: RegExp,
+  pista: string
+) {
+  const limpio = valor.trim();
+  // Vacío es legítimo: un cliente puede existir antes de tener credenciales
+  // (Cestería estuvo semanas así, con el bot montado y el número por llegar).
+  if (!limpio) return "";
+  if (!patron.test(limpio)) {
+    throw new Error(`${etiqueta} no tiene el formato esperado: ${pista}`);
+  }
+  return limpio;
+}
+
+/** Identificadores de Meta: solo dígitos. */
+const ID_META = /^\d{5,}$/;
+
+/** Tokens de Meta: empiezan por EAA, sin espacios ni saltos de línea. */
+const TOKEN_META = /^EAA\S{20,}$/;
+
 export async function updateWhatsappConfig(formData: FormData) {
   const clientId = formData.get("client_id") as string;
 
   const error = await mergeModuleConfig(clientId, "whatsapp", {
-    phone_number_id: formData.get("phone_number_id") as string,
-    whatsapp_business_account_id: formData.get(
-      "whatsapp_business_account_id"
-    ) as string,
-    access_token: formData.get("access_token") as string,
+    phone_number_id: exigirFormato(
+      (formData.get("phone_number_id") as string) ?? "",
+      "El Phone Number ID",
+      ID_META,
+      "son solo dígitos, y no es el número de teléfono sino el identificador que da Meta"
+    ),
+    whatsapp_business_account_id: exigirFormato(
+      (formData.get("whatsapp_business_account_id") as string) ?? "",
+      "El WhatsApp Business Account ID",
+      ID_META,
+      "son solo dígitos"
+    ),
+    access_token: exigirFormato(
+      (formData.get("access_token") as string) ?? "",
+      "El Access Token",
+      TOKEN_META,
+      "empieza por EAA y no lleva espacios ni saltos de línea"
+    ),
   });
 
   if (error) {

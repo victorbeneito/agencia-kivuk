@@ -1,4 +1,5 @@
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { DIAS_SEMANA, HORARIO_POR_DEFECTO } from "@/lib/agenda";
 import { AccesoCliente, type UsuarioCliente } from "../acceso-cliente";
 import { VerPanelDelCliente } from "../ver-panel";
 import {
@@ -24,6 +25,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 
 const MODULE_LABELS: Record<ModuleName, string> = {
@@ -32,29 +34,6 @@ const MODULE_LABELS: Record<ModuleName, string> = {
   calendar: "Agenda / Calendar",
   email: "Automatización de correos",
   social: "Redes sociales",
-};
-
-// 1 = lunes ... 7 = domingo (mismo criterio que el workflow de n8n).
-const DIAS_SEMANA = [
-  { valor: "1", etiqueta: "L" },
-  { valor: "2", etiqueta: "M" },
-  { valor: "3", etiqueta: "X" },
-  { valor: "4", etiqueta: "J" },
-  { valor: "5", etiqueta: "V" },
-  { valor: "6", etiqueta: "S" },
-  { valor: "7", etiqueta: "D" },
-];
-
-// Deben coincidir con los del nodo "Preparar contexto" en n8n, que aplica
-// estos mismos valores cuando el cliente todavía no ha guardado su horario.
-const HORARIO_POR_DEFECTO = {
-  dias_laborables: "1,2,3,4,5",
-  manana_inicio: "09:00",
-  manana_fin: "14:00",
-  tarde_inicio: "16:00",
-  tarde_fin: "20:00",
-  duracion_min: "60",
-  paso_min: "15",
 };
 
 const MODULE_ORDER: ModuleName[] = [
@@ -218,6 +197,10 @@ export default async function ClientConfigPage({
               <Input
                 id="phone_number_id"
                 name="phone_number_id"
+                inputMode="numeric"
+                pattern="\d{5,}"
+                title="Solo dígitos. Es el identificador que da Meta, no el número de teléfono."
+                placeholder="1364764923377299"
                 defaultValue={whatsappConfig.phone_number_id ?? ""}
               />
             </div>
@@ -228,17 +211,32 @@ export default async function ClientConfigPage({
               <Input
                 id="whatsapp_business_account_id"
                 name="whatsapp_business_account_id"
+                inputMode="numeric"
+                pattern="\d{5,}"
+                title="Solo dígitos."
                 defaultValue={whatsappConfig.whatsapp_business_account_id ?? ""}
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="access_token">Access Token</Label>
-              <Input
+              {/*
+                Con el ojo de ver/ocultar, y no un `password` a secas: el token
+                es el mismo para todos los clientes de la agencia, así que se
+                copia de una ficha a otra a menudo. A ciegas, eso acabó con el
+                volcado de otra terminal guardado aquí dentro.
+              */}
+              <PasswordInput
                 id="access_token"
                 name="access_token"
-                type="password"
+                pattern="EAA\S{20,}"
+                title="Empieza por EAA y no lleva espacios ni saltos de línea."
+                placeholder="EAA..."
                 defaultValue={whatsappConfig.access_token ?? ""}
               />
+              <p className="text-xs text-muted-foreground">
+                El token permanente del usuario del sistema. Es el mismo para
+                todos los clientes de la agencia.
+              </p>
             </div>
           </CardContent>
           <CardFooter>
@@ -276,19 +274,17 @@ export default async function ClientConfigPage({
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="google_client_secret">Google Client Secret</Label>
-              <Input
+              <PasswordInput
                 id="google_client_secret"
                 name="google_client_secret"
-                type="password"
                 defaultValue={calendarConfig.google_client_secret ?? ""}
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="refresh_token">Refresh Token</Label>
-              <Input
+              <PasswordInput
                 id="refresh_token"
                 name="refresh_token"
-                type="password"
                 defaultValue={calendarConfig.refresh_token ?? ""}
               />
             </div>
@@ -390,10 +386,9 @@ export default async function ClientConfigPage({
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="ig_access_token">Token de acceso</Label>
-              <Input
+              <PasswordInput
                 id="ig_access_token"
                 name="ig_access_token"
-                type="password"
                 placeholder="EAA..."
                 defaultValue={socialConfig.ig_access_token ?? ""}
               />
@@ -660,10 +655,9 @@ export default async function ClientConfigPage({
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="resend_api_key">Resend API Key</Label>
-              <Input
+              <PasswordInput
                 id="resend_api_key"
                 name="resend_api_key"
-                type="password"
                 defaultValue={emailConfig.resend_api_key ?? ""}
               />
             </div>
