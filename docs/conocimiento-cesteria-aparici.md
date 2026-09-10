@@ -322,6 +322,32 @@ Para limpiarlas, un paño ligeramente húmedo y dejar secar al aire. Nada de sum
 
 ---
 
+## 16. Medidas de los capazos: qué significa cada número
+
+- **Categoría:** Productos
+- **URL de origen:** https://www.cesteriaaparici.es/blog/cesteria-2/guia-de-tamanos-de-los-capazos-de-mimbre-276
+
+```
+¿Qué medidas tiene el capazo? ¿Qué tamaños hay? ¿De qué tamaño es un N7? ¿Cuál es el más grande? ¿Cuánto mide? ¿Qué capazo me llevo a la playa? ¿Cuál es el tamaño normal?
+
+El número del capazo no es una talla cualquiera: es el número de vueltas completas de palma trenzada que lo forman. Un N°7 lleva siete vueltas, y de ahí sale su tamaño.
+
+Hay seis tamaños. Estas son sus medidas aproximadas, en ancho x fondo x alto:
+
+- N°4 — 28 x 15 x 14 cm, base redonda. Es el pequeño: bolso de mano para lo justo, cesto para cosméticos o recipiente para un regalo.
+- N°5 — 32 cm de ancho y 17 de alto, base ovalada. Bolso de mano de diario, algo más amplio que el N°4.
+- N°6 — 38 x 20 x 22 cm. Para la compra en el mercado y para llevar de picnic.
+- N°7 — 42 x 23 x 25 cm. Es el tamaño estándar y el más conocido. Vale igual para la playa y para la ciudad, y como cesta de la compra semanal.
+- N°8 — 45 x 25 x 27 cm. El capazo de playa familiar: caben toallas, juguetes y cremas. También para compras voluminosas o como cesto de almacenaje en casa.
+- N°9 — 55 x 28 x 35 cm. El más grande de todos. Para la compra semanal grande o un día de playa en familia sin dejarse nada.
+
+Las medidas son aproximadas porque cada capazo se trenza a mano: entre dos unidades del mismo número puede haber diferencias de varios centímetros.
+
+Las medidas exactas de cada producto están en su ficha de la web.
+```
+
+---
+
 # Pendiente de confirmar con el cliente
 
 Resueltos el 03/08/2026 por el cliente: **horario** (9:00-13:00), **formas de
@@ -353,3 +379,18 @@ y 14. Queda esto:
 7. **Cuándo pasar a una persona.** Un pedido perdido, una reclamación o un
    proyecto grande no los debe cerrar un bot. Hay que decidir el criterio y a
    qué teléfono o correo deriva.
+
+8. **El fondo del capazo N°5.** Su blog publica «32x8x17cm», y 8 cm de fondo no
+   encaja: el N°4 tiene 15 y el N°6 tiene 20. Parece una errata de un 18. En el
+   documento 16 se ha puesto solo el ancho y el alto para no dar una medida
+   falsa; en cuanto lo confirmen, se completa. Las medidas de los otros cinco
+   tamaños sí son las que publican.
+
+9. **El estado de un pedido.** Es la pregunta más frecuente de una tienda online
+   y ahora el bot solo desvía. Hace falta saber dónde puede consultarlo el
+   cliente por su cuenta (correo de confirmación, área de cliente de Odoo, enlace
+   de seguimiento del transportista) para poder decírselo en vez de pasarlo a una
+   persona cada vez.
+
+10. **¿Venden en Amazon o en otros marketplaces?** Lo preguntaron en las pruebas
+    y no está en la base. Sí o no, y si es sí, con qué nombre de vendedor.
