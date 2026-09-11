@@ -362,7 +362,7 @@
         "url": "http://localhost:5678/webhook/agenda",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"client_id\": {{ JSON.stringify($('Buscar cliente Whatsapp').first().json.client_id) }},\n  \"accion\": {{ JSON.stringify($json.accion) }},\n  \"fecha\": {{ JSON.stringify($json.fecha || null) }},\n  \"hora\": {{ JSON.stringify($json.hora || null) }},\n  \"email\": {{ JSON.stringify($json.email || null) }},\n  \"contacto\": {{ JSON.stringify($('Extraer mensaje').first().json.from) }},\n  \"motivo\": {{ JSON.stringify($json.motivo || \"\") }},\n  \"servicios\": {{ JSON.stringify($json.servicio ? [$json.servicio] : []) }},\n  \"trabajador\": {{ JSON.stringify($json.trabajador || \"\") }},\n  \"texto\": {{ JSON.stringify($('Extraer mensaje').first().json.message_text) }}\n}",
+        "jsonBody": "={\n  \"client_id\": {{ JSON.stringify($('Buscar cliente Whatsapp').first().json.client_id) }},\n  \"accion\": {{ JSON.stringify($json.accion) }},\n  \"fecha\": {{ JSON.stringify($json.fecha || null) }},\n  \"hora\": {{ JSON.stringify($json.hora || null) }},\n  \"email\": {{ JSON.stringify($json.email || null) }},\n  \"contacto\": {{ JSON.stringify($('Extraer mensaje').first().json.from) }},\n  \"nombre\": {{ JSON.stringify($('Extraer mensaje').first().json.contact_name || \"\") }},\n  \"motivo\": {{ JSON.stringify($json.motivo || \"\") }},\n  \"servicios\": {{ JSON.stringify($json.servicio ? [$json.servicio] : []) }},\n  \"trabajador\": {{ JSON.stringify($json.trabajador || \"\") }},\n  \"texto\": {{ JSON.stringify($('Extraer mensaje').first().json.message_text) }}\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
