@@ -182,7 +182,10 @@ va dentro del prompt.
    real y comprobando que el segundo intento sobre el mismo hueco contesta
    «ocupado» con alternativas.
 4. **Bot** — extracción de servicio y trabajador, emparejamiento en código,
-   prompt. ← siguiente
+   prompt. ✅ **Desplegada el 11/09/2026.** Con dos cambios que no estaban
+   previstos aquí: el correo deja de ser obligatorio para reservar, y por eso
+   mismo aparece `confirmar` —quitado el email, lo único que separaba una
+   pregunta de una reserva era ese paso—. Detalle abajo.
 5. **Recordatorios** — cron sobre `appointments`, y la agenda visible en
    `/panel`.
 
@@ -316,6 +319,68 @@ nodo mal escrito o que un nodo no ejecutado reviente la ejecución.
 `contexto-ejemplo.json` es la salida real de `agenda_contexto` para una
 peluquería de tres personas, así que vale además de contrato: si alguien cambia
 la función de Postgres y no el motor, esto falla.
+
+## El bot (fase 4)
+
+Tres datos nuevos viajan del bot a la API —`servicio`, `trabajador` y `texto`—,
+y el correo deja de hacer falta.
+
+### `texto`: el servicio se deduce de la frase
+
+El bot enseña huecos **antes** de que conteste la IA, y en ese momento lo único
+que hay es la frase que ha escrito la persona. Sin resolver eso, la única forma
+de acertar la duración era una llamada al modelo entera por mensaje solo para
+extraer el servicio.
+
+Así que la petición admite `texto`, la frase tal cual, y el motor deduce de ahí
+el servicio **solo si no venía uno explícito**. No falla cuando no encuentra
+ninguno: «¿qué horario tenéis?» no nombra ningún servicio y no por eso es una
+petición equivocada. El efecto práctico es que en cuanto alguien escribe «unas
+mechas», los huecos que ve la IA ya son de 150 minutos y no de 60.
+
+### `falta_servicio`: no se reserva a ciegas
+
+Reservar sin saber qué se hace, en un negocio con servicios definidos, es
+reservar mal: la cita ocuparía una hora donde hacían falta tres. Se para en el
+motor y no en el prompt, porque **un prompt es una recomendación y esto tiene
+que ser una garantía** — y porque así vale igual para el agente de voz, que
+comparte la misma API.
+
+### El correo, fuera
+
+Era el requisito que faltaba para reservar, y el paso donde más gente abandona:
+dictar un email por el móvil, estando ya en la aplicación donde vas a leer la
+confirmación. La confirmación es ahora el propio mensaje del bot, que llega al
+mismo hilo donde esa persona volverá a preguntar «¿a qué hora era?». Si lo dan,
+viaja y se manda el correo como siempre.
+
+Lo que sí seguirá necesitando correo —o mejor, una plantilla aprobada de
+WhatsApp— es el **recordatorio de la víspera**, que cae fuera de la ventana de
+24 horas de la Cloud API. Eso es la fase 5.
+
+### `confirmar`: preguntar no es pedir
+
+Consecuencia directa de quitar el email: sin ese paso, «¿tenéis hueco el viernes
+a las cinco?» se habría convertido en una cita que nadie pidió. La IA distingue
+ahora preguntar de pedir, y **ante la duda se comprueba y se ofrece**: *«está
+libre, ¿te la reservo?»*.
+
+### Lo que encontró el despliegue
+
+Un cliente **sin módulo de correo** reservaba bien y se quedaba sin respuesta.
+`onError: continueRegularOutput` cubre los errores, no las respuestas vacías: un
+select de Supabase que no encuentra fila devuelve `[]`, el nodo no emite ningún
+item y toda la rama de abajo deja de ejecutarse —sin error, con la ejecución
+marcada como «success» y sin nada en el log—. Como el nodo que contesta al
+webhook colgaba de ahí, el bot le habría dicho «ahora mismo no puedo consultar
+la agenda» a alguien a quien acababa de darle la cita.
+
+Estaba desde siempre, y no se veía porque el único cliente con agenda con el que
+se probaba tiene módulo de correo. Salió al quitar la obligación del email, que
+es justo lo que convierte «no tener módulo de correo» en el caso normal. La cura
+es `alwaysOutputData` en las consultas que pueden no encontrar fila, y una
+comprobación en el banco de pruebas: es configuración del nodo, no código, así
+que nada lo delata al leer el JSON.
 
 ## Lo que esta versión no cubre
 

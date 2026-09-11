@@ -188,49 +188,35 @@ VPS. Probado contra producción con esta misma peluquería:
   anti-solape y el camino de «hueco perdido», probados de una vez. La cita de
   prueba se borró después.
 
-### Todavía no (fase 4 de `docs/agenda-multiple.md`)
+### La fase 4, desplegada el 11/09/2026
 
-**El bot no le pasa a la agenda ni el servicio ni la trabajadora.** El motor sabe
-hacerlo desde la fase 3 —la Agenda API acepta `servicios` y `trabajador`, los
-empareja y elige a quien menos carga tenga—, pero el workflow del bot todavía
-manda solo fecha, hora y correo. Consecuencias en la demo:
+El bot ya le dice a la agenda **qué se hace y con quién**. Probado contra
+producción con esta peluquería:
 
-- Todos los huecos se calculan con la duración por defecto (60 min), no con la
-  del servicio. Unas mechas de dos horas y media entran en un hueco de una hora.
-- La cita se asigna a quien esté libre, aunque pidan a Ana. Por eso el prompt
-  dice *«te lo apunto»* y no *«te la dejo con Ana»*: el nombre queda escrito en
-  el motivo de la cita y se ve en el panel, pero no es una asignación real.
+- «unas mechas» → huecos de **150 minutos**, no de 60.
+- «mechitas» se empareja con *Mechas medio casco*: la gente no usa el nombre del
+  catálogo y no hace falta que lo use.
+- Reserva real **sin pedir correo**: *«¡Listo! Tu cita queda confirmada para el
+  jueves 2026-09-17 a las 10:00 con Ana (Mechas medio casco).»*
+- Reservar sin decir el servicio se para solo: *«¿Qué te vas a hacer? Lo necesito
+  para saber cuánto hay que reservarte.»*
+- Pedir el miércoles por la tarde con Ana da «ocupado» con alternativas, porque
+  Ana libra esa tarde.
 
-**Mi recomendación: cerrar la fase 4 antes de enseñar esto a nadie.** El material
-está listo y toda la lógica difícil ya está hecha y probada (62 comprobaciones
-del motor); falta el cableado en `whatsapp-bot.json`: extraer servicio y persona
-en `Preparar contexto`, emparejarlos en código en `Decidir acción` y pasarlos en
-`Comprobar o reservar`. Sin eso, la demo enseña una peluquería en la que todas
-las citas duran lo mismo y da igual quién te atienda, que es justo lo que una
-peluquera sabe que no es verdad.
+Dos cosas que no estaban previstas y que salieron por el camino, contadas en
+`docs/agenda-multiple.md`: **el correo dejó de ser obligatorio** (y con él se
+fue el paso donde más gente abandona), y por eso mismo apareció `confirmar`
+—sin el email, preguntar «¿tenéis hueco el viernes?» se habría convertido en una
+cita que nadie pidió—.
 
-### Dos detalles que conviene decidir
+### Un detalle que conviene decidir
 
-**El correo es obligatorio para reservar, y hay que quitarlo.** Hoy no se cierra
-una cita sin él (lo exige tanto `Decidir acción` como el motor). En una tienda es
-normal; en una peluquería de pueblo, pedirle el correo a una señora para cortarse
-el pelo chirría —el teléfono ya lo tenemos, es por donde está escribiendo—.
-
-**Decidido (11/09/2026): la confirmación se manda por WhatsApp**, que es donde la
-gente la ve, en vez de por correo, donde se pierde entre el spam. Es lo que hacen
-los sistemas de reservas de restaurantes y dentistas, y aquí sale casi de balde:
-la persona acaba de escribir, así que la ventana de 24 horas de la Cloud API está
-abierta y vale un mensaje normal, sin plantilla ni aprobación de Meta. Además ya
-existe `enviar-whatsapp.json`, que es el único sitio del proyecto que habla con
-Meta para mandar mensajes.
-
-Lo que sí necesita plantilla aprobada es el **recordatorio de la víspera**, que
-cae fuera de esa ventana. Es una plantilla de utilidad, se aprueba en un rato y
-tiene un coste por mensaje pequeño; conviene pedirla con tiempo, no el día antes
-de la primera demo.
-
-Con la confirmación por WhatsApp, el correo pasa a ser opcional: se pide solo si
-lo quieren, y deja de ser un paso obligatorio en mitad de la conversación.
+**El recordatorio de la víspera necesita plantilla de Meta.** La confirmación ya
+va por WhatsApp —es el propio mensaje del bot, y llega al hilo donde esa persona
+volverá a mirar «¿a qué hora era?»—, pero un recordatorio el día antes cae fuera
+de la ventana de 24 horas de la Cloud API y exige una plantilla aprobada. Es de
+utilidad, se aprueba en un rato y el coste por mensaje es pequeño; conviene
+pedirla con tiempo y no el día antes de la primera demo. Es la fase 5.
 
 **Cambiar y anular citas no está construido.** El prompt lo dice y lo escala a
 una persona, que es lo honesto. Es la segunda pregunta que hará quien vea la
