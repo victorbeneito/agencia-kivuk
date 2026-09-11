@@ -309,22 +309,65 @@ comprobar(
   JSON.stringify(r.alternativas[0])
 );
 
-// Reservar sin email: se confirma que hay hueco y se pide el correo.
+// El correo ya no hace falta: quien reserva por WhatsApp lee la confirmación
+// en el propio chat, y pedirle el email era el paso donde más gente abandona.
 r = m.resolver(CTX, { accion: 'reservar', servicios: ['corte'], fecha: '2026-09-15', hora: '17:00' }, MARTES);
-comprobar('reservar sin email: falta_email, no se reserva', r.estado === 'falta_email', r.estado);
-comprobar('y el mensaje ya dice que está libre', /libre/.test(r.mensaje), r.mensaje);
+comprobar('reservar sin email: se reserva igual', r.estado === 'libre', r.estado);
+comprobar('y no se le pide el correo', !/correo|email/i.test(r.mensaje), r.mensaje);
 
 r = m.resolver(CTX, { accion: 'reservar', servicios: ['corte'], fecha: '2026-09-15', hora: '17:00', email: 'a@b.com' }, MARTES);
 comprobar('reservar con email: libre y listo para insertar', r.estado === 'libre', r.estado);
+comprobar('el email sigue viajando si lo dan', r.email === 'a@b.com', r.email);
 comprobar('trae inicio y fin en ISO', /^2026-09-15T15:00/.test(r.inicio), r.inicio);
 comprobar('el fin es inicio + 30 min del corte', /^2026-09-15T15:30/.test(r.fin), r.fin);
 
 r = m.resolver(CTX, { accion: 'reservar', servicios: ['corte'], hora: '17:00' }, MARTES);
 comprobar('sin fecha no se reserva', r.estado === 'faltan_datos', r.estado);
 
-// Un email destrozado por el reconocimiento de voz no cuenta como email.
+// Un email destrozado por el reconocimiento de voz no cuenta como email: la
+// cita se hace igual, pero no se guarda esa cadena como correo de nadie.
 r = m.resolver(CTX, { accion: 'reservar', servicios: ['corte'], fecha: '2026-09-15', hora: '17:00', email: 'ana arroba gmail' }, MARTES);
-comprobar('un email mal escrito se ignora', r.estado === 'falta_email', r.estado);
+comprobar('un email mal escrito se ignora', r.email === '', JSON.stringify(r.email));
+comprobar('pero no impide la cita', r.estado === 'libre', r.estado);
+
+// === El servicio, cuando el negocio tiene servicios ==========================
+
+// Reservar sin decir qué se hace es reservar mal: la duración sería la de por
+// defecto y la cita ocuparía 60 minutos donde hacían falta 120.
+r = m.resolver(CTX, { accion: 'reservar', fecha: '2026-09-15', hora: '17:00' }, MARTES);
+comprobar('reservar sin servicio: falta_servicio', r.estado === 'falta_servicio', r.estado);
+comprobar('y ofrece la lista real', /Lavado/.test(r.mensaje), r.mensaje);
+comprobar('no reserva', r.reservada === false, String(r.reservada));
+
+// Consultar sí se puede sin servicio: "¿qué horario tenéis?" no nombra ninguno.
+r = m.resolver(CTX, { accion: 'disponibilidad' }, MARTES);
+comprobar('consultar sin servicio sigue valiendo', r.estado === 'disponibilidad', r.estado);
+
+// El catálogo viaja para que la IA pregunte con los nombres del negocio.
+comprobar('la respuesta trae el catálogo', r.catalogo.length === 3, JSON.stringify(r.catalogo));
+var lavadoEnCatalogo = r.catalogo.filter(function (s) { return s.nombre === 'Lavado'; })[0];
+comprobar('con su duración', lavadoEnCatalogo && lavadoEnCatalogo.duracion_min === 15, JSON.stringify(r.catalogo));
+
+// === `texto`: deducir el servicio de la frase ================================
+
+// El bot enseña huecos ANTES de que la IA conteste, y ahí lo único que hay es
+// la frase que ha escrito la persona.
+r = m.resolver(CTX, { accion: 'disponibilidad', texto: 'hola queria unas mechas para el viernes' }, MARTES);
+comprobar('deduce el servicio de la frase', r.duracion_min === 120, String(r.duracion_min));
+comprobar('y lo dice en servicios', r.servicios.length === 1, JSON.stringify(r.servicios));
+
+// Y no falla cuando la frase no habla de ningún servicio.
+r = m.resolver(CTX, { accion: 'disponibilidad', texto: 'que horario teneis los sabados?' }, MARTES);
+comprobar('una frase sin servicio no es un error', r.estado === 'disponibilidad', r.estado);
+comprobar('y usa la duración por defecto', r.duracion_min === 60, String(r.duracion_min));
+
+// Un servicio explícito manda sobre la pista de la frase.
+r = m.resolver(CTX, { accion: 'disponibilidad', servicios: ['lavado'], texto: 'y unas mechas?' }, MARTES);
+comprobar('el servicio explícito gana a la pista', r.duracion_min === 15, String(r.duracion_min));
+
+// Un nombre que no existe sigue siendo un error, aunque haya `texto`.
+r = m.resolver(CTX, { accion: 'disponibilidad', servicios: ['manicura'], texto: 'quiero manicura' }, MARTES);
+comprobar('un servicio que no existe se sigue diciendo', r.estado === 'servicio_desconocido', r.estado);
 
 // La hora escrita manda sobre formatos hablados.
 r = m.resolver(CTX, { accion: 'comprobar', servicios: ['corte'], fecha: '2026-09-15', hora: "17h30" }, MARTES);

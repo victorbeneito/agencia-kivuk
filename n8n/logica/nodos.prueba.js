@@ -32,18 +32,36 @@ function nodo(nombre) {
   return n.parameters.jsCode;
 }
 
-/** Ejecuta un jsCode con un $() y un $json falsos. */
+/** Ejecuta un jsCode con un $(), un $json y un $input falsos. */
 function ejecutar(nombreNodo, entradas, jsonEntrada) {
   const $ = (nombre) => {
     if (!(nombre in entradas)) {
       // n8n lanza si el nodo no se ha ejecutado; el codigo debe sobrevivir.
       throw new Error("Referenced node is unexecuted: " + nombre);
     }
-    return { first: () => ({ json: entradas[nombre] }) };
+    return { first: () => ({ json: entradas[nombre] }), all: () => [{ json: entradas[nombre] }] };
   };
-  const fn = new Function("$", "$json", nombreNodo);
-  return fn($, jsonEntrada);
+  const $input = {
+    first: () => ({ json: jsonEntrada }),
+    all: () => [{ json: jsonEntrada }],
+  };
+  const fn = new Function("$", "$json", "$input", "$now", nombreNodo);
+  return fn($, jsonEntrada, $input, AHORA);
 }
+
+/**
+ * El `$now` de n8n es un DateTime de Luxon. Aqui basta con que responda a lo
+ * que usa el codigo: sumar dias y formatear. Da igual que siempre diga lo
+ * mismo; lo que se comprueba es que el nodo no reviente y arme el contexto.
+ */
+const AHORA = {
+  plus: () => ({
+    setLocale: () => ({ toFormat: () => "lunes" }),
+    toFormat: () => "2026-09-14",
+  }),
+  setLocale: () => ({ toFormat: () => "viernes" }),
+  toFormat: () => "2026-09-11",
+};
 
 
 // El martes que viene (o el de hoy en 6 dias): dentro de la ventana de 7 dias
@@ -149,14 +167,157 @@ r = ejecutar(nodo("Respuesta del motor"), {}, libreSinEmail);
 ok("devuelve `libre` cuando el hueco esta libre", r[0].json.libre === true, JSON.stringify({ estado: r[0].json.estado, libre: r[0].json.libre }));
 ok("y `reservada` en false", r[0].json.reservada === false);
 
-const faltaEmail = ejecutar(nodo("Decidir"), {
+// Reservar sin correo ya no se para: la confirmacion la lee en el mismo chat.
+const sinEmail = ejecutar(nodo("Decidir"), {
   "Leer petición": Object.assign({}, PET, { accion: "reservar", email: null, servicios: ["corte"] }),
   "Cargar contexto": contexto,
 }, {})[0].json;
-r = ejecutar(nodo("Respuesta del motor"), {}, faltaEmail);
-ok("en 'falta_email' NO marca libre (el mensaje ya pide el correo)",
-   r[0].json.libre === false && /correo/.test(r[0].json.mensaje),
-   JSON.stringify({ estado: r[0].json.estado, libre: r[0].json.libre }) + " " + r[0].json.mensaje);
+ok("reservar sin correo llega a 'libre', que es lo que dispara la reserva",
+   sinEmail.estado === "libre", sinEmail.estado);
+r = ejecutar(nodo("Respuesta del motor"), {}, sinEmail);
+ok("y el mensaje no le pide el correo", !/correo|email/i.test(r[0].json.mensaje), r[0].json.mensaje);
+
+// Pero reservar sin decir que se hace sigue parandose: la duracion depende de
+// eso, y una cita de 60 minutos donde hacian falta 120 se come la siguiente.
+const sinServicio = ejecutar(nodo("Decidir"), {
+  "Leer petición": Object.assign({}, PET, { accion: "reservar", email: null, servicios: [] }),
+  "Cargar contexto": contexto,
+}, {})[0].json;
+ok("reservar sin servicio se queda en 'falta_servicio'",
+   sinServicio.estado === "falta_servicio", sinServicio.estado);
+r = ejecutar(nodo("Respuesta del motor"), {}, sinServicio);
+ok("y NO marca libre, para que el bot no dé la cita por hecha",
+   r[0].json.libre === false, JSON.stringify({ estado: r[0].json.estado, libre: r[0].json.libre }));
+
+// La pista de `texto`: el bot la manda antes de que la IA conteste.
+const porTexto = ejecutar(nodo("Decidir"), {
+  "Leer petición": Object.assign({}, PET, {
+    accion: "disponibilidad", fecha: null, hora: null, email: null,
+    servicios: [], texto: "hola, queria unas mechas",
+  }),
+  "Cargar contexto": contexto,
+}, {})[0].json;
+ok("el nodo pasa `texto` al motor y sale la duracion de las mechas",
+   porTexto.duracion_min === 120, String(porTexto.duracion_min));
+
+// === El bot de WhatsApp ======================================================
+// `Decidir accion` es el nodo que decide si se le crea una cita a alguien. Un
+// fallo aqui no da error: da citas que nadie pidio, o silencio donde tenia que
+// haber una reserva.
+
+console.log("\n=== El bot: Decidir accion ===");
+
+const bot = JSON.parse(fs.readFileSync(path.join(RAIZ, "n8n", "workflows", "whatsapp-bot.json"), "utf8"));
+function nodoBot(nombre) {
+  const n = bot.nodes.find((x) => x.name === nombre);
+  if (!n) throw new Error("no existe el nodo " + nombre + " en whatsapp-bot.json");
+  return n.parameters.jsCode;
+}
+
+function decidir(ia, mensaje, tieneAgenda) {
+  return ejecutar(nodoBot("Decidir acción"), {
+    "Preparar búsqueda": { tiene_agenda: tieneAgenda !== false },
+    "Extraer mensaje": { message_text: mensaje },
+  }, ia)[0].json;
+}
+
+const PIDE = {
+  reply: "", date: "2026-09-18", time: "17:00",
+  servicio: "Mechas medio casco", trabajador: "Ana", confirmar: true, escalar: false,
+};
+
+let d = decidir(PIDE, "el viernes a las 5 con Ana me va bien");
+ok("pedir la cita reserva", d.accion === "reservar", d.accion);
+ok("y sin email, que ya no hace falta", !d.email, JSON.stringify(d.email));
+ok("el servicio viaja", d.servicio === "Mechas medio casco", d.servicio);
+ok("y la trabajadora tambien", d.trabajador === "Ana", d.trabajador);
+
+d = decidir(Object.assign({}, PIDE, { confirmar: false }), "tienes hueco el viernes a las 5?");
+ok("solo preguntar NO reserva", d.accion === "comprobar", d.accion);
+
+d = decidir(Object.assign({}, PIDE, { confirmar: undefined }), "el viernes a las 5");
+ok("sin `confirmar` tampoco reserva (ante la duda, se pregunta)", d.accion === "comprobar", d.accion);
+
+d = decidir(Object.assign({}, PIDE, { servicio: null, trabajador: null }), "dame cita el viernes a las 5");
+ok("sin servicio se manda igual: lo para el motor, no el bot", d.accion === "reservar", d.accion);
+ok("y el servicio va vacio, no con un null pegado", d.servicio === "", JSON.stringify(d.servicio));
+
+d = decidir(PIDE, "pues a las 17:30 mejor");
+ok("la hora que escribe la persona manda sobre la que extrae la IA", d.hora === "17:30", d.hora);
+
+d = decidir(PIDE, "el viernes a las 5", false);
+ok("un cliente sin agenda no reserva nada", d.accion === "ninguna", d.accion);
+
+console.log("\n=== El bot: Preparar contexto ===");
+// Por este nodo pasa CADA mensaje que recibe el bot, tenga agenda o no. Si
+// revienta, el cliente deja de contestar del todo.
+
+function prepararContexto(agendaApi, tieneAgenda) {
+  return ejecutar(nodoBot("Preparar contexto"), {
+    "Buscar prompt del cliente": { system_prompt: "Eres la recepcion.", knowledge_base: "" },
+    "Preparar búsqueda": { tiene_agenda: tieneAgenda !== false },
+    "Recoger conocimiento": { fragmentos: [] },
+    "Recoger productos": { productos: [] },
+    "Consultar agenda": agendaApi,
+    "Extraer mensaje": { message_text: "hola, queria unas mechas", adjunto: null },
+  }, {})[0].json;
+}
+
+const CATALOGO = [
+  { nombre: "Corte", duracion_min: 45 },
+  { nombre: "Mechas medio casco", duracion_min: 150 },
+];
+
+let ctxIA = prepararContexto({
+  dias: [{ dia: "viernes", fecha: "2026-09-11", horas: ["10:00", "10:15"] }],
+  duracion_min: 150, paso_min: 15,
+  catalogo: CATALOGO,
+  servicios: [{ nombre: "Mechas medio casco", duracion_min: 150 }],
+});
+let texto = ctxIA.messages.map((x) => x.content).join("\n");
+ok("arma los mensajes para el modelo", ctxIA.messages.length > 3, String(ctxIA.messages.length));
+ok("le da el catalogo real del negocio", /Mechas medio casco \(150 min\)/.test(texto), "no aparece el catalogo");
+ok("dice que se ha entendido el servicio", /se ha entendido: Mechas medio casco/.test(texto));
+ok("y la cabecera de huecos es la de ese servicio", /HUECOS LIBRES PARA Mechas medio casco/.test(texto));
+ok("pide servicio y trabajador en el JSON", /"servicio"/.test(texto) && /"trabajador"/.test(texto));
+ok("ya no dice que el email haga falta para reservar", !/hacen falta TRES datos: fecha, hora y email/.test(texto));
+
+ctxIA = prepararContexto({
+  dias: [], duracion_min: 60, paso_min: 15,
+  catalogo: CATALOGO, servicios: [],
+});
+texto = ctxIA.messages.map((x) => x.content).join("\n");
+ok("sin servicio entendido, avisa de que los huecos son de una cita estandar",
+   /cita estandar de 60 min/.test(texto) && /preguntale primero que se va a hacer/.test(texto));
+
+// Una tienda sin agenda no debe recibir ni una palabra de citas.
+ctxIA = prepararContexto({}, false);
+texto = ctxIA.messages.map((x) => x.content).join("\n");
+ok("una tienda sin agenda no ve nada de agenda",
+   !/HUECOS LIBRES/.test(texto) && !/SERVICIOS QUE SE PUEDEN RESERVAR/.test(texto));
+
+// Un negocio con agenda pero sin servicios definidos (el caso de siempre).
+ctxIA = prepararContexto({
+  dias: [{ dia: "viernes", fecha: "2026-09-11", horas: ["10:00"] }],
+  duracion_min: 60, paso_min: 15, catalogo: [], servicios: [],
+});
+texto = ctxIA.messages.map((x) => x.content).join("\n");
+ok("sin servicios definidos no se inventa una lista vacia", !/SERVICIOS QUE SE PUEDEN RESERVAR/.test(texto));
+ok("pero sigue dando los huecos", /HUECOS LIBRES/.test(texto));
+
+console.log("\n=== El bot: Respuesta con agenda ===");
+let rb = ejecutar(nodoBot("Respuesta con agenda"), {}, {
+  mensaje: "El viernes 2026-09-18 a las 17:00 con Ana está libre.",
+  libre: true, reservada: false,
+})[0].json;
+ok("si solo preguntaba, se le ofrece reservar", /¿Te la reservo\?$/.test(rb.reply), rb.reply);
+ok("y no se le pide el correo", !/correo|email/i.test(rb.reply), rb.reply);
+
+rb = ejecutar(nodoBot("Respuesta con agenda"), {}, {
+  mensaje: "¡Listo! Tu cita queda confirmada para el viernes.",
+  libre: true, reservada: true,
+})[0].json;
+ok("una cita ya hecha no pregunta nada", !/reservo/.test(rb.reply), rb.reply);
 
 console.log("\n" + (fallos === 0 ? "TODO OK" : fallos + " FALLOS"));
 process.exit(fallos === 0 ? 0 : 1);

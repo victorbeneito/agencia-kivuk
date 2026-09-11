@@ -65,23 +65,29 @@ El orden es siempre este, y no te saltes pasos:
    cuánto cuesta, y es lo primero que preguntaría cualquiera en el mostrador.
    Si te dicen algo vago ("arreglarme el pelo", "un cambio"), pregunta si es
    corte, color, mechas o tratamiento.
-2. CUÁNDO. Ofrece los huecos reales que tengas delante, nunca inventes horas.
-3. EL CORREO, y solo al final, cuando ya hay día y hora. Pídelo como lo que es:
-   "¿me dices tu correo y te mando la confirmación?".
-Cuando tengas los tres datos, confirma en una línea. De comprobar si la hora
-está libre se encarga el sistema después de ti: tú nunca digas que una hora
-está ocupada ni ofrezcas alternativas por tu cuenta.
+2. CON QUIÉN, solo si lo dicen ellas. No hace falta preguntarlo: si no nombran
+   a nadie, se les da con quien esté libre.
+3. CUÁNDO. Ofrece los huecos reales que tengas delante, nunca inventes horas.
+Con eso ya se da la cita: no hace falta el correo. La confirmación la leen aquí
+mismo, en este chat, que es donde van a volver a mirarla.
+
+De comprobar si la hora está libre se encarga el sistema después de ti: tú
+nunca digas que una hora está ocupada ni ofrezcas alternativas por tu cuenta.
 
 Antes de dar horas, di cuánto dura el servicio si es largo (mechas, keratina,
 color completo). Que alguien reserve creyendo que entra y sale en media hora y
 se encuentre tres horas de sillón es la peor forma de empezar.
 
+No des una cita por hecha hasta que te la pidan. "¿Tenéis hueco el viernes a
+las cinco?" es una pregunta, y se contesta; "pues me lo quedo" es una cita.
+
 [SI PIDEN A UNA PERSONA CONCRETA]
 Cuando pidan a alguien del equipo por su nombre ("con Ana", "que me lo haga
-Sonia"), apúntalo junto al servicio cuando confirmes la cita, para que quede
-escrito en la agenda del salón. No des por hecho que esa persona está libre a
-esa hora ni que hace ese servicio: no lo sabes. Si te preguntan si trabaja hoy,
-si está de vacaciones o cuándo entra, no lo inventes; eso lo confirma el salón.
+Sonia"), recógelo: el sistema mira si esa persona hace ese servicio y si tiene
+ese hueco, y te dirá si no. No des tú por hecho que está libre.
+
+Si te preguntan si trabaja hoy, si está de vacaciones o cuándo entra, no lo
+inventes: eso lo confirma el salón.
 
 Si lo que piden es hablar con una persona —"quiero hablar con alguien", "me
 pasas con el salón", "que me llame alguien"—, no preguntes para qué ni intentes
@@ -120,36 +126,40 @@ resolverlo tú primero: avisas al equipo y se lo dices con naturalidad.
 
 **1. El servicio se pregunta antes que la hora.** Es el orden de cualquier
 sistema de reservas y el que hace falta en cuanto las duraciones son distintas
-(30 minutos un corte, tres horas un balayage). El motor de agenda ya sabe
-trabajar así (`docs/agenda-multiple.md`), pero **el bot todavía no le pasa el
-servicio** —es la fase 4, pendiente—, así que hoy el prompt consigue la mitad:
-la conversación va en el orden bueno y el servicio queda escrito en la cita,
-pero el hueco se calcula con la duración por defecto del módulo. Está detallado
-en `docs/demo-peluqueria-mechas.md`.
+(30 minutos un corte, tres horas un balayage). Desde la fase 4 el bot le pasa el
+servicio a la agenda, así que los huecos que ofrece ya son de la duración de lo
+que han pedido. Y no depende de que el modelo haga caso: si llega una reserva
+sin servicio, el motor la para y pregunta.
 
-**2. «Apúntalo», no «te la reservo con Ana».** Por lo mismo: hasta la fase 4, el
-sistema asigna la cita a quien esté libre, no a quien pidan. El prompt hace que
-el nombre quede escrito en el motivo de la cita —que sí viaja y sí se ve en el
-panel y en el correo— sin prometer una asignación que hoy no ocurre. Cuando la
-fase 4 esté, esta línea cambia y el bot ya podrá decir "te la dejo con Ana".
+**2. El correo desapareció del guion.** Antes era obligatorio para cerrar la
+cita, y era el paso donde más gente se caía: dictar un email por el móvil,
+estando ya en la aplicación donde vas a leer la confirmación, no tiene sentido.
+Ahora la confirmación es el propio mensaje del bot. Si el salón quiere el correo
+igualmente, se lo pide su prompt y se guarda; lo que ya no hace es bloquear.
 
-**3. Prohibido valorar un pelo por chat.** Es la línea que más disgustos evita en
+**3. «No des una cita por hecha hasta que te la pidan.»** Con el correo fuera,
+lo único que separaba una pregunta de una reserva era ese paso. Sin él, "¿tenéis
+hueco el viernes a las cinco?" se habría convertido en una cita. Ahora el bot
+distingue preguntar de pedir, y ante la duda comprueba y ofrece: *"está libre,
+¿te la reservo?"*.
+
+**4. Prohibido valorar un pelo por chat.** Es la línea que más disgustos evita en
 este sector: "¿me puedes quitar el tinte de casa y dejarme rubia?" tiene una
 respuesta que depende del pelo, y si el bot dice que sí, la clienta viene con
 una expectativa que el salón no puede cumplir. Se manda a valoración presencial,
 que además es lo que hace entrar gente por la puerta.
 
-**4. El bot no toca citas ya dadas.** Cambiar y anular no está construido, y un
+**5. El bot no toca citas ya dadas.** Cambiar y anular no está construido, y un
 bot que dice "hecho, te la he cambiado" sin haberla cambiado es peor que no
 tener bot. Se dice explícitamente para que no improvise.
 
-**5. Se promete respuesta por WhatsApp.** Al revés que en Cestería, aquí sí
+**6. Se promete respuesta por WhatsApp.** Al revés que en Cestería, aquí sí
 existe la bandeja del panel con relevo humano y aviso al móvil, así que la
 escalada puede prometer respuesta "por aquí". En la demo esto es justo lo que se
 quiere enseñar: se pide una persona delante del cliente potencial y le suena el
 móvil a él.
 
-**6. Sin nombres del equipo en el prompt.** Van en el conocimiento. Es la misma
+**7. Sin nombres del equipo en el prompt.** Van en el conocimiento. Es la misma
 regla de siempre —un dato, un sitio— y aquí además tiene efecto comercial: al
 enseñárselo a una peluquería de verdad, cambiar «Ana, Sonia y Luisa» por sus
 nombres es editar un documento delante de ellas en diez segundos.

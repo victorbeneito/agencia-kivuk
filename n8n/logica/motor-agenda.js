@@ -503,6 +503,20 @@ function resolver(contexto, peticion, ahora) {
   var emparejados = emparejarServicios(peticion.servicios, servicios);
   var elegidos = emparejados.elegidos;
 
+  // `texto` es el mensaje tal cual lo ha escrito la persona, y sirve de pista
+  // cuando nadie ha dicho aún qué servicio es. Se mira SOLO si no venía un
+  // servicio explícito, y no falla si no encuentra nada: "¿qué horario tenéis?"
+  // no nombra ningún servicio y no por eso es una petición equivocada.
+  //
+  // Existe porque el bot necesita enseñar huecos ANTES de que la IA conteste, y
+  // en ese momento lo único que hay es la frase. Sin esto, la única forma de
+  // acertar la duración era pedirle antes a la IA que extrajera el servicio, y
+  // eso es una llamada al modelo entera por cada mensaje.
+  if (!elegidos.length && !emparejados.desconocidos.length && peticion.texto) {
+    var pista = emparejarServicio(String(peticion.texto), servicios);
+    if (pista) elegidos = [pista];
+  }
+
   if (!elegidos.length && emparejados.desconocidos.length && servicios.length) {
     return {
       ok: true,
@@ -512,6 +526,25 @@ function resolver(contexto, peticion, ahora) {
       desconocidos: emparejados.desconocidos,
       mensaje:
         'No tengo «' + emparejados.desconocidos.join('», «') + '» en la lista. ' +
+        'Puedo darte cita para: ' +
+        listaLegible(servicios.map(function (s) { return s.nombre; })) + '.',
+    };
+  }
+
+  // Reservar sin saber qué se va a hacer, en un negocio que tiene servicios
+  // definidos, es reservar mal: la duración sería la de por defecto y la cita
+  // ocuparía media hora donde hacían falta tres. Y no se puede dejar en manos
+  // del prompt, que es una recomendación, no una garantía.
+  if (accion === 'reservar' && !elegidos.length && servicios.length) {
+    return {
+      ok: true,
+      estado: 'falta_servicio',
+      hay_hueco: false,
+      reservada: false,
+      fecha: fecha,
+      hora: hora,
+      mensaje:
+        '¿Qué te vas a hacer? Lo necesito para saber cuánto hay que reservarte. ' +
         'Puedo darte cita para: ' +
         listaLegible(servicios.map(function (s) { return s.nombre; })) + '.',
     };
@@ -633,6 +666,12 @@ function resolver(contexto, peticion, ahora) {
     servicios: elegidos.map(function (s) {
       return { id: s.id, nombre: s.nombre, duracion_min: s.duracion_min };
     }),
+    // La lista entera de lo que se puede reservar. El bot se la enseña a la IA
+    // para que pregunte «¿corte o mechas?» con los nombres de verdad del
+    // negocio, en vez de inventarse un catálogo plausible.
+    catalogo: servicios.map(function (s) {
+      return { nombre: s.nombre, duracion_min: s.duracion_min };
+    }),
     candidatos: candidatos.map(function (t) { return t.id; }),
   };
 
@@ -707,12 +746,18 @@ function resolver(contexto, peticion, ahora) {
     mensaje: 'El ' + dia.dia + ' ' + fecha + ' a las ' + hora + conQuien + ' está libre.',
   });
 
-  if (accion === 'reservar' && !email) {
-    resultado.estado = 'falta_email';
-    resultado.mensaje =
-      'El ' + dia.dia + ' ' + fecha + ' a las ' + hora + conQuien +
-      ' está libre. ¿A qué correo te mando la confirmación?';
-  }
+  // El correo ya no hace falta para reservar, y esto era lo que lo exigía.
+  //
+  // Se pedía para mandar la confirmación, pero quien reserva por WhatsApp ya
+  // está en el sitio donde va a leerla: el propio mensaje que contesta el bot
+  // ES la confirmación, y llega al mismo hilo donde luego preguntará "¿a qué
+  // hora era?". Un correo, en cambio, cae en una bandeja con doscientos sin
+  // leer. Pedirlo costaba un paso más en mitad de la conversación —el más caro,
+  // porque dictar un email por el móvil es justo donde la gente abandona— a
+  // cambio de un recordatorio peor.
+  //
+  // Si el negocio quiere el correo igualmente, se lo pide su prompt y viaja en
+  // la reserva como hasta ahora. Lo que ya no hace es bloquear la cita.
 
   return resultado;
 }
