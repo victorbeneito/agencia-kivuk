@@ -1,5 +1,5 @@
 {
-  "name": "Agenda API (disponibilidad y reserva)",
+  "name": "Agenda API",
   "nodes": [
     {
       "parameters": {
@@ -11,7 +11,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -400,
+        -620,
         300
       ],
       "id": "ag000001-0001-4001-8001-000000000001",
@@ -20,15 +20,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// Acepta el cuerpo plano { client_id, accion, fecha, hora, email, contacto }.\n// La normalización del formato propio de Vapi se hará en su propio workflow.\nconst body = $json.body || $json || {};\nconst clientId = String(body.client_id || '').trim();\n\nreturn [{\n  json: {\n    client_id: clientId,\n    // Sin un uuid válido no tiene sentido consultar Supabase: la query\n    // devolvería 'invalid input syntax for type uuid' y la ejecución fallaría.\n    cliente_valido: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId),\n    accion: String(body.accion || 'disponibilidad').trim().toLowerCase(),\n    fecha: body.fecha || null,\n    hora: body.hora || null,\n    email: body.email || null,\n    contacto: String(body.contacto || '').trim(),\n    // Servicio o motivo de la cita: va al título del evento del calendario.\n    motivo: String(body.motivo || '').trim(),\n  },\n}];"
+        "jsCode": "// Normaliza el cuerpo. Cada canal manda lo suyo: WhatsApp trae el telefono en\n// `contacto`, y el agente de voz puede no traer email porque el reconocimiento\n// lo destroza. Lo que sale de aqui es lo unico que ve el resto del workflow.\nconst body = $json.body || $json || {};\nconst clientId = String(body.client_id || '').trim();\n\n// Los servicios pueden llegar como lista o como una sola cadena: la IA devuelve\n// lo que le sale, y aqui se deja siempre como lista.\nlet servicios = body.servicios || body.servicio || [];\nif (!Array.isArray(servicios)) servicios = servicios ? [String(servicios)] : [];\nservicios = servicios.map((s) => String(s || '').trim()).filter(Boolean);\n\nreturn [{\n  json: {\n    client_id: clientId,\n    // Sin un uuid valido no tiene sentido consultar Supabase: la query\n    // devolveria 'invalid input syntax for type uuid' y la ejecucion fallaria.\n    cliente_valido: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId),\n    accion: String(body.accion || 'disponibilidad').trim().toLowerCase(),\n    fecha: body.fecha || null,\n    hora: body.hora || null,\n    email: body.email || null,\n    contacto: String(body.contacto || '').trim(),\n    nombre: String(body.nombre || '').trim(),\n    // Que se quiere hacer, y con quien. Los dos son texto libre: el motor los\n    // empareja contra el catalogo real del negocio.\n    servicios: servicios,\n    trabajador: String(body.trabajador || '').trim(),\n    motivo: String(body.motivo || '').trim(),\n    canal: String(body.canal || 'whatsapp').trim(),\n    conversation_id: body.conversation_id || null,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -208,
+        -440,
         300
       ],
-      "id": "ag000002-0002-4002-8002-000000000002",
+      "id": "ag000002-0001-4001-8001-000000000002",
       "name": "Leer petición"
     },
     {
@@ -42,7 +42,7 @@
           },
           "conditions": [
             {
-              "id": "ag-cond-0004",
+              "id": "ag-cond-0001",
               "leftValue": "={{ $json.cliente_valido }}",
               "rightValue": "",
               "operator": {
@@ -57,30 +57,35 @@
         "options": {}
       },
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
+      "typeVersion": 2.2,
       "position": [
-        -112,
+        -260,
         300
       ],
-      "id": "ag000012-0012-4012-8012-000000000012",
+      "id": "ag000003-0001-4001-8001-000000000003",
       "name": "¿Cliente válido?"
     },
     {
       "parameters": {
-        "jsCode": "return [{\n  json: {\n    ok: false,\n    motivo: 'cliente_desconocido',\n    mensaje: 'No encuentro la configuración de este negocio. Avisa al administrador.',\n  },\n}];"
+        "jsCode": "return [{\n  json: {\n    ok: false,\n    motivo: 'cliente_desconocido',\n    mensaje: 'No encuentro la configuracion de este negocio. Avisa al administrador.',\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -16,
-        496
+        -80,
+        460
       ],
-      "id": "ag000013-0013-4013-8013-000000000013",
+      "id": "ag000004-0001-4001-8001-000000000004",
       "name": "Respuesta sin cliente"
     },
     {
       "parameters": {
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.calendar&active=eq.true&client_id=eq.{{ $json.client_id }}&select=config",
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/agenda_contexto",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_client_id\": {{ JSON.stringify($json.client_id) }},\n  \"p_desde\": \"{{ $now.minus({ hours: 2 }).toISO() }}\",\n  \"p_hasta\": \"{{ $now.plus({ days: 9 }).toISO() }}\"\n}",
+        "options": {},
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -93,22 +98,21 @@
               "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
             }
           ]
-        },
-        "options": {}
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
+      "typeVersion": 4.2,
       "position": [
-        -16,
+        -80,
         300
       ],
-      "id": "ag000003-0003-4003-8003-000000000003",
-      "name": "Buscar módulo calendar",
-      "alwaysOutputData": true
+      "id": "ag000005-0001-4001-8001-000000000005",
+      "name": "Cargar contexto"
     },
     {
       "parameters": {
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.email&active=eq.true&client_id=eq.{{ $('Leer petición').first().json.client_id }}&select=config",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.calendar&active=eq.true&client_id=eq.{{ $('Leer petición').first().json.client_id }}&select=config",
+        "options": {},
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -121,18 +125,17 @@
               "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
             }
           ]
-        },
-        "options": {}
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
+      "typeVersion": 4.2,
       "position": [
-        176,
+        100,
         300
       ],
-      "id": "ag000004-0004-4004-8004-000000000004",
-      "name": "Buscar módulo email",
-      "alwaysOutputData": true
+      "id": "ag000006-0001-4001-8001-000000000006",
+      "name": "Buscar credenciales Google",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -144,15 +147,15 @@
           "parameters": [
             {
               "name": "client_id",
-              "value": "={{ $('Buscar módulo calendar').first().json.config?.google_client_id || '' }}"
+              "value": "={{ $json.config?.google_client_id || '' }}"
             },
             {
               "name": "client_secret",
-              "value": "={{ $('Buscar módulo calendar').first().json.config?.google_client_secret || '' }}"
+              "value": "={{ $json.config?.google_client_secret || '' }}"
             },
             {
               "name": "refresh_token",
-              "value": "={{ $('Buscar módulo calendar').first().json.config?.refresh_token || '' }}"
+              "value": "={{ $json.config?.refresh_token || '' }}"
             },
             {
               "name": "grant_type",
@@ -163,14 +166,13 @@
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
+      "typeVersion": 4.2,
       "position": [
-        368,
+        280,
         300
       ],
-      "id": "ag000005-0005-4005-8005-000000000005",
+      "id": "ag000007-0001-4001-8001-000000000007",
       "name": "Refrescar token Google",
-      "alwaysOutputData": true,
       "onError": "continueRegularOutput"
     },
     {
@@ -182,84 +184,37 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{ $('Refrescar token Google').first().json.access_token }}"
+              "value": "=Bearer {{ $json.access_token }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"timeMin\": \"{{ $now.toISO() }}\",\n  \"timeMax\": \"{{ $now.plus({ days: 8 }).toISO() }}\",\n  \"timeZone\": \"Europe/Madrid\",\n  \"items\": [ { \"id\": {{ JSON.stringify($('Buscar módulo calendar').first().json.config?.calendar_id || \"\") }} } ]\n}",
+        "jsonBody": "={\n  \"timeMin\": \"{{ $now.toISO() }}\",\n  \"timeMax\": \"{{ $now.plus({ days: 9 }).toISO() }}\",\n  \"timeZone\": \"Europe/Madrid\",\n  \"items\": {{ JSON.stringify((($('Cargar contexto').first().json.trabajadores) || []).filter((t) => t.calendar_id).map((t) => ({ id: t.calendar_id }))) }}\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
+      "typeVersion": 4.2,
       "position": [
-        560,
+        460,
         300
       ],
-      "id": "ag000006-0006-4006-8006-000000000006",
+      "id": "ag000008-0001-4001-8001-000000000008",
       "name": "Cargar ocupación",
-      "alwaysOutputData": true,
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "const pet = $('Leer petición').first().json;\nconst cal = $('Buscar módulo calendar').first().json.config || {};\nconst freeBusy = $('Cargar ocupación').first().json || {};\n\n// --- Horario de atencion del negocio (configurado en el panel) ---------------\n// Los valores por defecto deben coincidir con HORARIO_POR_DEFECTO del panel.\nconst diasLaborables = (cal.dias_laborables || '1,2,3,4,5')\n  .split(',')\n  .map((s) => parseInt(s, 10))\n  .filter((n) => n >= 1 && n <= 7);\n\n// duracion = lo que ocupa la cita. paso = cada cuanto puede empezar una.\n// Son cosas distintas: citas de 60 min con paso de 15 permiten reservar a las 10:15.\nconst duracion = parseInt(cal.duracion_min || '60', 10);\nconst paso = parseInt(cal.paso_min || '15', 10);\n\nconst tramos = [];\nif (cal.manana_inicio && cal.manana_fin) tramos.push([cal.manana_inicio, cal.manana_fin]);\nif (cal.tarde_inicio && cal.tarde_fin) tramos.push([cal.tarde_inicio, cal.tarde_fin]);\nif (!tramos.length) tramos.push(['09:00', '14:00'], ['16:00', '20:00']);\n\n// --- Franjas ya ocupadas segun Google Calendar -------------------------------\nconst ocupadas = [];\nfor (const c of Object.values((freeBusy || {}).calendars || {})) {\n  for (const b of c.busy || []) {\n    ocupadas.push([new Date(b.start).getTime(), new Date(b.end).getTime()]);\n  }\n}\nconst solapa = (ini, fin) => ocupadas.some(([a, b]) => ini < b && fin > a);\n\n// --- Huecos realmente libres de los proximos 7 dias --------------------------\nconst ahora = $now.toMillis();\nconst libres = [];\nfor (let i = 0; i < 7; i++) {\n  const dia = $now.plus({ days: i }).startOf('day');\n  if (!diasLaborables.includes(dia.weekday)) continue;\n\n  const horas = [];\n  for (const [desde, hasta] of tramos) {\n    const [h1, m1] = desde.split(':').map(Number);\n    const [h2, m2] = hasta.split(':').map(Number);\n    const cierre = dia.set({ hour: h2, minute: m2 });\n    let t = dia.set({ hour: h1, minute: m1 });\n    while (t.plus({ minutes: duracion }) <= cierre) {\n      const ini = t.toMillis();\n      const fin = t.plus({ minutes: duracion }).toMillis();\n      if (ini > ahora && !solapa(ini, fin)) horas.push(t.toFormat('HH:mm'));\n      t = t.plus({ minutes: paso });\n    }\n  }\n  if (horas.length) {\n    libres.push({\n      fecha: dia.toFormat('yyyy-MM-dd'),\n      dia: dia.setLocale('es').toFormat('cccc'),\n      horas,\n    });\n  }\n}\n\nreturn [{ json: { ...pet, libres, duracion, paso } }];"
+        "jsCode": "// <<< MOTOR >>>\n// ===========================================================================\n// NO EDITAR AQUI. Este bloque lo genera n8n/logica/construir-workflows.js a\n// partir de n8n/logica/motor-agenda.js. Cualquier cambio hecho en el editor\n// de n8n se pierde en la siguiente generacion.\n// ===========================================================================\n'use strict';\n\n/**\n * El motor de agenda: quién puede atender, cuándo, y qué se le contesta.\n *\n * Este fichero es la única copia de esta lógica. Vive aquí, como JavaScript\n * normal y sin dependencias, y se inyecta tal cual dentro de los nodos Code de\n * `agenda-api.json` (ver `construir-workflows.js`). Cuando estaba escrito\n * directamente en los nodos había tres copias de la misma función de parseo de\n * horas y cada corrección había que hacerla tres veces.\n *\n * No sabe nada de n8n, de Supabase ni de HTTP: recibe el contexto ya cargado y\n * devuelve una decisión. Por eso se puede probar con `node`, que es como se ha\n * escrito — antes de tocar el workflow que hoy está dando citas de verdad.\n *\n * La regla que gobierna todo lo demás: **la IA extrae, el código decide.** Aquí\n * no hay ninguna llamada a un modelo. El texto que llega es materia prima que\n * se empareja contra la lista real de servicios y de trabajadores del negocio.\n */\n\nvar ZONA_POR_DEFECTO = 'Europe/Madrid';\nvar DIAS_ISO = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };\nvar NOMBRE_DIA = [\n  '', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo',\n];\n\n// === Fechas y zona horaria ===================================================\n// Sin Luxon: el nodo de n8n la tiene, pero atarse a ella dejaría este fichero\n// sin poder ejecutarse fuera, que es justo lo que lo hace comprobable. Con\n// Intl basta y viene en cualquier Node moderno.\n\nfunction partesEnZona(ms, zona) {\n  var fmt = new Intl.DateTimeFormat('en-US', {\n    timeZone: zona,\n    hour12: false,\n    weekday: 'short',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n  });\n\n  var p = {};\n  var partes = fmt.formatToParts(new Date(ms));\n  for (var i = 0; i < partes.length; i++) p[partes[i].type] = partes[i].value;\n\n  // Algunos motores devuelven \"24\" para la medianoche con hour12:false.\n  var hora = p.hour === '24' ? '00' : p.hour;\n\n  return {\n    fecha: p.year + '-' + p.month + '-' + p.day,\n    hora: hora + ':' + p.minute,\n    diaSemana: DIAS_ISO[p.weekday],\n  };\n}\n\n/** Milisegundos que hay que sumarle a la hora UTC para leer la hora local. */\nfunction desfase(ms, zona) {\n  var p = partesEnZona(ms, zona);\n  var comoUtc = Date.UTC(\n    Number(p.fecha.slice(0, 4)),\n    Number(p.fecha.slice(5, 7)) - 1,\n    Number(p.fecha.slice(8, 10)),\n    Number(p.hora.slice(0, 2)),\n    Number(p.hora.slice(3, 5))\n  );\n  return comoUtc - Math.floor(ms / 60000) * 60000;\n}\n\n/**\n * \"2026-09-15\" + \"17:00\" en Madrid -> milisegundos UTC.\n *\n * Se corrige dos veces a propósito. El desfase depende del instante, y el\n * instante es justo lo que se está calculando: en los dos domingos del cambio\n * de hora, el desfase de la suposición no es el del resultado. Con la segunda\n * pasada, una cita a las 10:00 del domingo del cambio sigue siendo a las 10:00.\n */\nfunction instante(fecha, hora, zona) {\n  var f = String(fecha).split('-').map(Number);\n  var h = String(hora).split(':').map(Number);\n  var supuesto = Date.UTC(f[0], f[1] - 1, f[2], h[0], h[1]);\n  var ms = supuesto - desfase(supuesto, zona);\n  return supuesto - desfase(ms, zona);\n}\n\n/** La fecha \"YYYY-MM-DD\" de dentro de n días, en hora local. */\nfunction fechaSumando(ms, dias, zona) {\n  return partesEnZona(ms + dias * 86400000, zona).fecha;\n}\n\nfunction diaSemanaDe(fecha, zona) {\n  return partesEnZona(instante(fecha, '12:00', zona), zona).diaSemana;\n}\n\n// === Texto ===================================================================\n\nfunction normalizar(texto) {\n  return String(texto == null ? '' : texto)\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase()\n    .replace(/[^a-z0-9ñ ]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nvar dosCifras = function (n) { return String(n).padStart(2, '0'); };\nvar aMinutos = function (h) {\n  var p = String(h).split(':').map(Number);\n  return p[0] * 60 + p[1];\n};\nvar aTexto = function (m) {\n  return dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n};\n\n/**\n * La hora escrita en el mensaje manda sobre la que extrae la IA.\n *\n * Se la ha visto devolver `time: null` con la hora delante, y coger la primera\n * opción de su propia lista de alternativas: le pides las 12:30 y reserva las\n * 12:15. El prompt pide que no falle; la red de seguridad va en el código.\n */\nfunction horaDelTexto(txt) {\n  var t = String(txt == null ? '' : txt).toLowerCase();\n  // El punto suelto no separa horas: \"4.08\" es una fecha, no las 04:08.\n  var patrones = [\n    /\\blas\\s+(\\d{1,2})(?:\\s*[:.,'’h]\\s*(\\d{2}))?/,\n    /\\b(\\d{1,2})\\s*[:'’]\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*[.,]\\s*(\\d{2})\\s*h\\b/,\n    /\\b(\\d{1,2})\\s*h\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*h\\b/,\n  ];\n  for (var i = 0; i < patrones.length; i++) {\n    var m = t.match(patrones[i]);\n    if (!m) continue;\n    var h = Number(m[1]);\n    var min = m[2] === undefined ? 0 : Number(m[2]);\n    if (h < 24 && min < 60) return dosCifras(h) + ':' + dosCifras(min);\n  }\n  return null;\n}\n\n// === Emparejar lo que piden con lo que hay ===================================\n\n/**\n * Qué servicio del catálogo es \"unas mechitas\".\n *\n * Se compara contra el nombre y contra los alias, y hay tres formas de encajar,\n * por orden de confianza. El orden es lo importante, no la comparación:\n *\n *   3. **Exacta.** \"corte\" es «Corte», y se acabó.\n *   2. **El texto contiene al servicio**: \"quiero corte y mechas\" contiene tanto\n *      «Corte» como «Corte y mechas». Aquí gana el más largo, porque el texto da\n *      para los dos y el largo aprovecha más de lo que la persona ha dicho.\n *   1. **El servicio contiene al texto**: \"mecha\" encaja en «mechas». Aquí gana\n *      el más CORTO, y esto es justo lo contrario del caso anterior.\n *\n * Mezclar los niveles 1 y 2 en una sola regla de \"gana el más largo\" hacía que\n * \"corte\" se llevara «Corte y mechas» —dos horas de cita y solo dos personas\n * capaces de hacerla— cuando lo que pedían era un corte de treinta minutos.\n */\nfunction emparejarServicio(texto, servicios) {\n  var t = normalizar(texto);\n  if (!t) return null;\n\n  var mejor = null;\n  var mejorNivel = -1;\n  var mejorPeso = -Infinity;\n\n  for (var i = 0; i < servicios.length; i++) {\n    var s = servicios[i];\n    var candidatos = [s.nombre].concat(s.alias || []);\n\n    for (var j = 0; j < candidatos.length; j++) {\n      var c = normalizar(candidatos[j]);\n      if (!c) continue;\n\n      var nivel;\n      var peso;\n\n      if (t === c) {\n        nivel = 3;\n        peso = c.length;\n      } else if (t.indexOf(c) !== -1) {\n        nivel = 2;\n        peso = c.length;\n      } else if (c.indexOf(t) !== -1 && t.length >= 3) {\n        // El mínimo de tres letras evita que un \"a\" suelto encaje con todo.\n        nivel = 1;\n        peso = -c.length;\n      } else continue;\n\n      if (nivel > mejorNivel || (nivel === mejorNivel && peso > mejorPeso)) {\n        mejor = s;\n        mejorNivel = nivel;\n        mejorPeso = peso;\n      }\n    }\n  }\n\n  return mejor;\n}\n\nfunction emparejarServicios(textos, servicios) {\n  var elegidos = [];\n  var desconocidos = [];\n  var vistos = {};\n\n  var lista = Array.isArray(textos) ? textos : textos ? [textos] : [];\n\n  for (var i = 0; i < lista.length; i++) {\n    var texto = String(lista[i] || '').trim();\n    if (!texto) continue;\n\n    var s = emparejarServicio(texto, servicios);\n    if (!s) {\n      desconocidos.push(texto);\n      continue;\n    }\n    if (vistos[s.id]) continue;\n    vistos[s.id] = true;\n    elegidos.push(s);\n  }\n\n  return { elegidos: elegidos, desconocidos: desconocidos };\n}\n\n/** \"con ana\" -> el trabajador Ana. Solo por nombre: el modelo no sabe ids. */\nfunction emparejarTrabajador(texto, trabajadores) {\n  var t = normalizar(texto);\n  if (!t) return null;\n\n  var mejor = null;\n  var mejorLargo = -1;\n\n  for (var i = 0; i < trabajadores.length; i++) {\n    var n = normalizar(trabajadores[i].nombre);\n    if (!n) continue;\n\n    // Se compara por palabras completas: \"ana\" no puede casar con \"Anabel\".\n    var palabras = (' ' + t + ' ').indexOf(' ' + n + ' ') !== -1;\n    if (!palabras && t !== n) continue;\n\n    if (n.length > mejorLargo) {\n      mejor = trabajadores[i];\n      mejorLargo = n.length;\n    }\n  }\n\n  return mejor;\n}\n\n// === Huecos ==================================================================\n\nfunction ocupacionDe(trabajador, freeBusy) {\n  var franjas = [];\n\n  function meter(lista) {\n    for (var i = 0; i < (lista || []).length; i++) {\n      var f = lista[i];\n      franjas.push([\n        new Date(f.inicio || f.start).getTime(),\n        new Date(f.fin || f.end).getTime(),\n      ]);\n    }\n  }\n\n  meter(trabajador.citas);\n  meter(trabajador.ausencias);\n\n  // Lo que la persona se haya bloqueado en su propio calendario de Google.\n  // `freeBusy` viene indexado por calendar_id; quien no tenga calendario no\n  // aporta nada aquí, y su agenda funciona igual.\n  if (trabajador.calendar_id && freeBusy && freeBusy[trabajador.calendar_id]) {\n    meter(freeBusy[trabajador.calendar_id].busy);\n  }\n\n  return franjas;\n}\n\nfunction solapa(franjas, ini, fin) {\n  for (var i = 0; i < franjas.length; i++) {\n    if (ini < franjas[i][1] && fin > franjas[i][0]) return true;\n  }\n  return false;\n}\n\n/**\n * Los huecos de una persona para los próximos días.\n *\n * `duracion` es lo que ocupa la cita y `paso` cada cuánto puede empezar una.\n * Son cosas distintas: con duración 60 y paso 15, una franja libre a las 10:00\n * permite reservar también a las 10:15.\n */\nfunction huecosDeTrabajador(trabajador, opciones) {\n  var zona = opciones.zona;\n  var duracionMs = opciones.duracion * 60000;\n  var franjas = ocupacionDe(trabajador, opciones.freeBusy);\n  var porFecha = {};\n\n  for (var i = 0; i < opciones.dias; i++) {\n    var fecha = fechaSumando(opciones.ahora, i, zona);\n    var diaSemana = diaSemanaDe(fecha, zona);\n\n    var tramos = (trabajador.horario || []).filter(function (t) {\n      return t.dia === diaSemana;\n    });\n    if (!tramos.length) continue;\n\n    var horas = [];\n    for (var j = 0; j < tramos.length; j++) {\n      var cierre = instante(fecha, tramos[j].fin, zona);\n      var t = instante(fecha, tramos[j].inicio, zona);\n\n      while (t + duracionMs <= cierre) {\n        if (t > opciones.ahora && !solapa(franjas, t, t + duracionMs)) {\n          horas.push(partesEnZona(t, zona).hora);\n        }\n        t += opciones.paso * 60000;\n      }\n    }\n\n    if (horas.length) {\n      // Dos tramos del mismo día pueden generar la misma hora si se solapan en\n      // la configuración; se ordena y se quita el repetido.\n      horas.sort();\n      porFecha[fecha] = horas.filter(function (h, k) {\n        return horas.indexOf(h) === k;\n      });\n    }\n  }\n\n  return porFecha;\n}\n\n/**\n * Une los huecos de todos los candidatos guardando quién puede en cada uno.\n *\n * Se guarda quién, y no solo que hay hueco, porque al reservar sin persona\n * elegida hay que saber a quién asignárselo — y porque si preguntan \"¿quién me\n * puede atender el martes?\" la respuesta ya está calculada.\n */\nfunction unirHuecos(candidatos, opciones) {\n  var porFecha = {};\n\n  for (var i = 0; i < candidatos.length; i++) {\n    var suyos = huecosDeTrabajador(candidatos[i], opciones);\n\n    for (var fecha in suyos) {\n      if (!porFecha[fecha]) porFecha[fecha] = {};\n      var horas = suyos[fecha];\n      for (var j = 0; j < horas.length; j++) {\n        if (!porFecha[fecha][horas[j]]) porFecha[fecha][horas[j]] = [];\n        porFecha[fecha][horas[j]].push(candidatos[i].id);\n      }\n    }\n  }\n\n  var dias = Object.keys(porFecha).sort().map(function (fecha) {\n    var horas = Object.keys(porFecha[fecha]).sort();\n    return {\n      fecha: fecha,\n      dia: NOMBRE_DIA[diaSemanaDe(fecha, opciones.zona)],\n      horas: horas,\n      quien: porFecha[fecha],\n    };\n  });\n\n  return dias;\n}\n\n/**\n * A quién se le asigna una cita que nadie ha pedido a nombre de alguien.\n *\n * Al que menos ocupado esté ese día, y a igualdad el del `orden` del panel. Dar\n * siempre al primero de la lista carga a una persona y deja al resto vacío;\n * repartir por carga es lo que hace que el hueco siguiente siga existiendo.\n */\nfunction elegirTrabajador(ids, trabajadores, fecha, zona) {\n  var indice = {};\n  for (var i = 0; i < trabajadores.length; i++) indice[trabajadores[i].id] = trabajadores[i];\n\n  var desde = instante(fecha, '00:00', zona);\n  var hasta = desde + 86400000;\n\n  var mejor = null;\n  var mejorCarga = Infinity;\n  var mejorOrden = Infinity;\n\n  for (var j = 0; j < ids.length; j++) {\n    var t = indice[ids[j]];\n    if (!t) continue;\n\n    var carga = 0;\n    var citas = t.citas || [];\n    for (var k = 0; k < citas.length; k++) {\n      var ini = new Date(citas[k].inicio).getTime();\n      var fin = new Date(citas[k].fin).getTime();\n      if (ini < hasta && fin > desde) carga += fin - ini;\n    }\n\n    var orden = t.orden == null ? 0 : t.orden;\n    if (carga < mejorCarga || (carga === mejorCarga && orden < mejorOrden)) {\n      mejor = t;\n      mejorCarga = carga;\n      mejorOrden = orden;\n    }\n  }\n\n  return mejor;\n}\n\n/**\n * Las alternativas son las más CERCANAS a la hora pedida: la última que cabe\n * antes y unas cuantas después. Ofrecerle las nueve de la mañana a quien pide\n * las doce no le sirve de nada.\n */\nfunction alternativasCerca(dias, fecha, hora) {\n  var pedido = aMinutos(hora);\n\n  function cercanas(horas, nDespues) {\n    var antes = horas.filter(function (h) { return aMinutos(h) < pedido; }).slice(-1);\n    var despues = horas.filter(function (h) { return aMinutos(h) > pedido; }).slice(0, nDespues);\n    return antes.concat(despues);\n  }\n\n  var salida = [];\n  var mismoDia = dias.filter(function (d) { return d.fecha === fecha; })[0];\n  if (mismoDia && mismoDia.horas.length) {\n    salida.push({ fecha: mismoDia.fecha, dia: mismoDia.dia, horas: cercanas(mismoDia.horas, 4) });\n  }\n\n  for (var i = 0; i < dias.length && salida.length < 3; i++) {\n    if (dias[i].fecha === fecha || !dias[i].horas.length) continue;\n    salida.push({ fecha: dias[i].fecha, dia: dias[i].dia, horas: cercanas(dias[i].horas, 3) });\n  }\n\n  return salida.filter(function (a) { return a.horas.length; });\n}\n\n/** Agrupa horas seguidas en rangos: \"09:00-10:15, 12:15-13:00\". */\nfunction rangos(horas, paso) {\n  var out = [];\n  var ini = null;\n  var prev = null;\n\n  for (var i = 0; i < horas.length; i++) {\n    var m = aMinutos(horas[i]);\n    if (prev !== null && m === prev + paso) { prev = m; continue; }\n    if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n    ini = m;\n    prev = m;\n  }\n  if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n\n  return out.join(', ');\n}\n\n// === La decisión =============================================================\n\nfunction listaLegible(nombres) {\n  if (!nombres.length) return '';\n  if (nombres.length === 1) return nombres[0];\n  return nombres.slice(0, -1).join(', ') + ' y ' + nombres[nombres.length - 1];\n}\n\n/**\n * Resuelve una petición contra el contexto del negocio.\n *\n * El orden de las comprobaciones importa y es el mismo que ya tenía la Agenda\n * API, con dos escalones nuevos delante:\n *\n *   0. ¿Se entiende el servicio que piden? Si no, no se sigue: la duración\n *      depende de él y sin duración los huecos son mentira.\n *   1. ¿Hay alguien que pueda hacerlo? Si han pedido a una persona que no lo\n *      hace, se dice quién sí — no \"no hay hueco\", que sería falso.\n *   2. ¿Falta fecha u hora? Contesta la IA pidiendo lo que falte.\n *   3. ¿Está ocupado? Se dice ya, con alternativas. No se piden más datos:\n *      sacarle el email a alguien para una cita imposible es sacárselo para nada.\n *   4. ¿Libre y con email? Se reserva.\n */\nfunction resolver(contexto, peticion, ahora) {\n  var zona = (contexto.config && contexto.config.zona) || ZONA_POR_DEFECTO;\n  var config = contexto.config || {};\n  var trabajadores = contexto.trabajadores || [];\n  var servicios = contexto.servicios || [];\n\n  var paso = parseInt(config.paso_min || '15', 10);\n  var duracionPorDefecto = parseInt(config.duracion_min || '60', 10);\n  var nombrar = trabajadores.length > 1;\n\n  var accion = String(peticion.accion || 'disponibilidad').toLowerCase();\n  var fecha = peticion.fecha || null;\n  var hora = peticion.hora\n    ? horaDelTexto(String(peticion.hora)) || String(peticion.hora)\n    : null;\n  var email = /^[^\\s@]+@[^\\s@]+\\.[a-z]{2,}$/i.test(String(peticion.email || '').trim())\n    ? String(peticion.email).trim()\n    : '';\n\n  // --- 0. Qué servicios piden ----------------------------------------------\n  var emparejados = emparejarServicios(peticion.servicios, servicios);\n  var elegidos = emparejados.elegidos;\n\n  if (!elegidos.length && emparejados.desconocidos.length && servicios.length) {\n    return {\n      ok: true,\n      estado: 'servicio_desconocido',\n      hay_hueco: false,\n      reservada: false,\n      desconocidos: emparejados.desconocidos,\n      mensaje:\n        'No tengo «' + emparejados.desconocidos.join('», «') + '» en la lista. ' +\n        'Puedo darte cita para: ' +\n        listaLegible(servicios.map(function (s) { return s.nombre; })) + '.',\n    };\n  }\n\n  var duracion = elegidos.length\n    ? elegidos.reduce(function (t, s) { return t + s.duracion_min; }, 0)\n    : duracionPorDefecto;\n\n  // --- 1. Quién puede atender ----------------------------------------------\n  var candidatos = trabajadores.slice();\n\n  for (var i = 0; i < elegidos.length; i++) {\n    var puede = elegidos[i].staff || [];\n    candidatos = candidatos.filter(function (t) {\n      return puede.indexOf(t.id) !== -1;\n    });\n  }\n\n  var pedido = peticion.trabajador\n    ? emparejarTrabajador(peticion.trabajador, trabajadores)\n    : null;\n\n  if (peticion.trabajador && !pedido) {\n    return {\n      ok: true,\n      estado: 'trabajador_desconocido',\n      hay_hueco: false,\n      reservada: false,\n      mensaje:\n        'No tengo a nadie con ese nombre. Puedo mirarte con ' +\n        listaLegible(trabajadores.map(function (t) { return t.nombre; })) + '.',\n    };\n  }\n\n  if (pedido) {\n    var puedeEste = candidatos.filter(function (t) { return t.id === pedido.id; });\n\n    if (!puedeEste.length) {\n      // Pedir a alguien que no hace ese servicio no es \"no hay hueco\": es otra\n      // cosa, y decirla mal hace que la persona se vaya creyendo que no hay\n      // sitio cuando sí lo hay con otra compañera.\n      var quienesSi = candidatos.map(function (t) { return t.nombre; });\n      return {\n        ok: true,\n        estado: 'no_lo_hace',\n        hay_hueco: false,\n        reservada: false,\n        mensaje: quienesSi.length\n          ? pedido.nombre + ' no hace ' +\n            listaLegible(elegidos.map(function (s) { return s.nombre.toLowerCase(); })) +\n            '. Sí lo hace ' + listaLegible(quienesSi) + '. ¿Te va bien con alguien de ellos?'\n          : pedido.nombre + ' no hace eso, y ahora mismo no tengo a nadie más que pueda.',\n      };\n    }\n\n    candidatos = puedeEste;\n  }\n\n  if (!candidatos.length) {\n    return {\n      ok: true,\n      estado: 'sin_candidatos',\n      hay_hueco: false,\n      reservada: false,\n      mensaje: 'Ahora mismo no tengo a nadie que pueda atender eso. Te paso con una persona del equipo.',\n    };\n  }\n\n  // --- 2. Los huecos --------------------------------------------------------\n  var opciones = {\n    zona: zona,\n    ahora: ahora,\n    dias: 7,\n    duracion: duracion,\n    paso: paso,\n    freeBusy: contexto.freeBusy || null,\n  };\n\n  var dias = unirHuecos(candidatos, opciones);\n\n  // Una fecha fuera de la ventana que se calcula no está \"ocupada\": es que\n  // todavía no llega, o que ya ha pasado. Decir \"no está disponible\" a quien\n  // pide dentro de tres semanas es mentirle, y encima se va convencido de que\n  // no hay sitio.\n  if (fecha) {\n    var hoy = partesEnZona(ahora, zona).fecha;\n    var ultimo = fechaSumando(ahora, opciones.dias - 1, zona);\n\n    if (fecha < hoy) {\n      return {\n        ok: true,\n        estado: 'fecha_pasada',\n        hay_hueco: false,\n        reservada: false,\n        fecha: fecha,\n        mensaje: 'Esa fecha ya ha pasado. Dime un día a partir de hoy.',\n      };\n    }\n\n    if (fecha > ultimo) {\n      return {\n        ok: true,\n        estado: 'fuera_de_ventana',\n        hay_hueco: false,\n        reservada: false,\n        fecha: fecha,\n        hasta: ultimo,\n        mensaje: 'Todavía no tengo abierta la agenda tan lejos. De momento puedo darte cita hasta el ' +\n          ultimo + '. Si quieres, te aviso cuando se abra.',\n      };\n    }\n  }\n\n  var base = {\n    ok: true,\n    duracion_min: duracion,\n    paso_min: paso,\n    servicios: elegidos.map(function (s) {\n      return { id: s.id, nombre: s.nombre, duracion_min: s.duracion_min };\n    }),\n    candidatos: candidatos.map(function (t) { return t.id; }),\n  };\n\n  if (accion === 'disponibilidad' || !fecha || !hora) {\n    var soloEseDia = fecha\n      ? dias.filter(function (d) { return d.fecha === fecha; })\n      : dias;\n\n    var mensaje = soloEseDia.length\n      ? soloEseDia.map(function (d) {\n          return d.dia + ' ' + d.fecha + ': ' + rangos(d.horas, paso);\n        }).join('\\n')\n      : fecha\n        ? 'No queda ningún hueco libre el ' + fecha + '.'\n        : 'No queda ningún hueco libre en los próximos 7 días.';\n\n    return Object.assign(base, {\n      estado: accion === 'disponibilidad' ? 'disponibilidad' : 'faltan_datos',\n      hay_hueco: soloEseDia.length > 0,\n      reservada: false,\n      fecha: fecha,\n      hora: hora,\n      dias: soloEseDia,\n      mensaje: accion === 'disponibilidad'\n        ? mensaje\n        : 'Para darte cita necesito el día y la hora.',\n    });\n  }\n\n  // --- 3. ¿Está libre esa hora? --------------------------------------------\n  var dia = dias.filter(function (d) { return d.fecha === fecha; })[0];\n  var quien = dia && dia.quien[hora] ? dia.quien[hora] : [];\n\n  if (!quien.length) {\n    var alternativas = alternativasCerca(dias, fecha, hora);\n    var texto = alternativas\n      .map(function (a) { return a.dia + ' ' + a.fecha + ': ' + a.horas.join(', '); })\n      .join('\\n');\n\n    return Object.assign(base, {\n      estado: 'ocupado',\n      hay_hueco: false,\n      reservada: false,\n      fecha: fecha,\n      hora: hora,\n      alternativas: alternativas,\n      mensaje: texto\n        ? 'Las ' + hora + ' del ' + fecha + ' no están disponibles. Tengo libre:\\n' +\n          texto + '\\n¿Cuál te viene mejor?'\n        : 'Lo siento, no me queda ningún hueco libre en los próximos días.',\n    });\n  }\n\n  var elegido = pedido && quien.indexOf(pedido.id) !== -1\n    ? pedido\n    : elegirTrabajador(quien, trabajadores, fecha, zona);\n\n  var conQuien = nombrar ? ' con ' + elegido.nombre : '';\n\n  // --- 4. Libre. ¿Se reserva o solo se comprueba? --------------------------\n  var resultado = Object.assign(base, {\n    estado: 'libre',\n    hay_hueco: true,\n    reservada: false,\n    fecha: fecha,\n    hora: hora,\n    dia: dia.dia,\n    email: email,\n    trabajador: { id: elegido.id, nombre: elegido.nombre, calendar_id: elegido.calendar_id || null },\n    inicio: new Date(instante(fecha, hora, zona)).toISOString(),\n    fin: new Date(instante(fecha, hora, zona) + duracion * 60000).toISOString(),\n    mensaje: 'El ' + dia.dia + ' ' + fecha + ' a las ' + hora + conQuien + ' está libre.',\n  });\n\n  if (accion === 'reservar' && !email) {\n    resultado.estado = 'falta_email';\n    resultado.mensaje =\n      'El ' + dia.dia + ' ' + fecha + ' a las ' + hora + conQuien +\n      ' está libre. ¿A qué correo te mando la confirmación?';\n  }\n\n  return resultado;\n}\n\n/** El mensaje de una reserva ya creada. Lo redacta el código, no el modelo. */\nfunction mensajeReservada(datos, nombrar) {\n  var conQuien = nombrar && datos.trabajador ? ' con ' + datos.trabajador.nombre : '';\n  var queSeHace = (datos.servicios || []).length\n    ? ' (' + datos.servicios.map(function (s) { return s.nombre; }).join(' + ') + ')'\n    : '';\n\n  return '¡Listo! Tu cita queda confirmada para el ' + datos.dia + ' ' + datos.fecha +\n    ' a las ' + datos.hora + conQuien + queSeHace + '.' +\n    (datos.email ? ' Te envío la confirmación a ' + datos.email + '.' : '');\n}\n\n// === Exportado solo para las pruebas =========================================\n// En el nodo Code de n8n `module` no existe y esto no se ejecuta, así que el\n// fichero se puede inyectar entero sin recortar nada.\nif (typeof module !== 'undefined' && module.exports) {\n  module.exports = {\n    partesEnZona: partesEnZona,\n    instante: instante,\n    fechaSumando: fechaSumando,\n    diaSemanaDe: diaSemanaDe,\n    normalizar: normalizar,\n    horaDelTexto: horaDelTexto,\n    emparejarServicio: emparejarServicio,\n    emparejarServicios: emparejarServicios,\n    emparejarTrabajador: emparejarTrabajador,\n    huecosDeTrabajador: huecosDeTrabajador,\n    unirHuecos: unirHuecos,\n    elegirTrabajador: elegirTrabajador,\n    alternativasCerca: alternativasCerca,\n    rangos: rangos,\n    resolver: resolver,\n    mensajeReservada: mensajeReservada,\n  };\n}\n// <<< FIN MOTOR >>>\n\nconst pet = $('Leer petición').first().json;\nconst ctx = $('Cargar contexto').first().json || {};\n\n// El freeBusy de Google es opcional y puede faltar por tres motivos: que nadie\n// tenga calendario, que el cliente no tenga Google conectado, o que Google este\n// caido. Ninguno de los tres puede dejar sin citas a un negocio: la verdad son\n// las citas de Supabase, y esto solo anade los bloqueos personales.\nlet freeBusy = null;\ntry {\n  const fb = $('Cargar ocupación').first().json;\n  if (fb && fb.calendars) freeBusy = fb.calendars;\n} catch (e) {\n  freeBusy = null;\n}\n\nconst contexto = {\n  config: ctx.config || {},\n  trabajadores: ctx.trabajadores || [],\n  servicios: ctx.servicios || [],\n  freeBusy: freeBusy,\n};\n\nconst decision = resolver(contexto, pet, Date.now());\n\nreturn [{ json: Object.assign({}, decision, {\n  accion: pet.accion,\n  contacto: pet.contacto,\n  nombre_contacto: pet.nombre,\n  nombrar: (ctx.trabajadores || []).length > 1,\n}) }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        752,
+        640,
         300
       ],
-      "id": "ag000007-0007-4007-8007-000000000007",
-      "name": "Calcular huecos"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": false,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 3
-          },
-          "conditions": [
-            {
-              "id": "ag-cond-0001",
-              "leftValue": "={{ $json.accion }}",
-              "rightValue": "disponibilidad",
-              "operator": {
-                "type": "string",
-                "operation": "notEquals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        944,
-        300
-      ],
-      "id": "ag000008-0008-4008-8008-000000000008",
-      "name": "¿Hay hora que comprobar?"
-    },
-    {
-      "parameters": {
-        "jsCode": "const d = $input.first().json;\n\nconst aMin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };\nconst dosCifras = (n) => String(n).padStart(2, '0');\nconst aTexto = (m) => dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n\n// La hora que el usuario escribe manda sobre la que extrae la IA: se la ha visto\n// devolver time=null con la hora delante, y coger la primera opcion de su propia\n// lista de alternativas (le pides 12:30 y reserva 12:15).\nfunction horaDelTexto(txt) {\n  const t = String(txt || '').toLowerCase();\n  // Se evita el punto como separador suelto: '4.08' es una fecha, no las 04:08.\n  const patrones = [\n    /\\blas\\s+(\\d{1,2})(?:\\s*[:.,'’h]\\s*(\\d{2}))?/,\n    /\\b(\\d{1,2})\\s*[:'’]\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*[.,]\\s*(\\d{2})\\s*h\\b/,\n    /\\b(\\d{1,2})\\s*h\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*h\\b/,\n  ];\n  for (const p of patrones) {\n    const m = t.match(p);\n    if (!m) continue;\n    const h = Number(m[1]);\n    const min = m[2] === undefined ? 0 : Number(m[2]);\n    if (h < 24 && min < 60) return dosCifras(h) + ':' + dosCifras(min);\n  }\n  return null;\n}\n\nconst libres = d.libres || [];\nconst fecha = d.fecha;\n// Normalizamos la hora por si llega como \"12h30\" o \"12'30\" desde el agente de voz.\nconst hora = d.hora ? horaDelTexto(String(d.hora)) || String(d.hora) : null;\n\n// El email es opcional: por teléfono el reconocimiento de voz lo destroza a\n// menudo, y quedarse sin cita por eso es peor que quedarse sin confirmación.\n// Si no tiene pinta de email válido, lo tratamos como que no lo hay.\nconst email = /^[^\\s@]+@[^\\s@]+\\.[a-z]{2,}$/i.test(String(d.email || '').trim())\n  ? String(d.email).trim()\n  : '';\n\nif (!fecha || !hora) {\n  return [{ json: { ...d, hora, email, estado: 'faltan_datos' } }];\n}\n\nconst dia = libres.find((d) => d.fecha === fecha);\nconst libre = Boolean(dia && dia.horas.includes(hora));\n\n// Las alternativas son las mas CERCANAS a la hora pedida: la ultima que cabe\n// antes y varias despues. Ofrecer las primeras horas del dia a quien pide las\n// 12:00 no le sirve de nada.\nconst pedido = aMin(hora);\nconst cercanas = (horas, nDespues) => {\n  const antes = horas.filter((h) => aMin(h) < pedido).slice(-1);\n  const despues = horas.filter((h) => aMin(h) > pedido).slice(0, nDespues);\n  return antes.concat(despues);\n};\n\nconst alternativas = [];\nif (dia && dia.horas.length) {\n  alternativas.push({ fecha: dia.fecha, dia: dia.dia, horas: cercanas(dia.horas, 4) });\n}\nfor (const d of libres) {\n  if (alternativas.length >= 3) break;\n  if (d.fecha === fecha || !d.horas.length) continue;\n  alternativas.push({ fecha: d.fecha, dia: d.dia, horas: cercanas(d.horas, 3) });\n}\n\nconst textoAlternativas = alternativas\n  .map((a) => a.dia + ' ' + a.fecha + ': ' + a.horas.join(', '))\n  .join('\\n');\n\nreturn [{\n  json: {\n    ...d,\n    hora,\n    email,\n    estado: libre ? 'libre' : 'ocupado',\n    dia: dia ? dia.dia : null,\n    alternativas,\n    textoAlternativas,\n  },\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1136,
-        176
-      ],
-      "id": "ag000009-0009-4009-8009-000000000009",
-      "name": "Comprobar hueco"
+      "id": "ag000009-0001-4001-8001-000000000009",
+      "name": "Decidir"
     },
     {
       "parameters": {
@@ -273,11 +228,12 @@
           "conditions": [
             {
               "id": "ag-cond-0002",
-              "leftValue": "={{ $json.estado }}",
-              "rightValue": "libre",
+              "leftValue": "={{ $json.accion === 'reservar' && $json.estado === 'libre' }}",
+              "rightValue": "",
               "operator": {
-                "type": "string",
-                "operation": "equals"
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
               }
             }
           ],
@@ -286,13 +242,44 @@
         "options": {}
       },
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
+      "typeVersion": 2.2,
       "position": [
-        1328,
-        176
+        820,
+        300
       ],
-      "id": "ag00000a-000a-400a-800a-00000000000a",
-      "name": "¿Hueco libre?"
+      "id": "ag000010-0001-4001-8001-000000000010",
+      "name": "¿Reservar?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/agenda_reservar",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_client_id\": {{ JSON.stringify($('Leer petición').first().json.client_id) }},\n  \"p_staff_id\": {{ JSON.stringify($json.trabajador.id) }},\n  \"p_inicio\": {{ JSON.stringify($json.inicio) }},\n  \"p_fin\": {{ JSON.stringify($json.fin) }},\n  \"p_servicios\": {{ JSON.stringify($json.servicios || []) }},\n  \"p_nombre\": {{ JSON.stringify($json.nombre_contacto || \"\") }},\n  \"p_contacto\": {{ JSON.stringify($json.contacto || \"\") }},\n  \"p_email\": {{ JSON.stringify($json.email || \"\") }},\n  \"p_canal\": {{ JSON.stringify($('Leer petición').first().json.canal) }},\n  \"p_notas\": {{ JSON.stringify($('Leer petición').first().json.motivo || \"\") }},\n  \"p_conversation_id\": {{ JSON.stringify($('Leer petición').first().json.conversation_id) }}\n}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        200
+      ],
+      "id": "ag000011-0001-4001-8001-000000000011",
+      "name": "Reservar"
     },
     {
       "parameters": {
@@ -305,12 +292,13 @@
           },
           "conditions": [
             {
-              "id": "ag-cond-0005",
-              "leftValue": "={{ $('Leer petición').first().json.accion }}",
-              "rightValue": "reservar",
+              "id": "ag-cond-0003",
+              "leftValue": "={{ $json.ok === true }}",
+              "rightValue": "",
               "operator": {
-                "type": "string",
-                "operation": "equals"
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
               }
             }
           ],
@@ -319,31 +307,18 @@
         "options": {}
       },
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
+      "typeVersion": 2.2,
       "position": [
-        1520,
-        176
+        1180,
+        200
       ],
-      "id": "ag000014-0014-4014-8014-000000000014",
-      "name": "¿Crear la cita?"
-    },
-    {
-      "parameters": {
-        "jsCode": "const d = $('Comprobar hueco').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    libre: true,\n    reservada: false,\n    fecha: d.fecha,\n    dia: d.dia,\n    hora: d.hora,\n    mensaje: 'El ' + d.dia + ' ' + d.fecha + ' a las ' + d.hora + ' está libre.',\n  },\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1712,
-        288
-      ],
-      "id": "ag000015-0015-4015-8015-000000000015",
-      "name": "Respuesta hueco libre"
+      "id": "ag000012-0001-4001-8001-000000000012",
+      "name": "¿Reservada?"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($('Buscar módulo calendar').first().json.config.calendar_id) }}/events",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($('Decidir').first().json.trabajador.calendar_id || '') }}/events",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -355,17 +330,112 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"summary\": {{ JSON.stringify(($('Comprobar hueco').first().json.motivo || \"Cita\") + \" - \" + ($('Comprobar hueco').first().json.contacto || $('Comprobar hueco').first().json.email)) }},\n  \"description\": {{ JSON.stringify(\"Contacto: \" + ($('Comprobar hueco').first().json.contacto || \"no indicado\") + \"\\nEmail: \" + $('Comprobar hueco').first().json.email + \"\\nMotivo: \" + ($('Comprobar hueco').first().json.motivo || \"no indicado\")) }},\n  \"start\": {\n    \"dateTime\": \"{{ $('Comprobar hueco').first().json.fecha }}T{{ $('Comprobar hueco').first().json.hora }}:00\",\n    \"timeZone\": \"Europe/Madrid\"\n  },\n  \"end\": {\n    \"dateTime\": \"{{ DateTime.fromISO($('Comprobar hueco').first().json.fecha + 'T' + $('Comprobar hueco').first().json.hora).plus({ minutes: $('Calcular huecos').first().json.duracion }).toFormat(`yyyy-MM-dd'T'HH:mm:ss`) }}\",\n    \"timeZone\": \"Europe/Madrid\"\n  }\n}",
+        "jsonBody": "={\n  \"summary\": {{ JSON.stringify(($('Decidir').first().json.servicios || []).map((s) => s.nombre).join(\" + \") || $('Leer petición').first().json.motivo || \"Cita\") }},\n  \"description\": {{ JSON.stringify(\"Contacto: \" + ($('Decidir').first().json.contacto || \"no indicado\") + \"\\nEmail: \" + ($('Decidir').first().json.email || \"no indicado\")) }},\n  \"start\": { \"dateTime\": {{ JSON.stringify($('Decidir').first().json.inicio) }} },\n  \"end\": { \"dateTime\": {{ JSON.stringify($('Decidir').first().json.fin) }} }\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
+      "typeVersion": 4.2,
       "position": [
-        1520,
-        80
+        1360,
+        120
       ],
-      "id": "ag00000b-000b-400b-800b-00000000000b",
-      "name": "Crear evento"
+      "id": "ag000013-0001-4001-8001-000000000013",
+      "name": "Crear evento",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/appointments?id=eq.{{ $('Reservar').first().json.id }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"google_event_id\": {{ JSON.stringify($json.id || null) }} }",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        120
+      ],
+      "id": "ag000014-0001-4001-8001-000000000014",
+      "name": "Guardar id del evento",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.email&active=eq.true&client_id=eq.{{ $('Leer petición').first().json.client_id }}&select=config",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1720,
+        120
+      ],
+      "id": "ag000015-0001-4001-8001-000000000015",
+      "name": "Buscar módulo email",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ag-cond-0004",
+              "leftValue": "={{ !!($('Decidir').first().json.email || '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1900,
+        120
+      ],
+      "id": "ag000016-0001-4001-8001-000000000016",
+      "name": "¿Hay email?"
     },
     {
       "parameters": {
@@ -382,92 +452,57 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"from\": {{ JSON.stringify($('Buscar módulo email').first().json.config?.from_email || \"onboarding@resend.dev\") }},\n  \"to\": [{{ JSON.stringify($('Comprobar hueco').first().json.email) }}],\n  \"subject\": \"Confirmación de tu cita\",\n  \"html\": {{ JSON.stringify(\"<p>¡Hola!</p><p>Tu cita ha quedado confirmada para el <strong>\" + $('Comprobar hueco').first().json.fecha + \"</strong> a las <strong>\" + $('Comprobar hueco').first().json.hora + \"</strong>.</p><p>Si necesitas cambiarla, avísanos.</p>\") }}\n}",
+        "jsonBody": "={\n  \"from\": {{ JSON.stringify($('Buscar módulo email').first().json.config?.from_email || \"onboarding@resend.dev\") }},\n  \"to\": [{{ JSON.stringify($('Decidir').first().json.email) }}],\n  \"subject\": \"Confirmacion de tu cita\",\n  \"html\": {{ JSON.stringify(\"<p>Hola!</p><p>Tu cita ha quedado confirmada para el <strong>\" + $('Decidir').first().json.fecha + \"</strong> a las <strong>\" + $('Decidir').first().json.hora + \"</strong>.</p><p>Si necesitas cambiarla, avisanos.</p>\") }}\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
+      "typeVersion": 4.2,
       "position": [
-        1904,
-        16
+        2080,
+        40
       ],
-      "id": "ag00000c-000c-400c-800c-00000000000c",
-      "name": "Enviar email confirmación",
-      "alwaysOutputData": true,
+      "id": "ag000017-0001-4001-8001-000000000017",
+      "name": "Enviar confirmación",
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": false,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 3
-          },
-          "conditions": [
-            {
-              "id": "ag-cond-0003",
-              "leftValue": "={{ $('Comprobar hueco').first().json.email || '' }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        1712,
-        80
-      ],
-      "id": "ag000011-0011-4011-8011-000000000011",
-      "name": "¿Hay email?"
-    },
-    {
-      "parameters": {
-        "jsCode": "const d = $('Comprobar hueco').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    reservada: true,\n    fecha: d.fecha,\n    dia: d.dia,\n    hora: d.hora,\n    email: d.email,\n    mensaje:\n      '¡Listo! Tu cita queda confirmada para el ' + d.dia + ' ' + d.fecha +\n      ' a las ' + d.hora + '.' +\n      (d.email ? ' Te envío la confirmación a ' + d.email + '.' : ''),\n  },\n}];"
+        "jsCode": "// <<< MOTOR >>>\n// ===========================================================================\n// NO EDITAR AQUI. Este bloque lo genera n8n/logica/construir-workflows.js a\n// partir de n8n/logica/motor-agenda.js. Cualquier cambio hecho en el editor\n// de n8n se pierde en la siguiente generacion.\n// ===========================================================================\n'use strict';\n\n/**\n * El motor de agenda: quién puede atender, cuándo, y qué se le contesta.\n *\n * Este fichero es la única copia de esta lógica. Vive aquí, como JavaScript\n * normal y sin dependencias, y se inyecta tal cual dentro de los nodos Code de\n * `agenda-api.json` (ver `construir-workflows.js`). Cuando estaba escrito\n * directamente en los nodos había tres copias de la misma función de parseo de\n * horas y cada corrección había que hacerla tres veces.\n *\n * No sabe nada de n8n, de Supabase ni de HTTP: recibe el contexto ya cargado y\n * devuelve una decisión. Por eso se puede probar con `node`, que es como se ha\n * escrito — antes de tocar el workflow que hoy está dando citas de verdad.\n *\n * La regla que gobierna todo lo demás: **la IA extrae, el código decide.** Aquí\n * no hay ninguna llamada a un modelo. El texto que llega es materia prima que\n * se empareja contra la lista real de servicios y de trabajadores del negocio.\n */\n\nvar ZONA_POR_DEFECTO = 'Europe/Madrid';\nvar DIAS_ISO = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };\nvar NOMBRE_DIA = [\n  '', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo',\n];\n\n// === Fechas y zona horaria ===================================================\n// Sin Luxon: el nodo de n8n la tiene, pero atarse a ella dejaría este fichero\n// sin poder ejecutarse fuera, que es justo lo que lo hace comprobable. Con\n// Intl basta y viene en cualquier Node moderno.\n\nfunction partesEnZona(ms, zona) {\n  var fmt = new Intl.DateTimeFormat('en-US', {\n    timeZone: zona,\n    hour12: false,\n    weekday: 'short',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n  });\n\n  var p = {};\n  var partes = fmt.formatToParts(new Date(ms));\n  for (var i = 0; i < partes.length; i++) p[partes[i].type] = partes[i].value;\n\n  // Algunos motores devuelven \"24\" para la medianoche con hour12:false.\n  var hora = p.hour === '24' ? '00' : p.hour;\n\n  return {\n    fecha: p.year + '-' + p.month + '-' + p.day,\n    hora: hora + ':' + p.minute,\n    diaSemana: DIAS_ISO[p.weekday],\n  };\n}\n\n/** Milisegundos que hay que sumarle a la hora UTC para leer la hora local. */\nfunction desfase(ms, zona) {\n  var p = partesEnZona(ms, zona);\n  var comoUtc = Date.UTC(\n    Number(p.fecha.slice(0, 4)),\n    Number(p.fecha.slice(5, 7)) - 1,\n    Number(p.fecha.slice(8, 10)),\n    Number(p.hora.slice(0, 2)),\n    Number(p.hora.slice(3, 5))\n  );\n  return comoUtc - Math.floor(ms / 60000) * 60000;\n}\n\n/**\n * \"2026-09-15\" + \"17:00\" en Madrid -> milisegundos UTC.\n *\n * Se corrige dos veces a propósito. El desfase depende del instante, y el\n * instante es justo lo que se está calculando: en los dos domingos del cambio\n * de hora, el desfase de la suposición no es el del resultado. Con la segunda\n * pasada, una cita a las 10:00 del domingo del cambio sigue siendo a las 10:00.\n */\nfunction instante(fecha, hora, zona) {\n  var f = String(fecha).split('-').map(Number);\n  var h = String(hora).split(':').map(Number);\n  var supuesto = Date.UTC(f[0], f[1] - 1, f[2], h[0], h[1]);\n  var ms = supuesto - desfase(supuesto, zona);\n  return supuesto - desfase(ms, zona);\n}\n\n/** La fecha \"YYYY-MM-DD\" de dentro de n días, en hora local. */\nfunction fechaSumando(ms, dias, zona) {\n  return partesEnZona(ms + dias * 86400000, zona).fecha;\n}\n\nfunction diaSemanaDe(fecha, zona) {\n  return partesEnZona(instante(fecha, '12:00', zona), zona).diaSemana;\n}\n\n// === Texto ===================================================================\n\nfunction normalizar(texto) {\n  return String(texto == null ? '' : texto)\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase()\n    .replace(/[^a-z0-9ñ ]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nvar dosCifras = function (n) { return String(n).padStart(2, '0'); };\nvar aMinutos = function (h) {\n  var p = String(h).split(':').map(Number);\n  return p[0] * 60 + p[1];\n};\nvar aTexto = function (m) {\n  return dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n};\n\n/**\n * La hora escrita en el mensaje manda sobre la que extrae la IA.\n *\n * Se la ha visto devolver `time: null` con la hora delante, y coger la primera\n * opción de su propia lista de alternativas: le pides las 12:30 y reserva las\n * 12:15. El prompt pide que no falle; la red de seguridad va en el código.\n */\nfunction horaDelTexto(txt) {\n  var t = String(txt == null ? '' : txt).toLowerCase();\n  // El punto suelto no separa horas: \"4.08\" es una fecha, no las 04:08.\n  var patrones = [\n    /\\blas\\s+(\\d{1,2})(?:\\s*[:.,'’h]\\s*(\\d{2}))?/,\n    /\\b(\\d{1,2})\\s*[:'’]\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*[.,]\\s*(\\d{2})\\s*h\\b/,\n    /\\b(\\d{1,2})\\s*h\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*h\\b/,\n  ];\n  for (var i = 0; i < patrones.length; i++) {\n    var m = t.match(patrones[i]);\n    if (!m) continue;\n    var h = Number(m[1]);\n    var min = m[2] === undefined ? 0 : Number(m[2]);\n    if (h < 24 && min < 60) return dosCifras(h) + ':' + dosCifras(min);\n  }\n  return null;\n}\n\n// === Emparejar lo que piden con lo que hay ===================================\n\n/**\n * Qué servicio del catálogo es \"unas mechitas\".\n *\n * Se compara contra el nombre y contra los alias, y hay tres formas de encajar,\n * por orden de confianza. El orden es lo importante, no la comparación:\n *\n *   3. **Exacta.** \"corte\" es «Corte», y se acabó.\n *   2. **El texto contiene al servicio**: \"quiero corte y mechas\" contiene tanto\n *      «Corte» como «Corte y mechas». Aquí gana el más largo, porque el texto da\n *      para los dos y el largo aprovecha más de lo que la persona ha dicho.\n *   1. **El servicio contiene al texto**: \"mecha\" encaja en «mechas». Aquí gana\n *      el más CORTO, y esto es justo lo contrario del caso anterior.\n *\n * Mezclar los niveles 1 y 2 en una sola regla de \"gana el más largo\" hacía que\n * \"corte\" se llevara «Corte y mechas» —dos horas de cita y solo dos personas\n * capaces de hacerla— cuando lo que pedían era un corte de treinta minutos.\n */\nfunction emparejarServicio(texto, servicios) {\n  var t = normalizar(texto);\n  if (!t) return null;\n\n  var mejor = null;\n  var mejorNivel = -1;\n  var mejorPeso = -Infinity;\n\n  for (var i = 0; i < servicios.length; i++) {\n    var s = servicios[i];\n    var candidatos = [s.nombre].concat(s.alias || []);\n\n    for (var j = 0; j < candidatos.length; j++) {\n      var c = normalizar(candidatos[j]);\n      if (!c) continue;\n\n      var nivel;\n      var peso;\n\n      if (t === c) {\n        nivel = 3;\n        peso = c.length;\n      } else if (t.indexOf(c) !== -1) {\n        nivel = 2;\n        peso = c.length;\n      } else if (c.indexOf(t) !== -1 && t.length >= 3) {\n        // El mínimo de tres letras evita que un \"a\" suelto encaje con todo.\n        nivel = 1;\n        peso = -c.length;\n      } else continue;\n\n      if (nivel > mejorNivel || (nivel === mejorNivel && peso > mejorPeso)) {\n        mejor = s;\n        mejorNivel = nivel;\n        mejorPeso = peso;\n      }\n    }\n  }\n\n  return mejor;\n}\n\nfunction emparejarServicios(textos, servicios) {\n  var elegidos = [];\n  var desconocidos = [];\n  var vistos = {};\n\n  var lista = Array.isArray(textos) ? textos : textos ? [textos] : [];\n\n  for (var i = 0; i < lista.length; i++) {\n    var texto = String(lista[i] || '').trim();\n    if (!texto) continue;\n\n    var s = emparejarServicio(texto, servicios);\n    if (!s) {\n      desconocidos.push(texto);\n      continue;\n    }\n    if (vistos[s.id]) continue;\n    vistos[s.id] = true;\n    elegidos.push(s);\n  }\n\n  return { elegidos: elegidos, desconocidos: desconocidos };\n}\n\n/** \"con ana\" -> el trabajador Ana. Solo por nombre: el modelo no sabe ids. */\nfunction emparejarTrabajador(texto, trabajadores) {\n  var t = normalizar(texto);\n  if (!t) return null;\n\n  var mejor = null;\n  var mejorLargo = -1;\n\n  for (var i = 0; i < trabajadores.length; i++) {\n    var n = normalizar(trabajadores[i].nombre);\n    if (!n) continue;\n\n    // Se compara por palabras completas: \"ana\" no puede casar con \"Anabel\".\n    var palabras = (' ' + t + ' ').indexOf(' ' + n + ' ') !== -1;\n    if (!palabras && t !== n) continue;\n\n    if (n.length > mejorLargo) {\n      mejor = trabajadores[i];\n      mejorLargo = n.length;\n    }\n  }\n\n  return mejor;\n}\n\n// === Huecos ==================================================================\n\nfunction ocupacionDe(trabajador, freeBusy) {\n  var franjas = [];\n\n  function meter(lista) {\n    for (var i = 0; i < (lista || []).length; i++) {\n      var f = lista[i];\n      franjas.push([\n        new Date(f.inicio || f.start).getTime(),\n        new Date(f.fin || f.end).getTime(),\n      ]);\n    }\n  }\n\n  meter(trabajador.citas);\n  meter(trabajador.ausencias);\n\n  // Lo que la persona se haya bloqueado en su propio calendario de Google.\n  // `freeBusy` viene indexado por calendar_id; quien no tenga calendario no\n  // aporta nada aquí, y su agenda funciona igual.\n  if (trabajador.calendar_id && freeBusy && freeBusy[trabajador.calendar_id]) {\n    meter(freeBusy[trabajador.calendar_id].busy);\n  }\n\n  return franjas;\n}\n\nfunction solapa(franjas, ini, fin) {\n  for (var i = 0; i < franjas.length; i++) {\n    if (ini < franjas[i][1] && fin > franjas[i][0]) return true;\n  }\n  return false;\n}\n\n/**\n * Los huecos de una persona para los próximos días.\n *\n * `duracion` es lo que ocupa la cita y `paso` cada cuánto puede empezar una.\n * Son cosas distintas: con duración 60 y paso 15, una franja libre a las 10:00\n * permite reservar también a las 10:15.\n */\nfunction huecosDeTrabajador(trabajador, opciones) {\n  var zona = opciones.zona;\n  var duracionMs = opciones.duracion * 60000;\n  var franjas = ocupacionDe(trabajador, opciones.freeBusy);\n  var porFecha = {};\n\n  for (var i = 0; i < opciones.dias; i++) {\n    var fecha = fechaSumando(opciones.ahora, i, zona);\n    var diaSemana = diaSemanaDe(fecha, zona);\n\n    var tramos = (trabajador.horario || []).filter(function (t) {\n      return t.dia === diaSemana;\n    });\n    if (!tramos.length) continue;\n\n    var horas = [];\n    for (var j = 0; j < tramos.length; j++) {\n      var cierre = instante(fecha, tramos[j].fin, zona);\n      var t = instante(fecha, tramos[j].inicio, zona);\n\n      while (t + duracionMs <= cierre) {\n        if (t > opciones.ahora && !solapa(franjas, t, t + duracionMs)) {\n          horas.push(partesEnZona(t, zona).hora);\n        }\n        t += opciones.paso * 60000;\n      }\n    }\n\n    if (horas.length) {\n      // Dos tramos del mismo día pueden generar la misma hora si se solapan en\n      // la configuración; se ordena y se quita el repetido.\n      horas.sort();\n      porFecha[fecha] = horas.filter(function (h, k) {\n        return horas.indexOf(h) === k;\n      });\n    }\n  }\n\n  return porFecha;\n}\n\n/**\n * Une los huecos de todos los candidatos guardando quién puede en cada uno.\n *\n * Se guarda quién, y no solo que hay hueco, porque al reservar sin persona\n * elegida hay que saber a quién asignárselo — y porque si preguntan \"¿quién me\n * puede atender el martes?\" la respuesta ya está calculada.\n */\nfunction unirHuecos(candidatos, opciones) {\n  var porFecha = {};\n\n  for (var i = 0; i < candidatos.length; i++) {\n    var suyos = huecosDeTrabajador(candidatos[i], opciones);\n\n    for (var fecha in suyos) {\n      if (!porFecha[fecha]) porFecha[fecha] = {};\n      var horas = suyos[fecha];\n      for (var j = 0; j < horas.length; j++) {\n        if (!porFecha[fecha][horas[j]]) porFecha[fecha][horas[j]] = [];\n        porFecha[fecha][horas[j]].push(candidatos[i].id);\n      }\n    }\n  }\n\n  var dias = Object.keys(porFecha).sort().map(function (fecha) {\n    var horas = Object.keys(porFecha[fecha]).sort();\n    return {\n      fecha: fecha,\n      dia: NOMBRE_DIA[diaSemanaDe(fecha, opciones.zona)],\n      horas: horas,\n      quien: porFecha[fecha],\n    };\n  });\n\n  return dias;\n}\n\n/**\n * A quién se le asigna una cita que nadie ha pedido a nombre de alguien.\n *\n * Al que menos ocupado esté ese día, y a igualdad el del `orden` del panel. Dar\n * siempre al primero de la lista carga a una persona y deja al resto vacío;\n * repartir por carga es lo que hace que el hueco siguiente siga existiendo.\n */\nfunction elegirTrabajador(ids, trabajadores, fecha, zona) {\n  var indice = {};\n  for (var i = 0; i < trabajadores.length; i++) indice[trabajadores[i].id] = trabajadores[i];\n\n  var desde = instante(fecha, '00:00', zona);\n  var hasta = desde + 86400000;\n\n  var mejor = null;\n  var mejorCarga = Infinity;\n  var mejorOrden = Infinity;\n\n  for (var j = 0; j < ids.length; j++) {\n    var t = indice[ids[j]];\n    if (!t) continue;\n\n    var carga = 0;\n    var citas = t.citas || [];\n    for (var k = 0; k < citas.length; k++) {\n      var ini = new Date(citas[k].inicio).getTime();\n      var fin = new Date(citas[k].fin).getTime();\n      if (ini < hasta && fin > desde) carga += fin - ini;\n    }\n\n    var orden = t.orden == null ? 0 : t.orden;\n    if (carga < mejorCarga || (carga === mejorCarga && orden < mejorOrden)) {\n      mejor = t;\n      mejorCarga = carga;\n      mejorOrden = orden;\n    }\n  }\n\n  return mejor;\n}\n\n/**\n * Las alternativas son las más CERCANAS a la hora pedida: la última que cabe\n * antes y unas cuantas después. Ofrecerle las nueve de la mañana a quien pide\n * las doce no le sirve de nada.\n */\nfunction alternativasCerca(dias, fecha, hora) {\n  var pedido = aMinutos(hora);\n\n  function cercanas(horas, nDespues) {\n    var antes = horas.filter(function (h) { return aMinutos(h) < pedido; }).slice(-1);\n    var despues = horas.filter(function (h) { return aMinutos(h) > pedido; }).slice(0, nDespues);\n    return antes.concat(despues);\n  }\n\n  var salida = [];\n  var mismoDia = dias.filter(function (d) { return d.fecha === fecha; })[0];\n  if (mismoDia && mismoDia.horas.length) {\n    salida.push({ fecha: mismoDia.fecha, dia: mismoDia.dia, horas: cercanas(mismoDia.horas, 4) });\n  }\n\n  for (var i = 0; i < dias.length && salida.length < 3; i++) {\n    if (dias[i].fecha === fecha || !dias[i].horas.length) continue;\n    salida.push({ fecha: dias[i].fecha, dia: dias[i].dia, horas: cercanas(dias[i].horas, 3) });\n  }\n\n  return salida.filter(function (a) { return a.horas.length; });\n}\n\n/** Agrupa horas seguidas en rangos: \"09:00-10:15, 12:15-13:00\". */\nfunction rangos(horas, paso) {\n  var out = [];\n  var ini = null;\n  var prev = null;\n\n  for (var i = 0; i < horas.length; i++) {\n    var m = aMinutos(horas[i]);\n    if (prev !== null && m === prev + paso) { prev = m; continue; }\n    if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n    ini = m;\n    prev = m;\n  }\n  if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n\n  return out.join(', ');\n}\n\n// === La decisión =============================================================\n\nfunction listaLegible(nombres) {\n  if (!nombres.length) return '';\n  if (nombres.length === 1) return nombres[0];\n  return nombres.slice(0, -1).join(', ') + ' y ' + nombres[nombres.length - 1];\n}\n\n/**\n * Resuelve una petición contra el contexto del negocio.\n *\n * El orden de las comprobaciones importa y es el mismo que ya tenía la Agenda\n * API, con dos escalones nuevos delante:\n *\n *   0. ¿Se entiende el servicio que piden? Si no, no se sigue: la duración\n *      depende de él y sin duración los huecos son mentira.\n *   1. ¿Hay alguien que pueda hacerlo? Si han pedido a una persona que no lo\n *      hace, se dice quién sí — no \"no hay hueco\", que sería falso.\n *   2. ¿Falta fecha u hora? Contesta la IA pidiendo lo que falte.\n *   3. ¿Está ocupado? Se dice ya, con alternativas. No se piden más datos:\n *      sacarle el email a alguien para una cita imposible es sacárselo para nada.\n *   4. ¿Libre y con email? Se reserva.\n */\nfunction resolver(contexto, peticion, ahora) {\n  var zona = (contexto.config && contexto.config.zona) || ZONA_POR_DEFECTO;\n  var config = contexto.config || {};\n  var trabajadores = contexto.trabajadores || [];\n  var servicios = contexto.servicios || [];\n\n  var paso = parseInt(config.paso_min || '15', 10);\n  var duracionPorDefecto = parseInt(config.duracion_min || '60', 10);\n  var nombrar = trabajadores.length > 1;\n\n  var accion = String(peticion.accion || 'disponibilidad').toLowerCase();\n  var fecha = peticion.fecha || null;\n  var hora = peticion.hora\n    ? horaDelTexto(String(peticion.hora)) || String(peticion.hora)\n    : null;\n  var email = /^[^\\s@]+@[^\\s@]+\\.[a-z]{2,}$/i.test(String(peticion.email || '').trim())\n    ? String(peticion.email).trim()\n    : '';\n\n  // --- 0. Qué servicios piden ----------------------------------------------\n  var emparejados = emparejarServicios(peticion.servicios, servicios);\n  var elegidos = emparejados.elegidos;\n\n  if (!elegidos.length && emparejados.desconocidos.length && servicios.length) {\n    return {\n      ok: true,\n      estado: 'servicio_desconocido',\n      hay_hueco: false,\n      reservada: false,\n      desconocidos: emparejados.desconocidos,\n      mensaje:\n        'No tengo «' + emparejados.desconocidos.join('», «') + '» en la lista. ' +\n        'Puedo darte cita para: ' +\n        listaLegible(servicios.map(function (s) { return s.nombre; })) + '.',\n    };\n  }\n\n  var duracion = elegidos.length\n    ? elegidos.reduce(function (t, s) { return t + s.duracion_min; }, 0)\n    : duracionPorDefecto;\n\n  // --- 1. Quién puede atender ----------------------------------------------\n  var candidatos = trabajadores.slice();\n\n  for (var i = 0; i < elegidos.length; i++) {\n    var puede = elegidos[i].staff || [];\n    candidatos = candidatos.filter(function (t) {\n      return puede.indexOf(t.id) !== -1;\n    });\n  }\n\n  var pedido = peticion.trabajador\n    ? emparejarTrabajador(peticion.trabajador, trabajadores)\n    : null;\n\n  if (peticion.trabajador && !pedido) {\n    return {\n      ok: true,\n      estado: 'trabajador_desconocido',\n      hay_hueco: false,\n      reservada: false,\n      mensaje:\n        'No tengo a nadie con ese nombre. Puedo mirarte con ' +\n        listaLegible(trabajadores.map(function (t) { return t.nombre; })) + '.',\n    };\n  }\n\n  if (pedido) {\n    var puedeEste = candidatos.filter(function (t) { return t.id === pedido.id; });\n\n    if (!puedeEste.length) {\n      // Pedir a alguien que no hace ese servicio no es \"no hay hueco\": es otra\n      // cosa, y decirla mal hace que la persona se vaya creyendo que no hay\n      // sitio cuando sí lo hay con otra compañera.\n      var quienesSi = candidatos.map(function (t) { return t.nombre; });\n      return {\n        ok: true,\n        estado: 'no_lo_hace',\n        hay_hueco: false,\n        reservada: false,\n        mensaje: quienesSi.length\n          ? pedido.nombre + ' no hace ' +\n            listaLegible(elegidos.map(function (s) { return s.nombre.toLowerCase(); })) +\n            '. Sí lo hace ' + listaLegible(quienesSi) + '. ¿Te va bien con alguien de ellos?'\n          : pedido.nombre + ' no hace eso, y ahora mismo no tengo a nadie más que pueda.',\n      };\n    }\n\n    candidatos = puedeEste;\n  }\n\n  if (!candidatos.length) {\n    return {\n      ok: true,\n      estado: 'sin_candidatos',\n      hay_hueco: false,\n      reservada: false,\n      mensaje: 'Ahora mismo no tengo a nadie que pueda atender eso. Te paso con una persona del equipo.',\n    };\n  }\n\n  // --- 2. Los huecos --------------------------------------------------------\n  var opciones = {\n    zona: zona,\n    ahora: ahora,\n    dias: 7,\n    duracion: duracion,\n    paso: paso,\n    freeBusy: contexto.freeBusy || null,\n  };\n\n  var dias = unirHuecos(candidatos, opciones);\n\n  // Una fecha fuera de la ventana que se calcula no está \"ocupada\": es que\n  // todavía no llega, o que ya ha pasado. Decir \"no está disponible\" a quien\n  // pide dentro de tres semanas es mentirle, y encima se va convencido de que\n  // no hay sitio.\n  if (fecha) {\n    var hoy = partesEnZona(ahora, zona).fecha;\n    var ultimo = fechaSumando(ahora, opciones.dias - 1, zona);\n\n    if (fecha < hoy) {\n      return {\n        ok: true,\n        estado: 'fecha_pasada',\n        hay_hueco: false,\n        reservada: false,\n        fecha: fecha,\n        mensaje: 'Esa fecha ya ha pasado. Dime un día a partir de hoy.',\n      };\n    }\n\n    if (fecha > ultimo) {\n      return {\n        ok: true,\n        estado: 'fuera_de_ventana',\n        hay_hueco: false,\n        reservada: false,\n        fecha: fecha,\n        hasta: ultimo,\n        mensaje: 'Todavía no tengo abierta la agenda tan lejos. De momento puedo darte cita hasta el ' +\n          ultimo + '. Si quieres, te aviso cuando se abra.',\n      };\n    }\n  }\n\n  var base = {\n    ok: true,\n    duracion_min: duracion,\n    paso_min: paso,\n    servicios: elegidos.map(function (s) {\n      return { id: s.id, nombre: s.nombre, duracion_min: s.duracion_min };\n    }),\n    candidatos: candidatos.map(function (t) { return t.id; }),\n  };\n\n  if (accion === 'disponibilidad' || !fecha || !hora) {\n    var soloEseDia = fecha\n      ? dias.filter(function (d) { return d.fecha === fecha; })\n      : dias;\n\n    var mensaje = soloEseDia.length\n      ? soloEseDia.map(function (d) {\n          return d.dia + ' ' + d.fecha + ': ' + rangos(d.horas, paso);\n        }).join('\\n')\n      : fecha\n        ? 'No queda ningún hueco libre el ' + fecha + '.'\n        : 'No queda ningún hueco libre en los próximos 7 días.';\n\n    return Object.assign(base, {\n      estado: accion === 'disponibilidad' ? 'disponibilidad' : 'faltan_datos',\n      hay_hueco: soloEseDia.length > 0,\n      reservada: false,\n      fecha: fecha,\n      hora: hora,\n      dias: soloEseDia,\n      mensaje: accion === 'disponibilidad'\n        ? mensaje\n        : 'Para darte cita necesito el día y la hora.',\n    });\n  }\n\n  // --- 3. ¿Está libre esa hora? --------------------------------------------\n  var dia = dias.filter(function (d) { return d.fecha === fecha; })[0];\n  var quien = dia && dia.quien[hora] ? dia.quien[hora] : [];\n\n  if (!quien.length) {\n    var alternativas = alternativasCerca(dias, fecha, hora);\n    var texto = alternativas\n      .map(function (a) { return a.dia + ' ' + a.fecha + ': ' + a.horas.join(', '); })\n      .join('\\n');\n\n    return Object.assign(base, {\n      estado: 'ocupado',\n      hay_hueco: false,\n      reservada: false,\n      fecha: fecha,\n      hora: hora,\n      alternativas: alternativas,\n      mensaje: texto\n        ? 'Las ' + hora + ' del ' + fecha + ' no están disponibles. Tengo libre:\\n' +\n          texto + '\\n¿Cuál te viene mejor?'\n        : 'Lo siento, no me queda ningún hueco libre en los próximos días.',\n    });\n  }\n\n  var elegido = pedido && quien.indexOf(pedido.id) !== -1\n    ? pedido\n    : elegirTrabajador(quien, trabajadores, fecha, zona);\n\n  var conQuien = nombrar ? ' con ' + elegido.nombre : '';\n\n  // --- 4. Libre. ¿Se reserva o solo se comprueba? --------------------------\n  var resultado = Object.assign(base, {\n    estado: 'libre',\n    hay_hueco: true,\n    reservada: false,\n    fecha: fecha,\n    hora: hora,\n    dia: dia.dia,\n    email: email,\n    trabajador: { id: elegido.id, nombre: elegido.nombre, calendar_id: elegido.calendar_id || null },\n    inicio: new Date(instante(fecha, hora, zona)).toISOString(),\n    fin: new Date(instante(fecha, hora, zona) + duracion * 60000).toISOString(),\n    mensaje: 'El ' + dia.dia + ' ' + fecha + ' a las ' + hora + conQuien + ' está libre.',\n  });\n\n  if (accion === 'reservar' && !email) {\n    resultado.estado = 'falta_email';\n    resultado.mensaje =\n      'El ' + dia.dia + ' ' + fecha + ' a las ' + hora + conQuien +\n      ' está libre. ¿A qué correo te mando la confirmación?';\n  }\n\n  return resultado;\n}\n\n/** El mensaje de una reserva ya creada. Lo redacta el código, no el modelo. */\nfunction mensajeReservada(datos, nombrar) {\n  var conQuien = nombrar && datos.trabajador ? ' con ' + datos.trabajador.nombre : '';\n  var queSeHace = (datos.servicios || []).length\n    ? ' (' + datos.servicios.map(function (s) { return s.nombre; }).join(' + ') + ')'\n    : '';\n\n  return '¡Listo! Tu cita queda confirmada para el ' + datos.dia + ' ' + datos.fecha +\n    ' a las ' + datos.hora + conQuien + queSeHace + '.' +\n    (datos.email ? ' Te envío la confirmación a ' + datos.email + '.' : '');\n}\n\n// === Exportado solo para las pruebas =========================================\n// En el nodo Code de n8n `module` no existe y esto no se ejecuta, así que el\n// fichero se puede inyectar entero sin recortar nada.\nif (typeof module !== 'undefined' && module.exports) {\n  module.exports = {\n    partesEnZona: partesEnZona,\n    instante: instante,\n    fechaSumando: fechaSumando,\n    diaSemanaDe: diaSemanaDe,\n    normalizar: normalizar,\n    horaDelTexto: horaDelTexto,\n    emparejarServicio: emparejarServicio,\n    emparejarServicios: emparejarServicios,\n    emparejarTrabajador: emparejarTrabajador,\n    huecosDeTrabajador: huecosDeTrabajador,\n    unirHuecos: unirHuecos,\n    elegirTrabajador: elegirTrabajador,\n    alternativasCerca: alternativasCerca,\n    rangos: rangos,\n    resolver: resolver,\n    mensajeReservada: mensajeReservada,\n  };\n}\n// <<< FIN MOTOR >>>\n\nconst d = $('Decidir').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    accion: 'reservar',\n    reservada: true,\n    hay_hueco: true,\n    // `libre` es por compatibilidad: el bot de WhatsApp que hay en produccion\n    // lee este campo, no `estado`. Se mantiene hasta que el bot pase a leer\n    // `estado`, y quitarlo antes le dejaria de pedir el email al cliente.\n    libre: true,\n    fecha: d.fecha,\n    dia: d.dia,\n    hora: d.hora,\n    email: d.email,\n    trabajador: d.trabajador,\n    servicios: d.servicios,\n    duracion_min: d.duracion_min,\n    cita_id: $('Reservar').first().json.id,\n    mensaje: mensajeReservada(d, d.nombrar),\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2096,
-        80
+        2260,
+        120
       ],
-      "id": "ag00000d-000d-400d-800d-00000000000d",
+      "id": "ag000018-0001-4001-8001-000000000018",
       "name": "Respuesta reservada"
     },
     {
       "parameters": {
-        "jsCode": "const d = $input.first().json;\n\nif (d.estado === 'faltan_datos') {\n  return [{\n    json: {\n      ok: false,\n      reservada: false,\n      motivo: 'faltan_datos',\n      mensaje: 'Para reservar necesito al menos la fecha y la hora.',\n    },\n  }];\n}\n\nreturn [{\n  json: {\n    ok: false,\n    reservada: false,\n    motivo: 'ocupado',\n    fecha: d.fecha,\n    hora: d.hora,\n    alternativas: d.alternativas,\n    mensaje: d.textoAlternativas\n      ? 'Lo siento, las ' + d.hora + ' del ' + d.fecha + ' no están disponibles. Tengo libre:\\n' +\n        d.textoAlternativas + '\\n¿Cuál te viene mejor?'\n      : 'Lo siento, ahora mismo no me queda ningún hueco libre en los próximos días.',\n  },\n}];"
+        "jsCode": "// Entre que se calculo el hueco y se intento reservarlo, otra conversacion se\n// lo ha llevado. No es un error: es un \"ya no cabe\", y hay que decirlo como tal.\nconst d = $('Decidir').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    accion: 'reservar',\n    reservada: false,\n    hay_hueco: false,\n    motivo: 'ocupado',\n    fecha: d.fecha,\n    hora: d.hora,\n    mensaje: 'Vaya, acaban de coger las ' + d.hora + ' del ' + d.fecha +\n      '. Dime otra hora y te la reservo.',\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1520,
-        272
+        1360,
+        300
       ],
-      "id": "ag00000e-000e-400e-800e-00000000000e",
-      "name": "Respuesta no reservada"
+      "id": "ag000019-0001-4001-8001-000000000019",
+      "name": "Respuesta hueco perdido"
     },
     {
       "parameters": {
-        "jsCode": "const d = $input.first().json;\nconst paso = d.paso;\n\nconst aMin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };\nconst dosCifras = (n) => String(n).padStart(2, '0');\nconst aTexto = (m) => dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n\n// La hora que el usuario escribe manda sobre la que extrae la IA: se la ha visto\n// devolver time=null con la hora delante, y coger la primera opcion de su propia\n// lista de alternativas (le pides 12:30 y reserva 12:15).\nfunction horaDelTexto(txt) {\n  const t = String(txt || '').toLowerCase();\n  // Se evita el punto como separador suelto: '4.08' es una fecha, no las 04:08.\n  const patrones = [\n    /\\blas\\s+(\\d{1,2})(?:\\s*[:.,'’h]\\s*(\\d{2}))?/,\n    /\\b(\\d{1,2})\\s*[:'’]\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*[.,]\\s*(\\d{2})\\s*h\\b/,\n    /\\b(\\d{1,2})\\s*h\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*h\\b/,\n  ];\n  for (const p of patrones) {\n    const m = t.match(p);\n    if (!m) continue;\n    const h = Number(m[1]);\n    const min = m[2] === undefined ? 0 : Number(m[2]);\n    if (h < 24 && min < 60) return dosCifras(h) + ':' + dosCifras(min);\n  }\n  return null;\n}\n\n\nfunction rangos(horas) {\n  const out = [];\n  let ini = null;\n  let prev = null;\n  for (const h of horas) {\n    const m = aMin(h);\n    if (prev !== null && m === prev + paso) { prev = m; continue; }\n    if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n    ini = m;\n    prev = m;\n  }\n  if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n  return out.join(', ');\n}\n\n// Si preguntan por un día concreto, respondemos solo ese: por voz no se puede\n// recitar la semana entera.\nconst dias = d.fecha ? d.libres.filter((x) => x.fecha === d.fecha) : d.libres;\n\nconst mensaje = dias.length\n  ? dias.map((x) => x.dia + ' ' + x.fecha + ': ' + rangos(x.horas)).join('\\n')\n  : d.fecha\n    ? 'No queda ningún hueco libre el ' + d.fecha + '.'\n    : 'No queda ningún hueco libre en los próximos 7 días.';\n\nreturn [{\n  json: {\n    ok: true,\n    accion: 'disponibilidad',\n    duracion_min: d.duracion,\n    paso_min: d.paso,\n    dias,\n    mensaje,\n  },\n}];"
+        "jsCode": "// Disponibilidad, comprobacion, servicio desconocido, trabajador que no hace\n// eso... El motor ya ha redactado el mensaje: aqui solo se deja pasar.\nconst d = $json;\n\nreturn [{\n  json: {\n    ok: d.ok !== false,\n    accion: d.accion,\n    estado: d.estado,\n    hay_hueco: d.hay_hueco === true,\n    reservada: false,\n    // Compatibilidad con el bot que hay en produccion, que se fija en `libre`\n    // para saber cuando pedir el email. Ojo: solo cuando el hueco esta libre de\n    // verdad, no en 'falta_email' -- ahi el mensaje ya pide el correo, y\n    // marcarlo tambien aqui haria que lo pidiera dos veces en la misma frase.\n    libre: d.estado === 'libre',\n    duracion_min: d.duracion_min,\n    paso_min: d.paso_min,\n    fecha: d.fecha || null,\n    hora: d.hora || null,\n    dia: d.dia || null,\n    dias: d.dias || [],\n    alternativas: d.alternativas || [],\n    servicios: d.servicios || [],\n    trabajador: d.trabajador || null,\n    mensaje: d.mensaje,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1136,
-        416
+        1000,
+        420
       ],
-      "id": "ag00000f-000f-400f-800f-00000000000f",
-      "name": "Respuesta disponibilidad"
+      "id": "ag000020-0001-4001-8001-000000000020",
+      "name": "Respuesta del motor"
     },
     {
       "parameters": {
@@ -475,12 +510,12 @@
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
+      "typeVersion": 1.1,
       "position": [
-        2096,
+        2440,
         300
       ],
-      "id": "ag000010-0010-4010-8010-000000000010",
+      "id": "ag000021-0001-4001-8001-000000000021",
       "name": "Responder"
     }
   ],
@@ -511,7 +546,7 @@
       "main": [
         [
           {
-            "node": "Buscar módulo calendar",
+            "node": "Cargar contexto",
             "type": "main",
             "index": 0
           }
@@ -536,18 +571,18 @@
         ]
       ]
     },
-    "Buscar módulo calendar": {
+    "Cargar contexto": {
       "main": [
         [
           {
-            "node": "Buscar módulo email",
+            "node": "Buscar credenciales Google",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Buscar módulo email": {
+    "Buscar credenciales Google": {
       "main": [
         [
           {
@@ -573,72 +608,65 @@
       "main": [
         [
           {
-            "node": "Calcular huecos",
+            "node": "Decidir",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Calcular huecos": {
+    "Decidir": {
       "main": [
         [
           {
-            "node": "¿Hay hora que comprobar?",
+            "node": "¿Reservar?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Hay hora que comprobar?": {
+    "¿Reservar?": {
       "main": [
         [
           {
-            "node": "Comprobar hueco",
+            "node": "Reservar",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Respuesta disponibilidad",
+            "node": "Respuesta del motor",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Comprobar hueco": {
+    "Respuesta del motor": {
       "main": [
         [
           {
-            "node": "¿Hueco libre?",
+            "node": "Responder",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Hueco libre?": {
+    "Reservar": {
       "main": [
         [
           {
-            "node": "¿Crear la cita?",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Respuesta no reservada",
+            "node": "¿Reservada?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Crear la cita?": {
+    "¿Reservada?": {
       "main": [
         [
           {
@@ -649,14 +677,14 @@
         ],
         [
           {
-            "node": "Respuesta hueco libre",
+            "node": "Respuesta hueco perdido",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Respuesta hueco libre": {
+    "Respuesta hueco perdido": {
       "main": [
         [
           {
@@ -671,6 +699,28 @@
       "main": [
         [
           {
+            "node": "Guardar id del evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar id del evento": {
+      "main": [
+        [
+          {
+            "node": "Buscar módulo email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar módulo email": {
+      "main": [
+        [
+          {
             "node": "¿Hay email?",
             "type": "main",
             "index": 0
@@ -682,7 +732,7 @@
       "main": [
         [
           {
-            "node": "Enviar email confirmación",
+            "node": "Enviar confirmación",
             "type": "main",
             "index": 0
           }
@@ -696,7 +746,7 @@
         ]
       ]
     },
-    "Enviar email confirmación": {
+    "Enviar confirmación": {
       "main": [
         [
           {
@@ -708,28 +758,6 @@
       ]
     },
     "Respuesta reservada": {
-      "main": [
-        [
-          {
-            "node": "Responder",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Respuesta no reservada": {
-      "main": [
-        [
-          {
-            "node": "Responder",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Respuesta disponibilidad": {
       "main": [
         [
           {

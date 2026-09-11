@@ -15,6 +15,7 @@ el panel de la agencia escribe por cliente.
 | `catalogo-ingesta.json` | Recorre el sitemap de la tienda de un cliente y vuelca sus productos en `catalog_products`. |
 | `contenido-generar.json` | Elige productos del catálogo, pide los copys a la IA, manda renderizar la pieza y la deja pendiente de aprobación. |
 | `whatsapp-bot-v1-calendar.json` | Copia de seguridad de la primera versión (sin memoria, email ni disponibilidad). |
+| `agenda-api-v1-un-trabajador.json` | Copia de seguridad de la Agenda API anterior, la de un solo calendario por negocio. |
 
 ## Agenda API
 
@@ -23,22 +24,79 @@ y lo que venga) no tenga su propia copia. Se llama por HTTP:
 
 ```
 POST /webhook/agenda
-{ "client_id": "...", "accion": "disponibilidad", "fecha": "2026-08-04" }   ← fecha opcional
+{ "client_id": "...", "accion": "disponibilidad", "fecha": "2026-08-04" }
 { "client_id": "...", "accion": "reservar", "fecha": "...", "hora": "12:30",
-  "email": "...", "contacto": "34600111222" }
+  "servicios": ["corte", "mechas"], "trabajador": "Ana",
+  "email": "...", "contacto": "34600111222", "nombre": "Marta" }
 ```
 
+`servicios` y `trabajador` son **texto libre y opcionales**: el motor los
+empareja contra el catálogo real del negocio. Sin ellos, la cita dura lo que
+diga el módulo y la atiende quien esté libre.
+
 Devuelve siempre un `mensaje` ya redactado, listo para leer en voz alta o enviar
-por WhatsApp, además de los datos estructurados (`dias`, `alternativas`).
+por WhatsApp, además de los datos estructurados (`dias`, `alternativas`,
+`trabajador`).
 
-- `disponibilidad` agrupa las horas en rangos (`09:00-10:15, 12:15-13:00`). Con
-  paso de 15 minutos son decenas de horas sueltas: impronunciables por teléfono.
-- `reservar` comprueba el hueco **antes** de crear nada. Si está ocupado devuelve
-  `ok: false` con alternativas cercanas y no toca el calendario.
-- Acepta horas en formatos hablados (`12h30`, `12'30`) y las normaliza.
+### Varios trabajadores, varios servicios
 
-Desde otro workflow de n8n se llama a `http://localhost:5678/webhook/agenda`
-(n8n hablando consigo mismo); desde fuera, por la URL pública.
+Desde la migración `0014`, un negocio no es una agenda: es un conjunto de
+personas con su horario, y una lista de servicios con su duración y su lista de
+quién sabe hacerlos. El razonamiento completo está en `docs/agenda-multiple.md`;
+lo que hay que saber para tocar esto:
+
+- **La verdad son las citas de Supabase** (`appointments`), no Google Calendar.
+  `freeBusy` devuelve franjas ocupadas *anónimas* —dice "de 17 a 18 ocupado", no
+  de quién—, y con varios trabajadores eso no sirve para saber quién está libre.
+  Google queda como espejo por persona: sirve para que cada una vea sus citas en
+  el móvil y para que el bot respete lo que se bloquee ella misma.
+- **Que Google falle no puede dejar a un negocio sin citas.** `Refrescar token`,
+  `Cargar ocupación`, `Crear evento` y `Guardar id del evento` van todos con
+  `onError: continueRegularOutput`. Un cliente sin Google conectado recorre el
+  workflow entero igual.
+- **La reserva la hace Postgres, no el workflow.** `agenda_reservar` (migración
+  `0015`) inserta la cita y sus servicios en una transacción y captura el choque
+  con la restricción `appointments_sin_solape`. Entre calcular un hueco y
+  reservarlo cabe otra conversación, y esa carrera no se gana comprobando antes:
+  se gana dejando que la base lo impida. Si llega tarde, el nodo `Respuesta hueco
+  perdido` lo dice como lo que es —"acaban de coger esa hora"— y no como un error.
+- **Una sola llamada para todo el contexto.** `agenda_contexto` devuelve
+  configuración, trabajadores con horarios y ausencias, servicios y citas del
+  periodo en un JSON. A nodo HTTP por tabla eran seis llamadas encadenadas en
+  cada mensaje de WhatsApp.
+- **Las credenciales de Google no viajan en ese JSON.** `agenda_contexto`
+  devuelve solo `duracion_min`, `paso_min` y `zona`, y no el `config` entero del
+  módulo, que es donde viven el `client_secret` y el `refresh_token`. Esos los
+  lee su propio nodo, que es el único que los usa.
+
+### El motor vive en un fichero, no en los nodos
+
+`n8n/logica/motor-agenda.js` es la única copia de la lógica de huecos, y
+`construir-workflows.js` la inyecta dentro de los nodos Code marcados:
+
+```bash
+node n8n/logica/construir-workflows.js          # regenera los workflows
+node n8n/logica/construir-workflows.js --check  # falla si están desactualizados
+node n8n/logica/motor-agenda.prueba.js          # 62 comprobaciones del motor
+node n8n/logica/nodos.prueba.js                 # 20 del pegamento con n8n
+```
+
+Un nodo se marca poniendo estas dos líneas en su `jsCode`, y el script escribe
+el motor entre ellas:
+
+```js
+// <<< MOTOR >>>
+// <<< FIN MOTOR >>>
+```
+
+Las marcas se conservan, así que el script es idempotente. **Lo que se edite en
+el editor de n8n dentro de ese bloque se pierde en la siguiente generación**: el
+sitio donde se cambia la lógica es el fichero.
+
+Por qué existe todo esto: antes la misma función de parseo de horas estaba
+copiada a mano en tres nodos, y cada corrección había que hacerla tres veces. Y
+sobre todo, un fichero suelto se puede ejecutar con `node` y comprobar contra
+ochenta casos **antes** de tocar el workflow que está dando citas de verdad.
 
 ## Un solo motor de agenda
 

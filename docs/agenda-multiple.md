@@ -174,14 +174,145 @@ va dentro del prompt.
 ## Fases
 
 1. **Esquema** — `0014` + traspaso del trabajador principal. ✅
-2. **Panel** — trabajadores, servicios y la matriz. Se puede configurar antes de
-   que el bot lo use.
+2. **Panel** — trabajadores, servicios y la matriz, en la pestaña *Agenda* del
+   panel de la agencia (`/dashboard/[clientId]/agenda`). ✅
 3. **Agenda API** — multi-trabajador, `appointments` como verdad, Google como
-   espejo.
+   espejo. ✅
 4. **Bot** — extracción de servicio y trabajador, emparejamiento en código,
    prompt.
 5. **Recordatorios** — cron sobre `appointments`, y la agenda visible en
    `/panel`.
+
+## La pantalla del panel
+
+Pestaña **Agenda** dentro de cada cliente, con dos bloques: trabajadores y
+servicios. La matriz de "quién hace qué" no es una tercera pantalla — vive dentro
+de cada servicio, como una fila de casillas con los nombres, que es donde se
+decide de verdad.
+
+Tres cosas que la pantalla hace a propósito:
+
+- **Un trabajador nuevo nace con el horario del negocio ya puesto**, no en
+  blanco. Sin franjas horarias no trabaja nunca, y alguien recién creado al que
+  el bot no ofrece jamás es un fallo que desde esta pantalla no se ve.
+- **Un servicio que no hace nadie se avisa en rojo.** Es reservable en apariencia
+  e imposible en la práctica.
+- **Borrar a alguien con citas no se permite**, y el mensaje explica la salida:
+  desmarcarlo como activo, que deja de recibir citas y conserva su historial.
+
+Dos franjas por día en el formulario (jornada partida). La tabla admite las que
+haga falta, así que ampliarlo no pide migración.
+
+### La matriz completa
+
+Además de las casillas dentro de cada servicio, hay una tabla con **todos los
+servicios contra todos los trabajadores**. Montar una clínica marcando de uno en
+uno son cuarenta clics; aquí una fila asigna un servicio a todo el mundo y una
+columna le da a alguien todos los servicios — que son las dos formas en que esto
+se piensa: *"las mechas las hacen Bea y Sonia"* y *"Luis lleva todo lo de
+fisioterapia"*.
+
+No guarda al marcar, solo al pulsar el botón: marcar y desmarcar mientras se
+decide no puede ir escribiendo en la base. Y al guardar **calcula la diferencia**
+en vez de borrarlo todo y reescribirlo — si el borrado saliera bien y el alta
+fallara, el cliente se quedaría con todos sus servicios sin nadie que los haga.
+
+### Importar y exportar servicios (CSV)
+
+La lista de servicios de una clínica dental se parece muchísimo a la de la
+siguiente, y cuarenta servicios a base de formularios es una tarde perdida. Se
+pega o se sube un CSV, se ve **una vista previa de qué va a pasar con cada
+línea**, y solo entonces se escribe. También se descarga la lista actual, que es
+lo que hace real la reutilización entre clientes.
+
+El parser (`lib/agenda-csv.ts`) está escrito para tragar lo que salga de una hoja
+de cálculo sin pedirle a nadie que prepare el fichero "bien":
+
+- **El separador se detecta solo** (`,`, `;` o tabulador). El Excel en español
+  exporta con punto y coma: obligar a la coma es garantizar que el primer fichero
+  real no se lee.
+- **Los alias no hay que entrecomillarlos.** Si una fila trae columnas de sobra,
+  son alias: `Mechas,120,mechitas,tinte` funciona igual que la versión con
+  comillas.
+- **La cabecera es opcional**: si la primera fila ya lleva un número en la
+  segunda columna, es un dato y no un título.
+- **Si el nombre ya existe se actualiza**, comparando sin tildes ni mayúsculas,
+  así que el mismo fichero se puede pasar dos veces sin duplicar nada.
+- **Los alias solo se pisan si el fichero trae alguno.** Una columna vacía suele
+  ser que no se rellenó, no que se quieran borrar los que había puestos a mano.
+
+Lo que **no** viaja en el fichero es quién hace cada servicio: los trabajadores
+son de cada cliente y sus nombres no significan nada en el siguiente. Eso se
+reparte después en la matriz, que es cuando ya se sabe quién es quién.
+
+De momento solo está en el panel de la agencia. Cuando se abra al cliente final,
+sus escrituras tendrán que pasar por `service_role` con comprobación de permisos:
+el `client_user` solo tiene SELECT sobre estas tablas.
+
+## El motor (fase 3)
+
+Tres piezas, y la separación entre ellas es lo que hace que esto se pueda tocar
+sin miedo:
+
+| Pieza | Dónde | Qué hace |
+| --- | --- | --- |
+| `agenda_contexto` | migración `0015` | Devuelve en un JSON todo lo que el motor necesita saber |
+| `motor-agenda.js` | `n8n/logica/` | Decide: candidatos, huecos, a quién se asigna, qué se contesta |
+| `agenda-api.json` | `n8n/workflows/` | El pegamento: HTTP, Google, email |
+
+**El motor no sabe nada de n8n, de Supabase ni de HTTP.** Recibe el contexto ya
+cargado y devuelve una decisión, así que se ejecuta con `node` y se comprueba
+contra ochenta casos antes de tocar el workflow que está dando citas de verdad.
+Se inyecta dentro de los nodos Code con `construir-workflows.js`, porque un nodo
+de n8n no puede hacer `require` de un fichero del repositorio.
+
+### Lo que decide, en orden
+
+El orden importa, y tiene dos escalones nuevos delante de los que ya había:
+
+1. **¿Se entiende el servicio?** Si no, no se sigue: la duración depende de él y
+   sin duración los huecos son mentira.
+2. **¿Hay alguien que lo haga?** Si han pedido a una persona que no lo hace, se
+   dice quién sí. *"Ana no hace mechas. Sí lo hacen Bea y Sonia"* — no "no hay
+   hueco", que sería falso y la manda a casa creyendo que no hay sitio.
+3. **¿Falta fecha u hora?** Contesta la IA pidiendo lo que falte.
+4. **¿Está ocupado?** Se dice ya, con alternativas cercanas. No se piden más
+   datos: sacarle el email a alguien para una cita imposible es sacárselo para
+   nada.
+5. **¿Libre y con email?** Se reserva.
+
+### Cuatro decisiones del motor
+
+- **Una fecha fuera de la ventana no está "ocupada".** El motor mira siete días;
+  a quien pide dentro de tres semanas se le dice que la agenda no llega tan
+  lejos, no que no hay hueco. La versión anterior contestaba "no está
+  disponible", que es mentira, y la persona se iba convencida de que no había
+  sitio.
+- **A quién se le asigna una cita que nadie ha pedido a nombre de alguien:** al
+  que menos ocupado esté ese día, y a igualdad, por el `orden` del panel. Dar
+  siempre al primero de la lista carga a una persona y deja al resto vacío.
+- **Con un solo trabajador, nunca se le nombra.** Por eso el `Principal` que crea
+  el traspaso no molesta.
+- **Emparejar texto con catálogo tiene tres niveles**, y el orden entre ellos es
+  lo importante: exacta, luego el texto contiene al servicio (gana el más
+  largo), luego el servicio contiene al texto (gana el más **corto**). Con una
+  sola regla de "gana el más largo", *"corte"* se llevaba «Corte y mechas»: dos
+  horas de cita, y solo dos personas capaces de hacerla, para quien pedía un
+  corte de treinta minutos.
+
+### Cómo se comprueba
+
+```bash
+node n8n/logica/motor-agenda.prueba.js   # 62 comprobaciones del motor
+node n8n/logica/nodos.prueba.js          # 20 del pegamento con n8n
+```
+
+La segunda ejecuta el `jsCode` de los nodos **tal como ha quedado dentro del
+JSON generado**, con un `$()` de mentira. Es lo único que puede ver un nombre de
+nodo mal escrito o que un nodo no ejecutado reviente la ejecución.
+`contexto-ejemplo.json` es la salida real de `agenda_contexto` para una
+peluquería de tres personas, así que vale además de contrato: si alguien cambia
+la función de Postgres y no el motor, esto falla.
 
 ## Lo que esta versión no cubre
 

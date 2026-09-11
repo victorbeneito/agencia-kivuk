@@ -1,0 +1,748 @@
+{
+  "name": "Agenda API (disponibilidad y reserva)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agenda",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        300
+      ],
+      "id": "ag000001-0001-4001-8001-000000000001",
+      "name": "Entrada",
+      "webhookId": "b7e1c2d3-0001-4001-8001-a00000000001"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Acepta el cuerpo plano { client_id, accion, fecha, hora, email, contacto }.\n// La normalización del formato propio de Vapi se hará en su propio workflow.\nconst body = $json.body || $json || {};\nconst clientId = String(body.client_id || '').trim();\n\nreturn [{\n  json: {\n    client_id: clientId,\n    // Sin un uuid válido no tiene sentido consultar Supabase: la query\n    // devolvería 'invalid input syntax for type uuid' y la ejecución fallaría.\n    cliente_valido: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId),\n    accion: String(body.accion || 'disponibilidad').trim().toLowerCase(),\n    fecha: body.fecha || null,\n    hora: body.hora || null,\n    email: body.email || null,\n    contacto: String(body.contacto || '').trim(),\n    // Servicio o motivo de la cita: va al título del evento del calendario.\n    motivo: String(body.motivo || '').trim(),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        300
+      ],
+      "id": "ag000002-0002-4002-8002-000000000002",
+      "name": "Leer petición"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ag-cond-0004",
+              "leftValue": "={{ $json.cliente_valido }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -112,
+        300
+      ],
+      "id": "ag000012-0012-4012-8012-000000000012",
+      "name": "¿Cliente válido?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    ok: false,\n    motivo: 'cliente_desconocido',\n    mensaje: 'No encuentro la configuración de este negocio. Avisa al administrador.',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        496
+      ],
+      "id": "ag000013-0013-4013-8013-000000000013",
+      "name": "Respuesta sin cliente"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.calendar&active=eq.true&client_id=eq.{{ $json.client_id }}&select=config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -16,
+        300
+      ],
+      "id": "ag000003-0003-4003-8003-000000000003",
+      "name": "Buscar módulo calendar",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.email&active=eq.true&client_id=eq.{{ $('Leer petición').first().json.client_id }}&select=config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        176,
+        300
+      ],
+      "id": "ag000004-0004-4004-8004-000000000004",
+      "name": "Buscar módulo email",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oauth2.googleapis.com/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "={{ $('Buscar módulo calendar').first().json.config?.google_client_id || '' }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $('Buscar módulo calendar').first().json.config?.google_client_secret || '' }}"
+            },
+            {
+              "name": "refresh_token",
+              "value": "={{ $('Buscar módulo calendar').first().json.config?.refresh_token || '' }}"
+            },
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        300
+      ],
+      "id": "ag000005-0005-4005-8005-000000000005",
+      "name": "Refrescar token Google",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/freeBusy",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Refrescar token Google').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"timeMin\": \"{{ $now.toISO() }}\",\n  \"timeMax\": \"{{ $now.plus({ days: 8 }).toISO() }}\",\n  \"timeZone\": \"Europe/Madrid\",\n  \"items\": [ { \"id\": {{ JSON.stringify($('Buscar módulo calendar').first().json.config?.calendar_id || \"\") }} } ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        300
+      ],
+      "id": "ag000006-0006-4006-8006-000000000006",
+      "name": "Cargar ocupación",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pet = $('Leer petición').first().json;\nconst cal = $('Buscar módulo calendar').first().json.config || {};\nconst freeBusy = $('Cargar ocupación').first().json || {};\n\n// --- Horario de atencion del negocio (configurado en el panel) ---------------\n// Los valores por defecto deben coincidir con HORARIO_POR_DEFECTO del panel.\nconst diasLaborables = (cal.dias_laborables || '1,2,3,4,5')\n  .split(',')\n  .map((s) => parseInt(s, 10))\n  .filter((n) => n >= 1 && n <= 7);\n\n// duracion = lo que ocupa la cita. paso = cada cuanto puede empezar una.\n// Son cosas distintas: citas de 60 min con paso de 15 permiten reservar a las 10:15.\nconst duracion = parseInt(cal.duracion_min || '60', 10);\nconst paso = parseInt(cal.paso_min || '15', 10);\n\nconst tramos = [];\nif (cal.manana_inicio && cal.manana_fin) tramos.push([cal.manana_inicio, cal.manana_fin]);\nif (cal.tarde_inicio && cal.tarde_fin) tramos.push([cal.tarde_inicio, cal.tarde_fin]);\nif (!tramos.length) tramos.push(['09:00', '14:00'], ['16:00', '20:00']);\n\n// --- Franjas ya ocupadas segun Google Calendar -------------------------------\nconst ocupadas = [];\nfor (const c of Object.values((freeBusy || {}).calendars || {})) {\n  for (const b of c.busy || []) {\n    ocupadas.push([new Date(b.start).getTime(), new Date(b.end).getTime()]);\n  }\n}\nconst solapa = (ini, fin) => ocupadas.some(([a, b]) => ini < b && fin > a);\n\n// --- Huecos realmente libres de los proximos 7 dias --------------------------\nconst ahora = $now.toMillis();\nconst libres = [];\nfor (let i = 0; i < 7; i++) {\n  const dia = $now.plus({ days: i }).startOf('day');\n  if (!diasLaborables.includes(dia.weekday)) continue;\n\n  const horas = [];\n  for (const [desde, hasta] of tramos) {\n    const [h1, m1] = desde.split(':').map(Number);\n    const [h2, m2] = hasta.split(':').map(Number);\n    const cierre = dia.set({ hour: h2, minute: m2 });\n    let t = dia.set({ hour: h1, minute: m1 });\n    while (t.plus({ minutes: duracion }) <= cierre) {\n      const ini = t.toMillis();\n      const fin = t.plus({ minutes: duracion }).toMillis();\n      if (ini > ahora && !solapa(ini, fin)) horas.push(t.toFormat('HH:mm'));\n      t = t.plus({ minutes: paso });\n    }\n  }\n  if (horas.length) {\n    libres.push({\n      fecha: dia.toFormat('yyyy-MM-dd'),\n      dia: dia.setLocale('es').toFormat('cccc'),\n      horas,\n    });\n  }\n}\n\nreturn [{ json: { ...pet, libres, duracion, paso } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        300
+      ],
+      "id": "ag000007-0007-4007-8007-000000000007",
+      "name": "Calcular huecos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ag-cond-0001",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "disponibilidad",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        944,
+        300
+      ],
+      "id": "ag000008-0008-4008-8008-000000000008",
+      "name": "¿Hay hora que comprobar?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nconst aMin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };\nconst dosCifras = (n) => String(n).padStart(2, '0');\nconst aTexto = (m) => dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n\n// La hora que el usuario escribe manda sobre la que extrae la IA: se la ha visto\n// devolver time=null con la hora delante, y coger la primera opcion de su propia\n// lista de alternativas (le pides 12:30 y reserva 12:15).\nfunction horaDelTexto(txt) {\n  const t = String(txt || '').toLowerCase();\n  // Se evita el punto como separador suelto: '4.08' es una fecha, no las 04:08.\n  const patrones = [\n    /\\blas\\s+(\\d{1,2})(?:\\s*[:.,'’h]\\s*(\\d{2}))?/,\n    /\\b(\\d{1,2})\\s*[:'’]\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*[.,]\\s*(\\d{2})\\s*h\\b/,\n    /\\b(\\d{1,2})\\s*h\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*h\\b/,\n  ];\n  for (const p of patrones) {\n    const m = t.match(p);\n    if (!m) continue;\n    const h = Number(m[1]);\n    const min = m[2] === undefined ? 0 : Number(m[2]);\n    if (h < 24 && min < 60) return dosCifras(h) + ':' + dosCifras(min);\n  }\n  return null;\n}\n\nconst libres = d.libres || [];\nconst fecha = d.fecha;\n// Normalizamos la hora por si llega como \"12h30\" o \"12'30\" desde el agente de voz.\nconst hora = d.hora ? horaDelTexto(String(d.hora)) || String(d.hora) : null;\n\n// El email es opcional: por teléfono el reconocimiento de voz lo destroza a\n// menudo, y quedarse sin cita por eso es peor que quedarse sin confirmación.\n// Si no tiene pinta de email válido, lo tratamos como que no lo hay.\nconst email = /^[^\\s@]+@[^\\s@]+\\.[a-z]{2,}$/i.test(String(d.email || '').trim())\n  ? String(d.email).trim()\n  : '';\n\nif (!fecha || !hora) {\n  return [{ json: { ...d, hora, email, estado: 'faltan_datos' } }];\n}\n\nconst dia = libres.find((d) => d.fecha === fecha);\nconst libre = Boolean(dia && dia.horas.includes(hora));\n\n// Las alternativas son las mas CERCANAS a la hora pedida: la ultima que cabe\n// antes y varias despues. Ofrecer las primeras horas del dia a quien pide las\n// 12:00 no le sirve de nada.\nconst pedido = aMin(hora);\nconst cercanas = (horas, nDespues) => {\n  const antes = horas.filter((h) => aMin(h) < pedido).slice(-1);\n  const despues = horas.filter((h) => aMin(h) > pedido).slice(0, nDespues);\n  return antes.concat(despues);\n};\n\nconst alternativas = [];\nif (dia && dia.horas.length) {\n  alternativas.push({ fecha: dia.fecha, dia: dia.dia, horas: cercanas(dia.horas, 4) });\n}\nfor (const d of libres) {\n  if (alternativas.length >= 3) break;\n  if (d.fecha === fecha || !d.horas.length) continue;\n  alternativas.push({ fecha: d.fecha, dia: d.dia, horas: cercanas(d.horas, 3) });\n}\n\nconst textoAlternativas = alternativas\n  .map((a) => a.dia + ' ' + a.fecha + ': ' + a.horas.join(', '))\n  .join('\\n');\n\nreturn [{\n  json: {\n    ...d,\n    hora,\n    email,\n    estado: libre ? 'libre' : 'ocupado',\n    dia: dia ? dia.dia : null,\n    alternativas,\n    textoAlternativas,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        176
+      ],
+      "id": "ag000009-0009-4009-8009-000000000009",
+      "name": "Comprobar hueco"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ag-cond-0002",
+              "leftValue": "={{ $json.estado }}",
+              "rightValue": "libre",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1328,
+        176
+      ],
+      "id": "ag00000a-000a-400a-800a-00000000000a",
+      "name": "¿Hueco libre?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ag-cond-0005",
+              "leftValue": "={{ $('Leer petición').first().json.accion }}",
+              "rightValue": "reservar",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1520,
+        176
+      ],
+      "id": "ag000014-0014-4014-8014-000000000014",
+      "name": "¿Crear la cita?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Comprobar hueco').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    libre: true,\n    reservada: false,\n    fecha: d.fecha,\n    dia: d.dia,\n    hora: d.hora,\n    mensaje: 'El ' + d.dia + ' ' + d.fecha + ' a las ' + d.hora + ' está libre.',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        288
+      ],
+      "id": "ag000015-0015-4015-8015-000000000015",
+      "name": "Respuesta hueco libre"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($('Buscar módulo calendar').first().json.config.calendar_id) }}/events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Refrescar token Google').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"summary\": {{ JSON.stringify(($('Comprobar hueco').first().json.motivo || \"Cita\") + \" - \" + ($('Comprobar hueco').first().json.contacto || $('Comprobar hueco').first().json.email)) }},\n  \"description\": {{ JSON.stringify(\"Contacto: \" + ($('Comprobar hueco').first().json.contacto || \"no indicado\") + \"\\nEmail: \" + $('Comprobar hueco').first().json.email + \"\\nMotivo: \" + ($('Comprobar hueco').first().json.motivo || \"no indicado\")) }},\n  \"start\": {\n    \"dateTime\": \"{{ $('Comprobar hueco').first().json.fecha }}T{{ $('Comprobar hueco').first().json.hora }}:00\",\n    \"timeZone\": \"Europe/Madrid\"\n  },\n  \"end\": {\n    \"dateTime\": \"{{ DateTime.fromISO($('Comprobar hueco').first().json.fecha + 'T' + $('Comprobar hueco').first().json.hora).plus({ minutes: $('Calcular huecos').first().json.duracion }).toFormat(`yyyy-MM-dd'T'HH:mm:ss`) }}\",\n    \"timeZone\": \"Europe/Madrid\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1520,
+        80
+      ],
+      "id": "ag00000b-000b-400b-800b-00000000000b",
+      "name": "Crear evento"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Buscar módulo email').first().json.config?.resend_api_key || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from\": {{ JSON.stringify($('Buscar módulo email').first().json.config?.from_email || \"onboarding@resend.dev\") }},\n  \"to\": [{{ JSON.stringify($('Comprobar hueco').first().json.email) }}],\n  \"subject\": \"Confirmación de tu cita\",\n  \"html\": {{ JSON.stringify(\"<p>¡Hola!</p><p>Tu cita ha quedado confirmada para el <strong>\" + $('Comprobar hueco').first().json.fecha + \"</strong> a las <strong>\" + $('Comprobar hueco').first().json.hora + \"</strong>.</p><p>Si necesitas cambiarla, avísanos.</p>\") }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        16
+      ],
+      "id": "ag00000c-000c-400c-800c-00000000000c",
+      "name": "Enviar email confirmación",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ag-cond-0003",
+              "leftValue": "={{ $('Comprobar hueco').first().json.email || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1712,
+        80
+      ],
+      "id": "ag000011-0011-4011-8011-000000000011",
+      "name": "¿Hay email?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Comprobar hueco').first().json;\n\nreturn [{\n  json: {\n    ok: true,\n    reservada: true,\n    fecha: d.fecha,\n    dia: d.dia,\n    hora: d.hora,\n    email: d.email,\n    mensaje:\n      '¡Listo! Tu cita queda confirmada para el ' + d.dia + ' ' + d.fecha +\n      ' a las ' + d.hora + '.' +\n      (d.email ? ' Te envío la confirmación a ' + d.email + '.' : ''),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        80
+      ],
+      "id": "ag00000d-000d-400d-800d-00000000000d",
+      "name": "Respuesta reservada"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nif (d.estado === 'faltan_datos') {\n  return [{\n    json: {\n      ok: false,\n      reservada: false,\n      motivo: 'faltan_datos',\n      mensaje: 'Para reservar necesito al menos la fecha y la hora.',\n    },\n  }];\n}\n\nreturn [{\n  json: {\n    ok: false,\n    reservada: false,\n    motivo: 'ocupado',\n    fecha: d.fecha,\n    hora: d.hora,\n    alternativas: d.alternativas,\n    mensaje: d.textoAlternativas\n      ? 'Lo siento, las ' + d.hora + ' del ' + d.fecha + ' no están disponibles. Tengo libre:\\n' +\n        d.textoAlternativas + '\\n¿Cuál te viene mejor?'\n      : 'Lo siento, ahora mismo no me queda ningún hueco libre en los próximos días.',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        272
+      ],
+      "id": "ag00000e-000e-400e-800e-00000000000e",
+      "name": "Respuesta no reservada"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst paso = d.paso;\n\nconst aMin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };\nconst dosCifras = (n) => String(n).padStart(2, '0');\nconst aTexto = (m) => dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n\n// La hora que el usuario escribe manda sobre la que extrae la IA: se la ha visto\n// devolver time=null con la hora delante, y coger la primera opcion de su propia\n// lista de alternativas (le pides 12:30 y reserva 12:15).\nfunction horaDelTexto(txt) {\n  const t = String(txt || '').toLowerCase();\n  // Se evita el punto como separador suelto: '4.08' es una fecha, no las 04:08.\n  const patrones = [\n    /\\blas\\s+(\\d{1,2})(?:\\s*[:.,'’h]\\s*(\\d{2}))?/,\n    /\\b(\\d{1,2})\\s*[:'’]\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*[.,]\\s*(\\d{2})\\s*h\\b/,\n    /\\b(\\d{1,2})\\s*h\\s*(\\d{2})\\b/,\n    /\\b(\\d{1,2})\\s*h\\b/,\n  ];\n  for (const p of patrones) {\n    const m = t.match(p);\n    if (!m) continue;\n    const h = Number(m[1]);\n    const min = m[2] === undefined ? 0 : Number(m[2]);\n    if (h < 24 && min < 60) return dosCifras(h) + ':' + dosCifras(min);\n  }\n  return null;\n}\n\n\nfunction rangos(horas) {\n  const out = [];\n  let ini = null;\n  let prev = null;\n  for (const h of horas) {\n    const m = aMin(h);\n    if (prev !== null && m === prev + paso) { prev = m; continue; }\n    if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n    ini = m;\n    prev = m;\n  }\n  if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n  return out.join(', ');\n}\n\n// Si preguntan por un día concreto, respondemos solo ese: por voz no se puede\n// recitar la semana entera.\nconst dias = d.fecha ? d.libres.filter((x) => x.fecha === d.fecha) : d.libres;\n\nconst mensaje = dias.length\n  ? dias.map((x) => x.dia + ' ' + x.fecha + ': ' + rangos(x.horas)).join('\\n')\n  : d.fecha\n    ? 'No queda ningún hueco libre el ' + d.fecha + '.'\n    : 'No queda ningún hueco libre en los próximos 7 días.';\n\nreturn [{\n  json: {\n    ok: true,\n    accion: 'disponibilidad',\n    duracion_min: d.duracion,\n    paso_min: d.paso,\n    dias,\n    mensaje,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        416
+      ],
+      "id": "ag00000f-000f-400f-800f-00000000000f",
+      "name": "Respuesta disponibilidad"
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2096,
+        300
+      ],
+      "id": "ag000010-0010-4010-8010-000000000010",
+      "name": "Responder"
+    }
+  ],
+  "connections": {
+    "Entrada": {
+      "main": [
+        [
+          {
+            "node": "Leer petición",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer petición": {
+      "main": [
+        [
+          {
+            "node": "¿Cliente válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Cliente válido?": {
+      "main": [
+        [
+          {
+            "node": "Buscar módulo calendar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta sin cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta sin cliente": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar módulo calendar": {
+      "main": [
+        [
+          {
+            "node": "Buscar módulo email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar módulo email": {
+      "main": [
+        [
+          {
+            "node": "Refrescar token Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refrescar token Google": {
+      "main": [
+        [
+          {
+            "node": "Cargar ocupación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar ocupación": {
+      "main": [
+        [
+          {
+            "node": "Calcular huecos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular huecos": {
+      "main": [
+        [
+          {
+            "node": "¿Hay hora que comprobar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay hora que comprobar?": {
+      "main": [
+        [
+          {
+            "node": "Comprobar hueco",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta disponibilidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar hueco": {
+      "main": [
+        [
+          {
+            "node": "¿Hueco libre?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hueco libre?": {
+      "main": [
+        [
+          {
+            "node": "¿Crear la cita?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta no reservada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Crear la cita?": {
+      "main": [
+        [
+          {
+            "node": "Crear evento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta hueco libre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta hueco libre": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear evento": {
+      "main": [
+        [
+          {
+            "node": "¿Hay email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay email?": {
+      "main": [
+        [
+          {
+            "node": "Enviar email confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta reservada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar email confirmación": {
+      "main": [
+        [
+          {
+            "node": "Respuesta reservada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta reservada": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta no reservada": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta disponibilidad": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
