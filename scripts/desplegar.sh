@@ -85,8 +85,14 @@ fi
 if cambio "n8n/workflows/"; then
   titulo "Workflows modificados"
   for f in $(echo "$CAMBIOS" | grep '^n8n/workflows/.*\.json$'); do
-    # La copia de respaldo antigua no se despliega.
-    case "$f" in *whatsapp-bot-v1-calendar.json) continue ;; esac
+    # Las copias de respaldo no se despliegan, y el motivo es peor de lo que
+    # parece: dentro de n8n llevan el MISMO nombre que la version buena (es una
+    # copia), y `desplegar-workflow.js` busca por nombre. Desplegar una es
+    # volver el workflow de produccion a la version vieja, sin ningun error y
+    # sin que nada avise. Paso al patron por dos: al anadir la copia de la
+    # Agenda API se desplegaron las dos en la misma tanda, y que quedara viva
+    # la buena dependio de que el orden alfabetico pusiera la copia primero.
+    case "$f" in *-v1-*.json) continue ;; esac
     info "-> $f"
     node "$REPO/scripts/desplegar-workflow.js" "$f" --aplicar 2>&1 | sed 's/^/     /'
   done
