@@ -225,7 +225,18 @@ y automatizarlo es la siguiente pieza.
 
 ---
 
-## El número de WhatsApp para las pruebas
+## El número de WhatsApp
+
+**Desde el 11/09/2026 la demo tiene número: el de pruebas de Meta,
+`+1 555-153-9782`** (`phone_number_id` 1120415504498664), que estaba colgando de
+«Cliente de Prueba» y se ha movido aquí. El bot resuelve el cliente por
+`phone_number_id`, así que ese número **solo puede estar en un cliente a la vez**:
+se limpió el de origen antes de escribir el destino. Para devolverlo, el mismo
+movimiento al revés; la WABA y el token no cambian.
+
+Con él ya se puede probar de verdad, con las dos limitaciones del número de test:
+solo habla con hasta cinco números dados de alta a mano en el panel de Meta, y
+aparece como «Test Number».
 
 Dos caminos, y la diferencia importa más de lo que parece:
 
@@ -243,10 +254,36 @@ y enseña la conversación a su socia. Es lo mismo que ya se hizo con Cestería,
 los mismos scripts (`scripts/conectar-meta.js`, `scripts/registrar-numero-whatsapp.js`),
 y el número tiene que ser uno que **no esté dado de alta en la app de WhatsApp**.
 
-Yo iría por la segunda. Una demo que solo funciona con tu móvil delante se muere
-en cuanto sales por la puerta, y el momento en que esto se vende de verdad no es
-la reunión: es cuando la peluquera le escribe «¿cuánto valen unas mechas?» a las
-once de la noche y le contesta bien.
+El de pruebas vale para lo de ahora —comprobar que todo funciona y enseñarlo
+desde tu móvil—, pero para vender hace falta la segunda. Una demo que solo
+funciona con tu móvil delante se muere en cuanto sales por la puerta, y el
+momento en que esto se vende de verdad no es la reunión: es cuando la peluquera
+le escribe «¿cuánto valen unas mechas?» a las once de la noche y le contesta
+bien.
+
+### Probado de punta a punta el 11/09/2026
+
+Simulando el webhook de Meta contra el bot de producción, con el mensaje entero
+en una frase: *«quiero pedir cita para unas mechas el jueves a las 10 con Ana»*.
+La traza completa:
+
+1. **La agenda dedujo el servicio de la frase** y devolvió huecos de 150 minutos
+   (el `texto` de la fase 4, funcionando con un mensaje real).
+2. **La IA extrajo** `servicio: "Mechas medio casco"` —el nombre exacto del
+   catálogo, no lo que escribió la persona—, `trabajador: "Ana"`,
+   `date: "2026-09-17"`, `time: "10:00"` y `confirmar: true`.
+3. **El bot decidió** reservar.
+4. **La agenda contestó**: *«¡Listo! Tu cita queda confirmada para el jueves
+   2026-09-17 a las 10:00 con Ana (Mechas medio casco).»*
+
+Y con una pregunta de precio —*«¿cuánto valen unas mechas?»*— la IA contestó con
+los datos del conocimiento (55 €, 2 h 30, y las de casco completo a 70 €) y dejó
+`confirmar` en false, sin tocar la agenda.
+
+Lo único que falla en esa simulación es el envío final, porque el número
+inventado del que sale el mensaje no está en la lista blanca de Meta. Para verlo
+llegar al móvil hay que escribir desde un número dado de alta en el panel de
+Meta (WhatsApp → API Setup → el campo «To»).
 
 ## Guion de la demo, en tres minutos
 
