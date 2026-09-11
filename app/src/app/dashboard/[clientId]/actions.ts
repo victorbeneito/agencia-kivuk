@@ -199,6 +199,7 @@ export async function updateCalendarSchedule(formData: FormData) {
     tarde_fin: formData.get("tarde_fin") as string,
     duracion_min: formData.get("duracion_min") as string,
     paso_min: formData.get("paso_min") as string,
+    dias_reserva: formData.get("dias_reserva") as string,
   });
 
   if (error) {

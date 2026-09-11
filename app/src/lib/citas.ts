@@ -26,8 +26,23 @@ export type Cita = {
   contacto: string;
   email: string | null;
   notas: string;
+  /** Para colocarla en la columna de su trabajadora en el calendario. */
+  staff_id: string;
   trabajador: string;
   servicios: ServicioDeCita[];
+};
+
+/** Un tramo de trabajo, para pintar en el calendario lo que es horario y lo que no. */
+export type TramoTrabajador = {
+  dia: number;
+  inicio: string;
+  fin: string;
+};
+
+export type TrabajadorDeCalendario = {
+  id: string;
+  nombre: string;
+  horario: TramoTrabajador[];
 };
 
 export type DiaDeCitas = {
@@ -40,6 +55,7 @@ export type DiaDeCitas = {
 
 type FilaCita = {
   id: string;
+  staff_id: string;
   inicio: string;
   fin: string;
   estado: string;
@@ -125,7 +141,7 @@ export async function citasProximas(
   const { data } = await supabase
     .from("appointments")
     .select(
-      "id, inicio, fin, estado, nombre_contacto, contacto, email, notas, " +
+      "id, staff_id, inicio, fin, estado, nombre_contacto, contacto, email, notas, " +
         "staff(nombre), appointment_services(nombre, duracion_min, posicion)"
     )
     .eq("client_id", clientId)
@@ -146,6 +162,7 @@ export async function citasProximas(
     contacto: (f.contacto ?? "").trim(),
     email: f.email,
     notas: (f.notas ?? "").trim(),
+    staff_id: f.staff_id,
     // PostgREST devuelve el embebido como objeto o como lista según cómo
     // resuelva la relación; se acepta cualquiera de los dos.
     trabajador: Array.isArray(f.staff)
@@ -173,4 +190,180 @@ export async function citasProximas(
       titulo: tituloDeDia(fecha, hoy),
       citas: lista,
     }));
+}
+
+// === El calendario ===========================================================
+
+/** Suma días a una fecha "YYYY-MM-DD" sin que el cambio de hora la mueva. */
+export function sumarDias(fecha: string, dias: number): string {
+  const d = new Date(`${fecha}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/** 1 = lunes ... 7 = domingo, igual que `staff_hours`. */
+export function diaSemanaDe(fecha: string): number {
+  const d = new Date(`${fecha}T12:00:00Z`).getUTCDay();
+  return d === 0 ? 7 : d;
+}
+
+/** El lunes de la semana de esa fecha. La semana empieza en lunes, como aquí. */
+export function lunesDe(fecha: string): string {
+  return sumarDias(fecha, -(diaSemanaDe(fecha) - 1));
+}
+
+/** Hoy, en Madrid. */
+export function hoyEnMadrid(): string {
+  return fechaEnMadrid(new Date().toISOString());
+}
+
+/** "2026-09-15" si es válida; si no, hoy. Lo que llega por la URL no es de fiar. */
+export function fechaValida(valor: string | undefined): string {
+  return valor && /^\d{4}-\d{2}-\d{2}$/.test(valor) && !Number.isNaN(Date.parse(valor))
+    ? valor
+    : hoyEnMadrid();
+}
+
+/** Minutos desde medianoche de una hora "HH:MM". */
+export function aMinutos(hora: string): number {
+  const [h, m] = hora.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
+/** Los minutos desde medianoche de un instante, en hora de Madrid. */
+export function minutosEnMadrid(iso: string): number {
+  return aMinutos(horaEnMadrid(iso));
+}
+
+/**
+ * Las citas confirmadas entre dos fechas (las dos incluidas).
+ *
+ * Aparte de `citasProximas` porque responde a otra pregunta: aquella es "qué
+ * tengo por delante" y esta es "qué hay en estos días concretos", que es lo que
+ * pide un calendario al que se puede navegar.
+ */
+export async function citasEntre(
+  supabase: SupabaseClient,
+  clientId: string,
+  desde: string,
+  hasta: string
+): Promise<Cita[]> {
+  const { data } = await supabase
+    .from("appointments")
+    .select(
+      "id, staff_id, inicio, fin, estado, nombre_contacto, contacto, email, notas, " +
+        "staff(nombre), appointment_services(nombre, duracion_min, posicion)"
+    )
+    .eq("client_id", clientId)
+    .eq("estado", "confirmada")
+    // Un margen de un día por cada lado y después se filtra por la fecha ya
+    // convertida a Madrid: en invierno, las 00:30 de Madrid son del día
+    // anterior en UTC, y una consulta por el borde exacto se dejaría esa cita.
+    .gte("inicio", `${sumarDias(desde, -1)}T00:00:00Z`)
+    .lte("inicio", `${sumarDias(hasta, 1)}T00:00:00Z`)
+    .order("inicio");
+
+  return ((data ?? []) as unknown as FilaCita[])
+    .map((f) => ({
+      id: f.id,
+      inicio: f.inicio,
+      fin: f.fin,
+      estado: f.estado,
+      nombre_contacto: (f.nombre_contacto ?? "").trim(),
+      contacto: (f.contacto ?? "").trim(),
+      email: f.email,
+      notas: (f.notas ?? "").trim(),
+      staff_id: f.staff_id,
+      trabajador: Array.isArray(f.staff)
+        ? f.staff[0]?.nombre ?? ""
+        : f.staff?.nombre ?? "",
+      servicios: (f.appointment_services ?? [])
+        .slice()
+        .sort((a, b) => a.posicion - b.posicion)
+        .map((s) => ({ nombre: s.nombre, duracion_min: s.duracion_min })),
+    }))
+    .filter((c) => {
+      const fecha = fechaEnMadrid(c.inicio);
+      return fecha >= desde && fecha <= hasta;
+    });
+}
+
+/** Quién atiende, con su horario, para dibujar las columnas y las horas muertas. */
+export async function trabajadoresDeCalendario(
+  supabase: SupabaseClient,
+  clientId: string
+): Promise<TrabajadorDeCalendario[]> {
+  const { data } = await supabase
+    .from("staff")
+    .select("id, nombre, staff_hours(dia_semana, hora_inicio, hora_fin)")
+    .eq("client_id", clientId)
+    .eq("activo", true)
+    .order("orden")
+    .order("created_at");
+
+  type Fila = {
+    id: string;
+    nombre: string;
+    staff_hours: { dia_semana: number; hora_inicio: string; hora_fin: string }[] | null;
+  };
+
+  return ((data ?? []) as unknown as Fila[]).map((t) => ({
+    id: t.id,
+    nombre: t.nombre,
+    horario: (t.staff_hours ?? []).map((h) => ({
+      dia: h.dia_semana,
+      inicio: h.hora_inicio.slice(0, 5),
+      fin: h.hora_fin.slice(0, 5),
+    })),
+  }));
+}
+
+/**
+ * De qué hora a qué hora se pinta la rejilla.
+ *
+ * Del horario real del negocio, no de las 00:00 a las 24:00: un salón que abre
+ * de 10 a 20 no necesita ver diez horas vacías para encontrar las suyas. Se
+ * redondea a la hora en punto por fuera para que las etiquetas cuadren, y se
+ * deja un mínimo por si alguien no tiene horario configurado.
+ */
+export function franjaDelDia(
+  trabajadores: TrabajadorDeCalendario[],
+  diasVisibles: number[]
+): { desde: number; hasta: number } {
+  let desde = Infinity;
+  let hasta = -Infinity;
+
+  for (const t of trabajadores) {
+    for (const tramo of t.horario) {
+      if (!diasVisibles.includes(tramo.dia)) continue;
+      desde = Math.min(desde, aMinutos(tramo.inicio));
+      hasta = Math.max(hasta, aMinutos(tramo.fin));
+    }
+  }
+
+  if (!Number.isFinite(desde) || !Number.isFinite(hasta) || hasta <= desde) {
+    return { desde: 9 * 60, hasta: 20 * 60 };
+  }
+
+  return {
+    desde: Math.floor(desde / 60) * 60,
+    hasta: Math.ceil(hasta / 60) * 60,
+  };
+}
+
+/**
+ * Los días que se ven en cada vista.
+ *
+ * Vive aquí y no en el componente porque la pantalla tiene que pedir a la base
+ * exactamente los días que se van a dibujar. Si cada uno lo calculara por su
+ * cuenta, el día que uno de los dos cambie aparecerían columnas vacías sin que
+ * nada falle.
+ *
+ * La semana se ancla al lunes: así "siguiente" siempre cae en lunes y la
+ * rejilla no baila según desde dónde se navegue.
+ */
+export function diasDeLaVista(vista: "dia" | "semana", fecha: string): string[] {
+  if (vista === "dia") return [fecha];
+  const lunes = lunesDe(fecha);
+  return Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i));
 }

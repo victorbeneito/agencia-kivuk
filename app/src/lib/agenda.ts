@@ -27,6 +27,10 @@ export const HORARIO_POR_DEFECTO = {
   tarde_fin: "20:00",
   duracion_min: "60",
   paso_min: "15",
+  // Hasta cuándo se acepta una fecha concreta. Es distinto de los días de
+  // huecos que ve la IA, que siguen siendo una semana: esa lista viaja en el
+  // prompt de cada mensaje.
+  dias_reserva: "30",
 };
 
 /** Un tramo de trabajo dentro de un día, tal como lo guarda `staff_hours`. */

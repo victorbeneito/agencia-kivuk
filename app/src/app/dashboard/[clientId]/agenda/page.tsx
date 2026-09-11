@@ -19,7 +19,14 @@ import {
 import { ImportarServicios } from "./importar-servicios";
 import { MatrizServicios } from "./matriz";
 import { CitasDelCliente } from "./citas";
-import { citasProximas } from "@/lib/citas";
+import {
+  citasEntre,
+  citasProximas,
+  diasDeLaVista,
+  fechaValida,
+  trabajadoresDeCalendario,
+} from "@/lib/citas";
+import type { Vista } from "@/components/calendario-citas";
 
 type FilaHorario = { dia_semana: number; hora_inicio: string; hora_fin: string };
 
@@ -32,11 +39,21 @@ type FilaHorario = { dia_semana: number; hora_inicio: string; hora_fin: string }
  */
 export default async function AgendaPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ clientId: string }>;
+  searchParams: Promise<{ vista?: string; fecha?: string }>;
 }) {
   await requireAgencia();
   const { clientId } = await params;
+  const { vista: vistaParam, fecha: fechaParam } = await searchParams;
+
+  // La vista y el día viven en la dirección: así el botón de atrás funciona y
+  // se puede dejar la pestaña abierta en la semana que interesa.
+  const vista: Vista | "lista" =
+    vistaParam === "dia" || vistaParam === "semana" ? vistaParam : "lista";
+  const fecha = fechaValida(fechaParam);
+
   const supabase = await createClient();
 
   const [cliente, modulo, staff, servicios] = await Promise.all([
@@ -83,10 +100,22 @@ export default async function AgendaPage({
     activo: t.activo,
   }));
 
-  // Después de las otras consultas y no dentro del Promise.all de arriba: es la
-  // única que depende de la hora actual, y tenerla aparte deja claro que lo de
-  // arriba es configuración y esto es el día a día.
-  const dias = await citasProximas(supabase, clientId);
+  // Después de las otras consultas y no dentro del Promise.all de arriba: es lo
+  // único que depende de la hora actual y de la vista, y tenerlo aparte deja
+  // claro que lo de arriba es configuración y esto es el día a día.
+  //
+  // Se pide solo lo que se va a dibujar: la lista no necesita la rejilla ni al
+  // revés, y son dos consultas distintas.
+  const visibles = diasDeLaVista(vista === "lista" ? "dia" : vista, fecha);
+  const [dias, citas, trabajadoresCalendario] = await Promise.all([
+    vista === "lista" ? citasProximas(supabase, clientId) : Promise.resolve([]),
+    vista === "lista"
+      ? Promise.resolve([])
+      : citasEntre(supabase, clientId, visibles[0], visibles[visibles.length - 1]),
+    vista === "lista"
+      ? Promise.resolve([])
+      : trabajadoresDeCalendario(supabase, clientId),
+  ]);
 
   const serviciosAgenda: ServicioAgenda[] = (servicios.data ?? []).map((s) => ({
     id: s.id,
@@ -130,7 +159,14 @@ export default async function AgendaPage({
       )}
 
       {modulo.data?.active && trabajadores.length > 0 && (
-        <CitasDelCliente clientId={clientId} dias={dias} />
+        <CitasDelCliente
+          clientId={clientId}
+          vista={vista}
+          fecha={fecha}
+          dias={dias}
+          citas={citas}
+          trabajadores={trabajadoresCalendario}
+        />
       )}
 
       <Card>

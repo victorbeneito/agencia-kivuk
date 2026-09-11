@@ -5,8 +5,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CalendarioCitas, SelectorDeVista, type Vista } from "@/components/calendario-citas";
 import { CitasLista } from "@/components/citas-lista";
-import type { DiaDeCitas } from "@/lib/citas";
+import type { Cita, DiaDeCitas, TrabajadorDeCalendario } from "@/lib/citas";
 import { cancelarCitaAgencia } from "./acciones";
 
 /**
@@ -20,12 +21,23 @@ import { cancelarCitaAgencia } from "./acciones";
  */
 export function CitasDelCliente({
   clientId,
+  vista,
+  fecha,
   dias,
+  citas,
+  trabajadores,
 }: {
   clientId: string;
+  vista: Vista | "lista";
+  fecha: string;
+  /** Para la lista. */
   dias: DiaDeCitas[];
+  /** Para el calendario. */
+  citas: Cita[];
+  trabajadores: TrabajadorDeCalendario[];
 }) {
-  const total = dias.reduce((n, d) => n + d.citas.length, 0);
+  const base = `/dashboard/${clientId}/agenda`;
+  const totalLista = dias.reduce((n, d) => n + d.citas.length, 0);
 
   async function cancelar(citaId: string) {
     "use server";
@@ -34,20 +46,35 @@ export function CitasDelCliente({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Citas</CardTitle>
-        <CardDescription>
-          {total
-            ? `${total} ${total === 1 ? "cita" : "citas"} en los próximos 30 días. Las canceladas no salen: su hueco vuelve a estar libre.`
-            : "Las que reserve el bot por WhatsApp aparecen aquí solas."}
-        </CardDescription>
+      <CardHeader className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <CardTitle>Citas</CardTitle>
+          <CardDescription>
+            {vista === "lista"
+              ? totalLista
+                ? `${totalLista} ${totalLista === 1 ? "cita" : "citas"} en los próximos 30 días. Las canceladas no salen: su hueco vuelve a estar libre.`
+                : "Las que reserve el bot por WhatsApp aparecen aquí solas."
+              : "La rejilla enseña lo que una lista no puede: el hueco entre las citas."}
+          </CardDescription>
+        </div>
+        <SelectorDeVista base={base} vista={vista} fecha={fecha} />
       </CardHeader>
       <CardContent>
-        <CitasLista
-          dias={dias}
-          cancelar={cancelar}
-          vacio="Todavía no hay ninguna cita. Cuando el bot reserve una, la verás aquí y el cliente en su panel."
-        />
+        {vista === "lista" ? (
+          <CitasLista
+            dias={dias}
+            cancelar={cancelar}
+            vacio="Todavía no hay ninguna cita. Cuando el bot reserve una, la verás aquí y el cliente en su panel."
+          />
+        ) : (
+          <CalendarioCitas
+            vista={vista}
+            fecha={fecha}
+            citas={citas}
+            trabajadores={trabajadores}
+            base={base}
+          />
+        )}
       </CardContent>
     </Card>
   );

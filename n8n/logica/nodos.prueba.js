@@ -200,6 +200,32 @@ const porTexto = ejecutar(nodo("Decidir"), {
 ok("el nodo pasa `texto` al motor y sale la duracion de las mechas",
    porTexto.duracion_min === 120, String(porTexto.duracion_min));
 
+// === La ventana de datos =====================================================
+// Si no cubre el dia que piden, las citas de ese dia no se cargan y el motor lo
+// ve vacio: contestaria "esta libre" de una hora que ya tiene a alguien.
+
+console.log("\n=== La ventana de datos que se carga ===");
+
+function leerPeticion(body) {
+  return ejecutar(nodo("Leer petición"), {}, { body })[0].json;
+}
+
+const cerca = leerPeticion({ client_id: PET.client_id, accion: "disponibilidad" });
+const nueveDias = (new Date(cerca.hasta) - Date.now()) / 86400000;
+ok("sin fecha, se cargan unos nueve dias", nueveDias > 8.9 && nueveDias < 9.1, String(nueveDias));
+
+const lejos = leerPeticion({ client_id: PET.client_id, accion: "comprobar", fecha: "2026-12-20", hora: "10:00" });
+ok("con una fecha lejana, la ventana llega hasta ese dia",
+   lejos.hasta.slice(0, 10) === "2026-12-20", lejos.hasta);
+
+const disparate = leerPeticion({ client_id: PET.client_id, accion: "comprobar", fecha: "2099-01-01", hora: "10:00" });
+const tope = (new Date(disparate.hasta) - Date.now()) / 86400000;
+ok("una fecha disparatada no se trae anios de agenda", tope < 121, String(tope));
+
+const pasado = leerPeticion({ client_id: PET.client_id, accion: "comprobar", fecha: "2020-01-01", hora: "10:00" });
+const cortaPasado = (new Date(pasado.hasta) - Date.now()) / 86400000;
+ok("una fecha pasada no encoge la ventana", cortaPasado > 8.9, String(cortaPasado));
+
 // === Consultas que pueden no devolver nada ===================================
 // `onError: continueRegularOutput` cubre los ERRORES, no las respuestas vacias.
 // Un select de Supabase que no encuentra fila devuelve `[]`, el nodo no emite

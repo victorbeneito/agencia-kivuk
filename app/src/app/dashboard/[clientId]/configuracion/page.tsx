@@ -120,6 +120,8 @@ export default async function ClientConfigPage({
     duracion_min:
       calendarConfig.duracion_min || HORARIO_POR_DEFECTO.duracion_min,
     paso_min: calendarConfig.paso_min || HORARIO_POR_DEFECTO.paso_min,
+    dias_reserva:
+      calendarConfig.dias_reserva || HORARIO_POR_DEFECTO.dias_reserva,
   };
 
   const diasActivos = new Set(horario.dias_laborables.split(",").filter(Boolean));
@@ -622,11 +624,32 @@ export default async function ClientConfigPage({
                   <option value="60">1 hora (9:00, 10:00, 11:00…)</option>
                 </select>
               </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="dias_reserva">Se puede pedir cita hasta</Label>
+                <select
+                  id="dias_reserva"
+                  name="dias_reserva"
+                  defaultValue={horario.dias_reserva}
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+                >
+                  <option value="15">15 días vista</option>
+                  <option value="30">1 mes vista</option>
+                  <option value="60">2 meses vista</option>
+                  <option value="90">3 meses vista</option>
+                </select>
+              </div>
             </div>
             <p className="-mt-2 text-sm text-muted-foreground">
               La duración es lo que ocupa la cita en la agenda. El intervalo es
               cada cuánto puede empezar una: con citas de 1 hora e intervalo de
               15 minutos, si hay hueco se puede reservar a las 10:15.
+            </p>
+            <p className="-mt-2 text-sm text-muted-foreground">
+              Hasta cuándo acepta el bot una fecha concreta. En una peluquería
+              conviene que sea amplio: quien se tiñe vuelve a las cuatro o cinco
+              semanas y pide la siguiente cita al salir. Cuando alguien pregunta
+              sin decir día, el bot sigue ofreciendo los huecos de la próxima
+              semana, no los de dos meses.
             </p>
           </CardContent>
           <CardFooter>

@@ -373,10 +373,47 @@ comprobar('un servicio que no existe se sigue diciendo', r.estado === 'servicio_
 r = m.resolver(CTX, { accion: 'comprobar', servicios: ['corte'], fecha: '2026-09-15', hora: "17h30" }, MARTES);
 comprobar('"17h30" se entiende como 17:30', r.hora === '17:30', r.hora);
 
-// Fuera de la ventana de 7 días no es "ocupado": es que todavía no llega.
-r = m.resolver(CTX, { accion: 'comprobar', fecha: '2026-10-20', hora: '17:00' }, MARTES);
+// Fuera de la ventana no es "ocupado": es que todavía no llega.
+r = m.resolver(CTX, { accion: 'comprobar', fecha: '2026-12-20', hora: '17:00' }, MARTES);
 comprobar('una fecha lejana no se dice como ocupada', r.estado === 'fuera_de_ventana', r.estado);
-comprobar('y se dice hasta cuándo hay agenda', r.hasta === '2026-09-21', r.hasta + ' | ' + r.mensaje);
+comprobar('y se dice hasta cuándo hay agenda', r.hasta === '2026-10-14', r.hasta + ' | ' + r.mensaje);
+
+// === Las dos ventanas: lo que se enseña y hasta cuándo se reserva ===========
+
+// El caso que hacía falta arreglar: alguien pide un día concreto dentro de doce
+// días. Antes se le decía que la agenda no llegaba tan lejos; ahora se mira.
+r = m.resolver(CTX, { accion: 'comprobar', servicios: ['corte'], fecha: '2026-09-28', hora: '17:00' }, MARTES);
+comprobar('una fecha a 13 días se comprueba de verdad', r.estado === 'libre', r.estado + ' | ' + r.mensaje);
+
+r = m.resolver(CTX, { accion: 'reservar', servicios: ['corte'], fecha: '2026-09-28', hora: '17:00' }, MARTES);
+comprobar('y se puede reservar', r.estado === 'libre', r.estado);
+
+// Pero preguntar en abierto sigue enseñando una semana: esa lista va dentro del
+// prompt en cada mensaje, y treinta días de horas no los lee nadie.
+r = m.resolver(CTX, { accion: 'disponibilidad' }, MARTES);
+comprobar('preguntar en abierto sigue dando 7 días', r.dias.length <= 7, String(r.dias.length));
+
+// El límite es del negocio: una peluquería lo quiere en dos meses porque quien
+// se tiñe vuelve a las cuatro semanas y pide cita al salir.
+var CTX60 = Object.assign({}, CTX, { config: Object.assign({}, CTX.config, { dias_reserva: '60' }) });
+r = m.resolver(CTX60, { accion: 'comprobar', servicios: ['corte'], fecha: '2026-10-30', hora: '17:00' }, MARTES);
+comprobar('con dias_reserva=60, el día 45 entra', r.estado === 'libre', r.estado + ' | ' + r.mensaje);
+
+r = m.resolver(CTX60, { accion: 'comprobar', servicios: ['corte'], fecha: '2026-12-20', hora: '17:00' }, MARTES);
+comprobar('y más allá se sigue diciendo que no llega', r.estado === 'fuera_de_ventana', r.estado);
+comprobar('con el límite de ESE negocio', r.hasta === '2026-11-13', r.hasta);
+
+// Un valor absurdo en la configuración no puede dejar al negocio sin agenda.
+var CTXMAL = Object.assign({}, CTX, { config: Object.assign({}, CTX.config, { dias_reserva: 'pepe' }) });
+r = m.resolver(CTXMAL, { accion: 'comprobar', servicios: ['corte'], fecha: '2026-09-28', hora: '17:00' }, MARTES);
+comprobar('una configuración inválida cae al valor por defecto', r.estado === 'libre', r.estado);
+
+comprobar('días entre fechas, con cambio de mes', m.diasEntreFechas('2026-09-27', '2026-10-02') === 5,
+  String(m.diasEntreFechas('2026-09-27', '2026-10-02')));
+// El domingo 25/10/2026 España atrasa la hora: entre esas dos medianoches hay
+// 25 horas, y comparar a medianoche daría 1,04 días.
+comprobar('y con cambio de hora', m.diasEntreFechas('2026-10-25', '2026-10-26') === 1,
+  String(m.diasEntreFechas('2026-10-25', '2026-10-26')));
 
 r = m.resolver(CTX, { accion: 'comprobar', fecha: '2026-09-01', hora: '17:00' }, MARTES);
 comprobar('una fecha ya pasada se dice como tal', r.estado === 'fecha_pasada', r.estado);

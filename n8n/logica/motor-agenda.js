@@ -93,6 +93,19 @@ function diaSemanaDe(fecha, zona) {
   return partesEnZona(instante(fecha, '12:00', zona), zona).diaSemana;
 }
 
+/**
+ * Cuántos días hay entre dos fechas "YYYY-MM-DD". Negativo si `b` es anterior.
+ *
+ * Se comparan a mediodía y en UTC a propósito: entre dos medianoches puede
+ * haber 23 o 25 horas si por medio cambia la hora, y entonces la resta daría
+ * 0,96 días y al redondear saldría un día de menos. A mediodía sobra margen.
+ */
+function diasEntreFechas(a, b) {
+  return Math.round(
+    (Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 86400000
+  );
+}
+
 // === Texto ===================================================================
 
 function normalizar(texto) {
@@ -431,9 +444,23 @@ function alternativasCerca(dias, fecha, hora) {
     salida.push({ fecha: mismoDia.fecha, dia: mismoDia.dia, horas: cercanas(mismoDia.horas, 4) });
   }
 
-  for (var i = 0; i < dias.length && salida.length < 3; i++) {
-    if (dias[i].fecha === fecha || !dias[i].horas.length) continue;
-    salida.push({ fecha: dias[i].fecha, dia: dias[i].dia, horas: cercanas(dias[i].horas, 3) });
+  // Los otros días, ordenados por cercanía al que pidió. Antes se recorrían en
+  // orden y bastaba, porque la ventana era de una semana entera; desde que se
+  // puede pedir a dos meses vista, a quien pide el día 40 hay que ofrecerle el
+  // 39 y el 41, no el lunes que viene.
+  var otros = dias
+    .filter(function (d) { return d.fecha !== fecha && d.horas.length; })
+    .slice()
+    .sort(function (x, y) {
+      var dx = Math.abs(diasEntreFechas(fecha, x.fecha));
+      var dy = Math.abs(diasEntreFechas(fecha, y.fecha));
+      // A igual distancia, antes el que va después: quien no puede el jueves
+      // suele preferir el viernes al miércoles, que ya tenía descartado.
+      return dx - dy || x.fecha.localeCompare(y.fecha);
+    });
+
+  for (var i = 0; i < otros.length && salida.length < 3; i++) {
+    salida.push({ fecha: otros[i].fecha, dia: otros[i].dia, horas: cercanas(otros[i].horas, 3) });
   }
 
   return salida.filter(function (a) { return a.horas.length; });
@@ -615,10 +642,38 @@ function resolver(contexto, peticion, ahora) {
   }
 
   // --- 2. Los huecos --------------------------------------------------------
+  //
+  // Hay DOS ventanas distintas, y confundirlas era el fallo de la primera
+  // versión, que tenía un único `dias: 7`:
+  //
+  //   - **Lo que se enseña** cuando preguntan en abierto ("¿qué huecos tienes?").
+  //     Se queda en una semana a propósito: esa lista viaja dentro del prompt
+  //     en CADA mensaje, y nadie lee treinta días de horas libres por WhatsApp.
+  //   - **Hasta cuándo se acepta una fecha concreta.** Eso es del negocio y se
+  //     configura: en una peluquería son dos meses, porque quien se tiñe vuelve
+  //     a las cuatro o cinco semanas y pide la siguiente cita al salir por la
+  //     puerta. Con los dos números pegados, a esa persona se le decía que no.
+  var DIAS_VISTA = 7;
+  var diasReserva = parseInt(config.dias_reserva || '30', 10);
+  if (!(diasReserva > 0)) diasReserva = 30;
+
+  var hoy = partesEnZona(ahora, zona).fecha;
+  var ultimo = fechaSumando(ahora, diasReserva - 1, zona);
+
+  // Se calcula más allá de la semana SOLO cuando alguien ha pedido un día que
+  // cae más lejos. Calcular sesenta días en cada mensaje sería pagar por algo
+  // que no se va a enseñar.
+  var diasACalcular = DIAS_VISTA;
+  if (fecha) {
+    var distancia = diasEntreFechas(hoy, fecha);
+    if (distancia >= DIAS_VISTA) diasACalcular = distancia + 1;
+    if (diasACalcular > diasReserva) diasACalcular = diasReserva;
+  }
+
   var opciones = {
     zona: zona,
     ahora: ahora,
-    dias: 7,
+    dias: diasACalcular,
     duracion: duracion,
     paso: paso,
     freeBusy: contexto.freeBusy || null,
@@ -626,14 +681,10 @@ function resolver(contexto, peticion, ahora) {
 
   var dias = unirHuecos(candidatos, opciones);
 
-  // Una fecha fuera de la ventana que se calcula no está "ocupada": es que
-  // todavía no llega, o que ya ha pasado. Decir "no está disponible" a quien
-  // pide dentro de tres semanas es mentirle, y encima se va convencido de que
-  // no hay sitio.
+  // Una fecha fuera de la ventana no está "ocupada": es que todavía no llega, o
+  // que ya ha pasado. Decir "no está disponible" a quien pide dentro de tres
+  // semanas es mentirle, y encima se va convencido de que no hay sitio.
   if (fecha) {
-    var hoy = partesEnZona(ahora, zona).fecha;
-    var ultimo = fechaSumando(ahora, opciones.dias - 1, zona);
-
     if (fecha < hoy) {
       return {
         ok: true,
@@ -783,6 +834,7 @@ if (typeof module !== 'undefined' && module.exports) {
     instante: instante,
     fechaSumando: fechaSumando,
     diaSemanaDe: diaSemanaDe,
+    diasEntreFechas: diasEntreFechas,
     normalizar: normalizar,
     horaDelTexto: horaDelTexto,
     emparejarServicio: emparejarServicio,
