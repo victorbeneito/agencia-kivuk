@@ -129,6 +129,15 @@ export default async function PanelLayout({
           },
         ]
       : []),
+    // Las citas van justo detrás de los chats: son las dos cosas que se miran
+    // a diario, y la segunda es consecuencia de la primera.
+    //
+    // Sin contador a propósito: en el resto de secciones el número significa
+    // "esto te está esperando", y las citas de hoy no esperan nada. Un número
+    // ahí se leería como trabajo pendiente cada mañana.
+    ...(modulos.has("calendar")
+      ? [{ clave: "citas", titulo: "Citas", url: "/panel/citas" }]
+      : []),
     ...(modulos.has("social")
       ? [
           {

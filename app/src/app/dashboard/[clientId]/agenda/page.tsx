@@ -18,6 +18,8 @@ import {
 } from "./servicios";
 import { ImportarServicios } from "./importar-servicios";
 import { MatrizServicios } from "./matriz";
+import { CitasDelCliente } from "./citas";
+import { citasProximas } from "@/lib/citas";
 
 type FilaHorario = { dia_semana: number; hora_inicio: string; hora_fin: string };
 
@@ -81,6 +83,11 @@ export default async function AgendaPage({
     activo: t.activo,
   }));
 
+  // Después de las otras consultas y no dentro del Promise.all de arriba: es la
+  // única que depende de la hora actual, y tenerla aparte deja claro que lo de
+  // arriba es configuración y esto es el día a día.
+  const dias = await citasProximas(supabase, clientId);
+
   const serviciosAgenda: ServicioAgenda[] = (servicios.data ?? []).map((s) => ({
     id: s.id,
     nombre: s.nombre,
@@ -120,6 +127,10 @@ export default async function AgendaPage({
             el bot no lo nombrará nunca.
           </p>
         </div>
+      )}
+
+      {modulo.data?.active && trabajadores.length > 0 && (
+        <CitasDelCliente clientId={clientId} dias={dias} />
       )}
 
       <Card>

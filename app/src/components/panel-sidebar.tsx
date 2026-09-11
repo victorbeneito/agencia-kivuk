@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarClock,
   Home,
   Images,
   MessageSquare,
@@ -45,6 +46,7 @@ export type SeccionPanel = {
 const ICONOS: Record<string, LucideIcon> = {
   inicio: Home,
   conversaciones: MessageSquare,
+  citas: CalendarClock,
   contenido: Images,
   facturas: ReceiptEuro,
   cuenta: UserRound,

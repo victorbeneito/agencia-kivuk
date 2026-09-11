@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarClock,
   Home,
   Images,
   MessageSquare,
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils";
 const ICONOS: Record<string, LucideIcon> = {
   inicio: Home,
   conversaciones: MessageSquare,
+  citas: CalendarClock,
   contenido: Images,
   facturas: ReceiptEuro,
   cuenta: UserRound,

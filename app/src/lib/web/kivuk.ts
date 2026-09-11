@@ -17,7 +17,7 @@ export const KIVUK = {
   panel: "https://panel.agenciakivuk.com",
   email: "info@agenciakivuk.com",
   /** Handle de Instagram sin la arroba. Vacío = no se enseña el enlace. */
-  instagram: "",
+  instagram: "agenciakivuk",
 
   /** Identificación del titular para el aviso legal y la política de privacidad. */
   fiscal: {

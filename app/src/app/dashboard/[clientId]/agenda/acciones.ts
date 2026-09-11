@@ -497,3 +497,48 @@ export async function guardarMatriz(
     mensaje: `Matriz guardada: ${anadir.length} asignaciones nuevas y ${quitar.length} retiradas.`,
   };
 }
+
+// === Citas ===
+
+/**
+ * Cancelar una cita desde el panel de la agencia.
+ *
+ * Con el cliente normal de Supabase: un `agency_admin` ya tiene UPDATE sobre
+ * las citas de sus clientes por la RLS de la 0014, así que la política es la
+ * frontera. La versión del cliente final vive en `panel/citas/acciones.ts` y sí
+ * necesita `service_role`, porque su RLS es de solo lectura.
+ *
+ * No se borra la fila, se marca como cancelada: la restricción anti-solape solo
+ * mira las confirmadas, así que el hueco queda libre al momento y el historial
+ * se conserva.
+ */
+export async function cancelarCitaAgencia(
+  clientId: string,
+  citaId: string
+): Promise<{ ok: boolean; mensaje?: string }> {
+  const supabase = await createClient();
+
+  const { data: cita } = await supabase
+    .from("appointments")
+    .select("id, client_id, estado")
+    .eq("id", citaId)
+    .maybeSingle();
+
+  if (!cita || cita.client_id !== clientId) {
+    return { ok: false, mensaje: "Esa cita no es de este cliente." };
+  }
+
+  if (cita.estado !== "confirmada") {
+    return { ok: false, mensaje: "Esa cita ya estaba cancelada. Recarga la página." };
+  }
+
+  const { error } = await supabase.rpc("agenda_cancelar", { p_id: citaId });
+
+  if (error) {
+    return { ok: false, mensaje: `No se ha podido cancelar: ${error.message}` };
+  }
+
+  revalidatePath(`/dashboard/${clientId}/agenda`);
+
+  return { ok: true };
+}
