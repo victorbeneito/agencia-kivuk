@@ -177,9 +177,12 @@ va dentro del prompt.
 2. **Panel** — trabajadores, servicios y la matriz, en la pestaña *Agenda* del
    panel de la agencia (`/dashboard/[clientId]/agenda`). ✅
 3. **Agenda API** — multi-trabajador, `appointments` como verdad, Google como
-   espejo. ✅
+   espejo. ✅ **Desplegada el 11/09/2026**: `0015` aplicada en Supabase y el
+   workflow publicado en el VPS. Probado contra producción reservando una cita
+   real y comprobando que el segundo intento sobre el mismo hueco contesta
+   «ocupado» con alternativas.
 4. **Bot** — extracción de servicio y trabajador, emparejamiento en código,
-   prompt.
+   prompt. ← siguiente
 5. **Recordatorios** — cron sobre `appointments`, y la agenda visible en
    `/panel`.
 

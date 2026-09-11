@@ -174,18 +174,19 @@ enseña y el cliente potencial lo va a probar.
   mejor momento de la demo**: se pide "quiero hablar con alguien" y suena el
   móvil delante del cliente potencial, que contesta él mismo desde la PWA.
 
-### Antes que nada: la fase 3 no está desplegada
+### La fase 3, desplegada el 11/09/2026
 
-Comprobado contra Supabase el 11/09/2026: **la migración `0015` no está
-aplicada**. Las tablas de la `0014` sí están (por eso el montaje ha podido
-escribir trabajadoras, servicios y matriz), pero `agenda_contexto` y
-`agenda_reservar` no existen en la base, y `agenda-api.json` sigue modificado sin
-desplegar. O sea que el motor nuevo está escrito y probado, pero **en producción
-todavía responde la Agenda API vieja, la de un solo trabajador**.
+La migración `0015` está aplicada en Supabase y la Agenda API nueva corre en el
+VPS. Probado contra producción con esta misma peluquería:
 
-Hasta que eso se despliegue, la demo puede enseñar las preguntas frecuentes y el
-relevo humano, pero no las citas. El orden es: aplicar la `0015` en Supabase,
-regenerar y desplegar los workflows, y después la fase 4.
+- `agenda_contexto` devuelve las tres con sus horarios y los 25 servicios, y el
+  motor sobre esos datos reales da lo mismo que en local.
+- Pedir mechas devuelve huecos de **150 minutos** y solo con Ana y Sonia.
+- **Se reservó una cita de verdad** (martes 10:00–12:30 con Ana) y, al pedir el
+  mismo hueco otra vez, contestó *«Las 10:00 no están disponibles»* con
+  alternativas. Es decir: la transacción de `agenda_reservar`, la restricción
+  anti-solape y el camino de «hueco perdido», probados de una vez. La cita de
+  prueba se borró después.
 
 ### Todavía no (fase 4 de `docs/agenda-multiple.md`)
 
