@@ -1,0 +1,90 @@
+# Batería de preguntas reales para el bot de Peluquería Mechas (demo).
+# Se lanza con:
+#   node scripts/probar-conocimiento.js "Peluqueria Mechas" --bateria docs/preguntas-peluqueria-mechas.txt
+#
+# Cada línea es una pregunta tal y como la escribiría una clienta por WhatsApp:
+# sin tildes, con faltas y con prisa. Las últimas son las importantes: preguntas
+# cuya respuesta NO está en la base de conocimiento. Ahí el bot tiene que decir
+# que no lo sabe, y eso se comprueba viendo que no recupera nada relevante.
+
+# --- precios de corte y peinado ---
+cuanto vale cortarse el pelo
+que precio teneis el corte
+cuanto cuesta lavar y peinar
+me cortais solo las puntas? cuanto es
+cuanto cobrais por marcar
+
+# --- caballero y niños ---
+cuanto vale un corte de hombre
+cortais a niños? que precio
+hacéis barba
+cuanto es corte y barba
+
+# --- color ---
+cuanto cuesta un tinte
+que vale teñirse el pelo
+precio de la raiz
+cubrir canas cuanto es
+que es un matiz y cuanto vale
+
+# --- mechas ---
+cuanto valen unas mechas
+precio mechitas
+hacéis balayage? cuanto cuesta
+cuanto se tarda en hacer mechas
+tengo el pelo por la cintura, las mechas cuestan mas?
+
+# --- tratamientos ---
+cuanto vale el alisado de keratina
+cuanto dura la keratina
+teneis algo para la caida del pelo
+que es el botox capilar
+hacéis hidratacion
+
+# --- permanente y peinados ---
+hacéis permanente
+cuanto cobrais por un recogido
+peinais novias
+cuanto vale peinado de boda
+vais a domicilio
+
+# --- horario y cita ---
+a que hora abris
+abris los lunes
+teneis abierto por la tarde los sabados
+puedo ir sin cita
+cerrais a mediodia
+
+# --- el salón y el equipo ---
+quien trabaja ahi
+quien hace las mechas
+puedo pedir con ana
+donde estais
+hacéis uñas
+
+# --- pagos y bonos ---
+se puede pagar con tarjeta
+aceptais bizum
+teneis bonos
+puedo regalar una sesion
+hay que pagar algo por adelantado
+
+# --- políticas y dudas prácticas ---
+si no puedo ir puedo anular
+que pasa si llego tarde
+tengo que ir con el pelo lavado
+me puedo teñir embarazada
+hacéis prueba de alergia
+cada cuanto me tengo que retocar la raiz
+donde aparco
+puedo ir con el carrito del bebe
+
+# --- preguntas SIN respuesta en la base: el bot tiene que decir que no lo sabe ---
+teneis hueco esta tarde a las 6
+me podeis quitar el tinte negro de casa y dejarme rubia platino
+cuanto me costaria a mi el balayage con mi pelo
+hacéis extensiones de pelo
+teneis parking propio
+cuanto cobrais por depilar las cejas
+me guardais la ficha del color que me disteis la ultima vez
+podeis venir a peinarme a casa un domingo
