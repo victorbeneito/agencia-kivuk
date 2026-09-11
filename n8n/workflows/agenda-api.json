@@ -135,7 +135,8 @@
       ],
       "id": "ag000006-0001-4001-8001-000000000006",
       "name": "Buscar credenciales Google",
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -401,7 +402,8 @@
       ],
       "id": "ag000015-0001-4001-8001-000000000015",
       "name": "Buscar módulo email",
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
     },
     {
       "parameters": {

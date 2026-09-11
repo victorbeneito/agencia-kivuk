@@ -200,6 +200,25 @@ const porTexto = ejecutar(nodo("Decidir"), {
 ok("el nodo pasa `texto` al motor y sale la duracion de las mechas",
    porTexto.duracion_min === 120, String(porTexto.duracion_min));
 
+// === Consultas que pueden no devolver nada ===================================
+// `onError: continueRegularOutput` cubre los ERRORES, no las respuestas vacias.
+// Un select de Supabase que no encuentra fila devuelve `[]`, el nodo no emite
+// ningun item y TODA la rama de abajo deja de ejecutarse, sin error y sin log.
+//
+// Paso de verdad: un cliente sin modulo de correo reservaba bien y se quedaba
+// sin respuesta, porque "Buscar modulo email" no devolvia fila y el nodo que
+// contesta al webhook colgaba de el. La cita existia y al cliente se le decia
+// que no se habia podido. Se vio al quitar la obligacion del email, que es lo
+// que hizo normal no tener modulo de correo.
+
+console.log("\n=== Consultas que pueden venir vacias ===");
+for (const nombre of ["Buscar módulo email", "Buscar credenciales Google"]) {
+  const n = wf.nodes.find((x) => x.name === nombre);
+  ok(`"${nombre}" emite item aunque no encuentre nada`,
+     n && n.alwaysOutputData === true,
+     "alwaysOutputData: " + (n ? String(n.alwaysOutputData) : "no existe el nodo"));
+}
+
 // === El bot de WhatsApp ======================================================
 // `Decidir accion` es el nodo que decide si se le crea una cita a alguien. Un
 // fallo aqui no da error: da citas que nadie pidio, o silencio donde tenia que
