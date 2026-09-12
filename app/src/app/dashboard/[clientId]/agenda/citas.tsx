@@ -7,8 +7,14 @@ import {
 } from "@/components/ui/card";
 import { CalendarioCitas, SelectorDeVista, type Vista } from "@/components/calendario-citas";
 import { CitasLista } from "@/components/citas-lista";
-import type { Cita, DiaDeCitas, TrabajadorDeCalendario } from "@/lib/citas";
-import { cancelarCitaAgencia } from "./acciones";
+import type {
+  Cita,
+  DiaDeCitas,
+  NuevaCita,
+  ServicioReservable,
+  TrabajadorDeCalendario,
+} from "@/lib/citas";
+import { cancelarCitaAgencia, crearCitaAgencia } from "./acciones";
 
 /**
  * Las citas del cliente, vistas desde la agencia.
@@ -26,6 +32,7 @@ export function CitasDelCliente({
   dias,
   citas,
   trabajadores,
+  servicios,
 }: {
   clientId: string;
   vista: Vista | "lista";
@@ -35,6 +42,7 @@ export function CitasDelCliente({
   /** Para el calendario. */
   citas: Cita[];
   trabajadores: TrabajadorDeCalendario[];
+  servicios: ServicioReservable[];
 }) {
   const base = `/dashboard/${clientId}/agenda`;
   const totalLista = dias.reduce((n, d) => n + d.citas.length, 0);
@@ -42,6 +50,11 @@ export function CitasDelCliente({
   async function cancelar(citaId: string) {
     "use server";
     return cancelarCitaAgencia(clientId, citaId);
+  }
+
+  async function crear(datos: NuevaCita) {
+    "use server";
+    return crearCitaAgencia(clientId, datos);
   }
 
   return (
@@ -72,7 +85,9 @@ export function CitasDelCliente({
             fecha={fecha}
             citas={citas}
             trabajadores={trabajadores}
+            servicios={servicios}
             base={base}
+            crear={crear}
           />
         )}
       </CardContent>

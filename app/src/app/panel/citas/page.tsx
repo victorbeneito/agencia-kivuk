@@ -7,6 +7,7 @@ import {
   citasProximas,
   diasDeLaVista,
   fechaValida,
+  serviciosReservables,
   trabajadoresDeCalendario,
 } from "@/lib/citas";
 import {
@@ -15,7 +16,7 @@ import {
   type Vista,
 } from "@/components/calendario-citas";
 import { CitasLista } from "@/components/citas-lista";
-import { cancelarCita } from "./acciones";
+import { cancelarCita, crearCitaCliente } from "./acciones";
 
 /**
  * Las citas, vistas por el negocio.
@@ -77,9 +78,10 @@ export default async function PanelCitasPage({
   }
 
   const dias = diasDeLaVista(vista, fecha);
-  const [citas, trabajadores] = await Promise.all([
+  const [citas, trabajadores, servicios] = await Promise.all([
     citasEntre(supabase, perfil.clientId, dias[0], dias[dias.length - 1]),
     trabajadoresDeCalendario(supabase, perfil.clientId),
+    serviciosReservables(supabase, perfil.clientId),
   ]);
 
   return (
@@ -100,7 +102,9 @@ export default async function PanelCitasPage({
         fecha={fecha}
         citas={citas}
         trabajadores={trabajadores}
+        servicios={servicios}
         base={base}
+        crear={crearCitaCliente}
       />
     </div>
   );

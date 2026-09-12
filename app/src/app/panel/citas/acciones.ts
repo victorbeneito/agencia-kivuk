@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { clienteDelPanel } from "@/lib/auth";
+import { prepararCita, type NuevaCita } from "@/lib/citas";
 
 export type Resultado = { ok: boolean; mensaje?: string };
 
@@ -56,5 +57,72 @@ export async function cancelarCita(citaId: string): Promise<Resultado> {
   // ocupando un hueco en la base, que es lo que decide de verdad.
   revalidatePath("/panel/citas");
 
+  return { ok: true };
+}
+
+/**
+ * Crear una cita a mano desde el panel del negocio.
+ *
+ * Es la mitad que le faltaba a la agenda: una peluquería da muchas de sus citas
+ * en el mostrador, cuando la clienta se va y pide la siguiente. Sin esto, el
+ * calendario solo enseña lo que dio el bot y hay que seguir llevando la libreta
+ * —y entonces ni la libreta ni el calendario están completos, que es peor que
+ * tener solo la libreta.
+ *
+ * Con `service_role` porque el `client_user` no puede escribir, y comprobando
+ * aquí lo que la RLS comprobaría: que la trabajadora es de este negocio. Sin
+ * eso, bastaría con mandar el id de la trabajadora de otro cliente para
+ * colarle una cita.
+ */
+export async function crearCitaCliente(datos: NuevaCita): Promise<Resultado> {
+  const perfil = await clienteDelPanel();
+
+  const preparada = prepararCita(datos);
+  if (!preparada.ok) return { ok: false, mensaje: preparada.mensaje };
+
+  const admin = createServiceRoleClient();
+
+  const { data: trabajador } = await admin
+    .from("staff")
+    .select("id, client_id, activo")
+    .eq("id", datos.staff_id)
+    .maybeSingle();
+
+  if (!trabajador || trabajador.client_id !== perfil.clientId) {
+    return { ok: false, mensaje: "Esa persona no es de tu equipo." };
+  }
+
+  const { data, error } = await admin.rpc("agenda_reservar", {
+    p_client_id: perfil.clientId,
+    p_staff_id: datos.staff_id,
+    p_inicio: preparada.inicio,
+    p_fin: preparada.fin,
+    p_servicios: preparada.servicios.map((s) => ({
+      id: datos.servicio_id,
+      nombre: s.nombre,
+      duracion_min: s.duracion_min,
+    })),
+    p_nombre: datos.nombre.trim(),
+    p_contacto: datos.contacto.trim(),
+    p_email: null,
+    p_canal: "panel",
+    p_notas: datos.notas.trim(),
+    p_conversation_id: null,
+  });
+
+  if (error) return { ok: false, mensaje: `No se ha podido guardar: ${error.message}` };
+
+  const resultado = data as { ok: boolean; motivo?: string };
+  if (!resultado?.ok) {
+    return {
+      ok: false,
+      mensaje:
+        resultado?.motivo === "ocupado"
+          ? "Esa persona ya tiene una cita a esa hora."
+          : "No se ha podido guardar la cita.",
+    };
+  }
+
+  revalidatePath("/panel/citas");
   return { ok: true };
 }

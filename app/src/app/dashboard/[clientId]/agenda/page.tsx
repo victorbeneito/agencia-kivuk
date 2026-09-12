@@ -24,6 +24,7 @@ import {
   citasProximas,
   diasDeLaVista,
   fechaValida,
+  serviciosReservables,
   trabajadoresDeCalendario,
 } from "@/lib/citas";
 import type { Vista } from "@/components/calendario-citas";
@@ -107,7 +108,7 @@ export default async function AgendaPage({
   // Se pide solo lo que se va a dibujar: la lista no necesita la rejilla ni al
   // revés, y son dos consultas distintas.
   const visibles = diasDeLaVista(vista === "lista" ? "dia" : vista, fecha);
-  const [dias, citas, trabajadoresCalendario] = await Promise.all([
+  const [dias, citas, trabajadoresCalendario, serviciosCalendario] = await Promise.all([
     vista === "lista" ? citasProximas(supabase, clientId) : Promise.resolve([]),
     vista === "lista"
       ? Promise.resolve([])
@@ -115,6 +116,9 @@ export default async function AgendaPage({
     vista === "lista"
       ? Promise.resolve([])
       : trabajadoresDeCalendario(supabase, clientId),
+    vista === "lista"
+      ? Promise.resolve([])
+      : serviciosReservables(supabase, clientId),
   ]);
 
   const serviciosAgenda: ServicioAgenda[] = (servicios.data ?? []).map((s) => ({
@@ -166,6 +170,7 @@ export default async function AgendaPage({
           dias={dias}
           citas={citas}
           trabajadores={trabajadoresCalendario}
+          servicios={serviciosCalendario}
         />
       )}
 

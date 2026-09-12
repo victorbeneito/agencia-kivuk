@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { NuevaCitaDialogo, type CitaPrevia } from "@/components/nueva-cita";
 import {
   aMinutos,
   diaSemanaDe,
@@ -17,6 +18,8 @@ import {
   minutosEnMadrid,
   sumarDias,
   type Cita,
+  type NuevaCita,
+  type ServicioReservable,
   type TrabajadorDeCalendario,
 } from "@/lib/citas";
 
@@ -44,6 +47,17 @@ export type Vista = "dia" | "semana";
 
 /** Alto de una hora, en píxeles. Con 56 cabe una jornada partida sin scroll. */
 const ALTO_HORA = 56;
+
+/**
+ * Alto de la fila de títulos, en píxeles.
+ *
+ * Es una constante y no un `pt-6` a ojo porque la regla de horas y las columnas
+ * son dos elementos distintos que tienen que empezar EXACTAMENTE a la misma
+ * altura: si no cuadran, todas las horas quedan desplazadas unos píxeles
+ * respecto a las citas, y eso no se ve como un error de maquetación sino como
+ * una cita que parece estar a otra hora.
+ */
+const ALTO_CABECERA = 26;
 
 /** Un color por trabajadora, estable por posición en la lista. */
 const COLORES = [
@@ -99,17 +113,23 @@ export function CalendarioCitas({
   fecha,
   citas,
   trabajadores,
+  servicios,
   base,
+  crear,
 }: {
   vista: Vista;
   /** El día que se mira, o cualquiera de la semana que se mira. */
   fecha: string;
   citas: Cita[];
   trabajadores: TrabajadorDeCalendario[];
+  servicios: ServicioReservable[];
   /** Ruta sobre la que se construyen los enlaces de navegación. */
   base: string;
+  /** Si no se pasa, el calendario es de solo lectura. */
+  crear?: (datos: NuevaCita) => Promise<{ ok: boolean; mensaje?: string }>;
 }) {
   const [abierta, setAbierta] = useState<Cita | null>(null);
+  const [nueva, setNueva] = useState<CitaPrevia | null>(null);
 
   const dias = diasDeLaVista(vista, fecha);
 
@@ -164,9 +184,27 @@ export function CalendarioCitas({
           </p>
         </div>
 
-        {/* Saltar a una fecha cualquiera: con flechas solas, ver el mes que
-            viene son cinco clics. */}
-        <SaltoAFecha base={base} vista={vista} fecha={fecha} />
+        <div className="flex items-center gap-2">
+          {/* Saltar a una fecha cualquiera: con flechas solas, ver el mes que
+              viene son cinco clics. */}
+          <SaltoAFecha base={base} vista={vista} fecha={fecha} />
+
+          {crear && trabajadores.length ? (
+            <Button
+              size="sm"
+              onClick={() =>
+                setNueva({
+                  staff_id: trabajadores[0].id,
+                  fecha: vista === "dia" ? fecha : dias[0],
+                  hora: etiquetaHora(franja.desde),
+                })
+              }
+            >
+              <Plus className="size-4" />
+              Nueva cita
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {!trabajadores.length ? (
@@ -174,10 +212,17 @@ export function CalendarioCitas({
           No hay ningún trabajador activo, así que no hay agenda que dibujar.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        /* Alto propio y desplazamiento dentro de la caja: una jornada larga no
+           puede empujar la página entera hacia abajo, y con la cabecera pegada
+           arriba se ve de quién es cada columna aunque se baje a las ocho de la
+           tarde. Antes la cabecera se cortaba al desplazarse, que es justo lo
+           que hace que una rejilla deje de leerse. */
+        <div className="max-h-[70vh] overflow-auto rounded-lg border">
           <div className="flex min-w-[38rem]">
-            {/* La regla de horas */}
-            <div className="w-12 shrink-0 pt-6">
+            {/* La regla de horas, pegada a la izquierda para que no se pierda
+                al desplazarse de lado en la vista semana. */}
+            <div className="sticky left-0 z-30 w-12 shrink-0 bg-card">
+              <div className="sticky top-0 z-30 bg-card" style={{ height: ALTO_CABECERA }} />
               <div className="relative" style={{ height: alto }}>
                 {horas.map((m) => (
                   <span
@@ -194,18 +239,52 @@ export function CalendarioCitas({
             <div className="flex flex-1">
               {columnas.map((col) => (
                 <div key={col.clave} className="min-w-0 flex-1 border-l first:border-l-0">
+                  {/* Pegada arriba: con la jornada entera a la vista hay que
+                      poder desplazarse por las horas sin perder de vista de
+                      quién es cada columna. */}
                   <p
                     className={cn(
-                      "truncate px-1 pb-1 text-center text-xs font-medium",
+                      "sticky top-0 z-20 flex items-center justify-center truncate bg-card px-1 text-center text-xs font-medium",
                       col.fecha === hoy && vista === "semana"
                         ? "text-primary"
                         : "text-muted-foreground"
                     )}
+                    style={{ height: ALTO_CABECERA }}
+                    title={col.titulo}
                   >
                     {col.titulo}
                   </p>
 
                   <div className="relative" style={{ height: alto }}>
+                    {/* Pulsar el hueco: la forma natural de dar una cita en un
+                        calendario es señalar dónde va. Se redondea a cuartos de
+                        hora, que es como se habla en un salón. */}
+                    {crear
+                      ? col.trabajadores.map((t, i) => (
+                          <button
+                            key={`hueco-${t.id}`}
+                            type="button"
+                            aria-label={`Dar cita con ${t.nombre}`}
+                            className="absolute inset-y-0 cursor-copy"
+                            style={{
+                              left: (i / col.trabajadores.length) * 100 + "%",
+                              width: 100 / col.trabajadores.length + "%",
+                            }}
+                            onClick={(e) => {
+                              const caja = e.currentTarget.getBoundingClientRect();
+                              const parte = (e.clientY - caja.top) / caja.height;
+                              const minuto =
+                                franja.desde + Math.round((parte * totalMin) / 15) * 15;
+                              setNueva({
+                                staff_id: t.id,
+                                fecha: col.fecha,
+                                hora: comoHora(Math.min(minuto, franja.hasta - 15)),
+                              });
+                            }}
+                          />
+                        ))
+                      : null}
+
                     {/* Horario y horas muertas */}
                     {col.trabajadores.map((t, i) => (
                       <Fondo
@@ -268,6 +347,16 @@ export function CalendarioCitas({
       ) : null}
 
       {abierta ? <Detalle cita={abierta} onCerrar={() => setAbierta(null)} /> : null}
+
+      {nueva && crear ? (
+        <NuevaCitaDialogo
+          previa={nueva}
+          trabajadores={trabajadores}
+          servicios={servicios}
+          crear={crear}
+          onCerrar={() => setNueva(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -470,6 +559,13 @@ function SaltoAFecha({ base, vista, fecha }: { base: string; vista: Vista; fecha
 
 function enlace(base: string, vista: Vista, fecha: string) {
   return `${base}?vista=${vista}&fecha=${fecha}`;
+}
+
+/** Minutos desde medianoche -> "HH:MM". La etiqueta de la regla solo da horas. */
+function comoHora(minutos: number) {
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
 }
 
 function etiquetaHora(minutos: number) {

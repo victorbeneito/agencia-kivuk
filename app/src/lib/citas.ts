@@ -367,3 +367,95 @@ export function diasDeLaVista(vista: "dia" | "semana", fecha: string): string[] 
   const lunes = lunesDe(fecha);
   return Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i));
 }
+
+/**
+ * "2026-09-15" + "10:00" en Madrid -> el instante en UTC.
+ *
+ * No vale `new Date("2026-09-15T10:00")`: eso usa la zona del servidor, y el
+ * VPS va en UTC, así que una cita de las 10:00 se guardaría a las 12:00 de
+ * Madrid. Tampoco vale fijar "+02:00", que sería verano todo el año.
+ *
+ * Se prueban los dos desfases posibles de España y se elige el que, al volver a
+ * convertirlo a hora de Madrid, devuelve exactamente la hora pedida. Es la
+ * misma idea que usa el motor de agenda en n8n.
+ */
+export function instanteEnMadrid(fecha: string, hora: string): string {
+  for (const desfase of ["+02:00", "+01:00"]) {
+    const iso = `${fecha}T${hora}:00${desfase}`;
+    if (horaEnMadrid(iso) === hora && fechaEnMadrid(iso) === fecha) {
+      return new Date(iso).toISOString();
+    }
+  }
+  // Las dos horas de la madrugada del cambio de hora de octubre existen dos
+  // veces; no hay respuesta única y cualquiera de las dos vale. Pasa una vez al
+  // año a las tres de la mañana, cuando no hay peluquerías abiertas.
+  return new Date(`${fecha}T${hora}:00+01:00`).toISOString();
+}
+
+/** Lo que hace falta para crear una cita a mano desde el panel. */
+export type NuevaCita = {
+  staff_id: string;
+  fecha: string;
+  hora: string;
+  duracion_min: number;
+  servicio_id: string | null;
+  servicio_nombre: string;
+  nombre: string;
+  contacto: string;
+  notas: string;
+};
+
+/** Un servicio del catálogo, para el desplegable del formulario. */
+export type ServicioReservable = {
+  id: string;
+  nombre: string;
+  duracion_min: number;
+};
+
+export async function serviciosReservables(
+  supabase: SupabaseClient,
+  clientId: string
+): Promise<ServicioReservable[]> {
+  const { data } = await supabase
+    .from("booking_services")
+    .select("id, nombre, duracion_min")
+    .eq("client_id", clientId)
+    .eq("activo", true)
+    .order("orden")
+    .order("nombre");
+
+  return (data ?? []) as ServicioReservable[];
+}
+
+/**
+ * Comprueba una cita nueva y la deja lista para `agenda_reservar`.
+ *
+ * Vive aquí porque las dos pantallas —la de la agencia y la del cliente— crean
+ * citas y tienen que validar lo mismo. Lo que NO se comprueba aquí es el
+ * solape: de eso se encarga la restricción de la base, que es la única que no
+ * puede perder una carrera entre dos personas guardando a la vez.
+ */
+export function prepararCita(datos: NuevaCita):
+  | { ok: false; mensaje: string }
+  | { ok: true; inicio: string; fin: string; servicios: ServicioDeCita[] } {
+  if (!datos.staff_id) return { ok: false, mensaje: "Elige con quién es la cita." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datos.fecha)) return { ok: false, mensaje: "La fecha no es válida." };
+  if (!/^\d{2}:\d{2}$/.test(datos.hora)) return { ok: false, mensaje: "La hora no es válida." };
+
+  const duracion = Math.round(Number(datos.duracion_min));
+  if (!Number.isFinite(duracion) || duracion < 5 || duracion > 600) {
+    return { ok: false, mensaje: "La duración tiene que estar entre 5 y 600 minutos." };
+  }
+
+  const inicio = instanteEnMadrid(datos.fecha, datos.hora);
+  const fin = new Date(new Date(inicio).getTime() + duracion * 60000).toISOString();
+
+  const nombre = datos.servicio_nombre.trim();
+
+  return {
+    ok: true,
+    inicio,
+    fin,
+    servicios: nombre ? [{ nombre, duracion_min: duracion }] : [],
+  };
+}

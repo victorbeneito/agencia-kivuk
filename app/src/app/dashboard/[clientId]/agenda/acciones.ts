@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DIAS_SEMANA, horarioInicial, type Tramo } from "@/lib/agenda";
 import { normalizarNombre, parsearServicios } from "@/lib/agenda-csv";
+import { prepararCita, type NuevaCita } from "@/lib/citas";
 
 /**
  * Todo lo que escribe la agenda desde el panel de la agencia.
@@ -540,5 +541,63 @@ export async function cancelarCitaAgencia(
 
   revalidatePath(`/dashboard/${clientId}/agenda`);
 
+  return { ok: true };
+}
+
+/**
+ * Crear una cita a mano desde el panel de la agencia.
+ *
+ * Sin esto la agenda no es la agenda del negocio: es la de las citas que dio el
+ * bot. Una peluquería da la mitad de sus citas en el mostrador, cuando la
+ * clienta se va y pide la siguiente, y si eso no se puede anotar aquí, el
+ * calendario miente y hay que llevar además la libreta de siempre.
+ *
+ * Se reserva con `agenda_reservar` (0015), la misma función que usa el bot: es
+ * la que mete la cita y sus servicios en una transacción y sabe distinguir "no
+ * cabía" de "ha fallado algo". Comprobar el solape antes de insertar no serviría
+ * —entre la comprobación y el insert cabe la reserva del bot— y aquí esa carrera
+ * es de verdad: el bot está atendiendo mientras alguien escribe en el mostrador.
+ */
+export async function crearCitaAgencia(
+  clientId: string,
+  datos: NuevaCita
+): Promise<{ ok: boolean; mensaje?: string }> {
+  const preparada = prepararCita(datos);
+  if (!preparada.ok) return { ok: false, mensaje: preparada.mensaje };
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("agenda_reservar", {
+    p_client_id: clientId,
+    p_staff_id: datos.staff_id,
+    p_inicio: preparada.inicio,
+    p_fin: preparada.fin,
+    p_servicios: preparada.servicios.map((s) => ({
+      id: datos.servicio_id,
+      nombre: s.nombre,
+      duracion_min: s.duracion_min,
+    })),
+    p_nombre: datos.nombre.trim(),
+    p_contacto: datos.contacto.trim(),
+    p_email: null,
+    p_canal: "panel",
+    p_notas: datos.notas.trim(),
+    p_conversation_id: null,
+  });
+
+  if (error) return { ok: false, mensaje: `No se ha podido guardar: ${error.message}` };
+
+  const resultado = data as { ok: boolean; motivo?: string };
+  if (!resultado?.ok) {
+    return {
+      ok: false,
+      mensaje:
+        resultado?.motivo === "ocupado"
+          ? "Esa persona ya tiene una cita a esa hora."
+          : "No se ha podido guardar la cita.",
+    };
+  }
+
+  revalidatePath(`/dashboard/${clientId}/agenda`);
   return { ok: true };
 }
