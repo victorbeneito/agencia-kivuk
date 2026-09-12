@@ -218,10 +218,16 @@ de la ventana de 24 horas de la Cloud API y exige una plantilla aprobada. Es de
 utilidad, se aprueba en un rato y el coste por mensaje es pequeño; conviene
 pedirla con tiempo y no el día antes de la primera demo. Es la fase 5.
 
-**Cambiar y anular citas no está construido.** El prompt lo dice y lo escala a
-una persona, que es lo honesto. Es la segunda pregunta que hará quien vea la
-demo, así que mejor tener la respuesta preparada: se resuelve desde la bandeja,
-y automatizarlo es la siguiente pieza.
+**El bot no cambia ni anula citas; el panel sí.** Desde la pantalla de Citas se
+cancela y se dan citas a mano —pulsando el hueco en la rejilla—, que es lo que
+hace falta para atender en el mostrador. Lo que no sabe hacer es que la clienta
+lo pida por WhatsApp: ahí el prompt lo escala a una persona, que es lo honesto.
+Es la segunda pregunta que hará quien vea la demo, así que conviene tener la
+respuesta preparada: hoy se resuelve desde el panel, y automatizarlo por el chat
+es una pieza más adelante.
+
+Tampoco se puede **mover** una cita: se cancela y se da otra. Arrastrarla por la
+rejilla es lo que uno espera de un calendario y está en el mapa.
 
 ---
 

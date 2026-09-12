@@ -388,3 +388,63 @@ que nada lo delata al leer el JSON.
   dentista. Se modelaría como un trabajador más (un "recurso" con calendario).
 - **Tiempo de limpieza entre citas** (`buffer_min` por servicio).
 - **Zona horaria**: sigue fija en `Europe/Madrid`, como hasta ahora.
+
+## El calendario y las citas a mano (fase 5a)
+
+Una lista contesta «qué tengo» pero no «cómo voy»: para saber de un vistazo si
+la semana está llena o hueca hay que ver **el hueco entre las citas**, y el
+hueco no se puede listar. De ahí la rejilla, en los dos paneles, con tres
+vistas que responden a tres preguntas distintas: **lista** (qué tengo por
+delante, y la que mejor se lee en el móvil), **día** (una columna por
+trabajadora: a qué me enfrento hoy y quién tiene el hueco de las cinco) y
+**semana** (una columna por día: cómo vengo de carga).
+
+Lo que en otros calendarios es la parte difícil —colocar citas que se solapan—
+aquí no existe: cada cita va en la subcolumna de **su** trabajadora, y dos citas
+de la misma persona a la misma hora las impide la base. Por eso esto es una
+rejilla y no un motor de layout.
+
+Tres decisiones que no se ven:
+
+- **El fondo distingue el horario de las horas muertas.** Un hueco a las 15:00 y
+  un hueco a las 15:00 de un día que se libra se ven igual, y son cosas
+  opuestas: uno se puede vender y el otro no.
+- **La vista y el día viven en la URL.** El botón de atrás funciona, la pestaña
+  se puede dejar abierta en la semana que interesa y el enlace se puede pasar.
+- **La cabecera y la regla de horas van pegadas**, y su alto es una constante
+  compartida. Eran dos elementos distintos que tenían que empezar a la misma
+  altura, y unos píxeles de diferencia no se ven como un fallo de maquetación
+  sino como una cita que parece estar a otra hora.
+
+### Las citas a mano
+
+Sin ellas la agenda no es la del negocio: es la de las citas que dio el bot. Una
+peluquería da la mitad de las suyas en el mostrador, cuando la clienta se va y
+pide la siguiente, y una agenda donde eso no se anota obliga a llevar además la
+libreta de siempre — con lo que ni la libreta ni la pantalla están completas,
+que es peor que tener solo la libreta.
+
+Se dan **pulsando el hueco**, que es como se señala una cita en un calendario:
+el formulario llega con el día, la hora y la persona puestos. Elegir el servicio
+rellena la duración, y la duración se puede cambiar a mano: en un salón se
+acorta y se alarga a ojo.
+
+Se reservan con `agenda_reservar`, **la misma función que usa el bot**.
+Comprobar el solape antes de insertar no serviría —entre la comprobación y el
+insert cabe la reserva del bot— y aquí esa carrera es real: el bot está
+atendiendo mientras alguien escribe en el mostrador. Si llega tarde, se dice
+«esa persona ya tiene una cita a esa hora» y no se pierde lo escrito.
+
+Desde el panel de la agencia se escribe con el cliente normal de Supabase (su
+RLS ya lo permite); desde el del cliente, con `service_role` comprobando que la
+trabajadora es de ese negocio — sin eso bastaría con mandar el id de la
+trabajadora de otro cliente para colarle una cita.
+
+### Lo que sigue faltando aquí
+
+- **Bloquear un rato** (`staff_time_off` existe desde la `0014` y el bot ya la
+  respeta, pero no hay pantalla). Es lo primero que pedirá quien use la rejilla:
+  «bloquéame el jueves por la tarde, que tengo médico».
+- **Mover una cita** arrastrándola. Hoy se cancela y se da otra.
+- **Varios servicios en una cita a mano.** El bot sí sabe sumarlos; el
+  formulario del panel coge uno y deja retocar los minutos.
