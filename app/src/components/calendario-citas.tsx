@@ -217,8 +217,13 @@ export function CalendarioCitas({
            arriba se ve de quién es cada columna aunque se baje a las ocho de la
            tarde. Antes la cabecera se cortaba al desplazarse, que es justo lo
            que hace que una rejilla deje de leerse. */
-        <div className="max-h-[70vh] overflow-auto rounded-lg border">
-          <div className="flex min-w-[38rem]">
+        <div className="overflow-x-auto rounded-lg border">
+          {/* `py-2` no es margen decorativo: las etiquetas de hora van centradas
+              sobre su línea, así que la primera y la última sobresalen medio
+              renglón. Sin ese hueco desbordan la caja, aparece una barra de
+              desplazamiento de siete píxeles y la primera hora se ve cortada
+              aunque estés arriba del todo. */}
+          <div className="flex min-w-[38rem] py-2">
             {/* La regla de horas, pegada a la izquierda para que no se pierda
                 al desplazarse de lado en la vista semana. */}
             <div className="sticky left-0 z-30 w-12 shrink-0 bg-card">
