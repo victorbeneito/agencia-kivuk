@@ -20,6 +20,7 @@ import { ImportarServicios } from "./importar-servicios";
 import { MatrizServicios } from "./matriz";
 import { CitasDelCliente } from "./citas";
 import {
+  ausenciasEntre,
   citasEntre,
   citasProximas,
   diasDeLaVista,
@@ -121,6 +122,15 @@ export default async function AgendaPage({
       : serviciosReservables(supabase, clientId),
   ]);
 
+  // Después de las trabajadoras: los bloqueos cuelgan de la persona, no del
+  // cliente, así que hace falta su lista para pedirlos.
+  const ausencias = await ausenciasEntre(
+    supabase,
+    trabajadoresCalendario.map((t) => t.id),
+    visibles[0],
+    visibles[visibles.length - 1]
+  );
+
   const serviciosAgenda: ServicioAgenda[] = (servicios.data ?? []).map((s) => ({
     id: s.id,
     nombre: s.nombre,
@@ -169,6 +179,7 @@ export default async function AgendaPage({
           fecha={fecha}
           dias={dias}
           citas={citas}
+          ausencias={ausencias}
           trabajadores={trabajadoresCalendario}
           servicios={serviciosCalendario}
         />

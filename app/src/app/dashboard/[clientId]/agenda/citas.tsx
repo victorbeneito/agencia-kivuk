@@ -8,13 +8,20 @@ import {
 import { CalendarioCitas, SelectorDeVista, type Vista } from "@/components/calendario-citas";
 import { CitasLista } from "@/components/citas-lista";
 import type {
+  Ausencia,
   Cita,
   DiaDeCitas,
   NuevaCita,
+  NuevoBloqueo,
   ServicioReservable,
   TrabajadorDeCalendario,
 } from "@/lib/citas";
-import { cancelarCitaAgencia, crearCitaAgencia } from "./acciones";
+import {
+  borrarBloqueoAgencia,
+  cancelarCitaAgencia,
+  crearBloqueoAgencia,
+  crearCitaAgencia,
+} from "./acciones";
 
 /**
  * Las citas del cliente, vistas desde la agencia.
@@ -31,6 +38,7 @@ export function CitasDelCliente({
   fecha,
   dias,
   citas,
+  ausencias,
   trabajadores,
   servicios,
 }: {
@@ -41,6 +49,7 @@ export function CitasDelCliente({
   dias: DiaDeCitas[];
   /** Para el calendario. */
   citas: Cita[];
+  ausencias: Ausencia[];
   trabajadores: TrabajadorDeCalendario[];
   servicios: ServicioReservable[];
 }) {
@@ -55,6 +64,16 @@ export function CitasDelCliente({
   async function crear(datos: NuevaCita) {
     "use server";
     return crearCitaAgencia(clientId, datos);
+  }
+
+  async function bloquear(datos: NuevoBloqueo) {
+    "use server";
+    return crearBloqueoAgencia(clientId, datos);
+  }
+
+  async function quitarBloqueo(id: string) {
+    "use server";
+    return borrarBloqueoAgencia(clientId, id);
   }
 
   return (
@@ -84,10 +103,13 @@ export function CitasDelCliente({
             vista={vista}
             fecha={fecha}
             citas={citas}
+            ausencias={ausencias}
             trabajadores={trabajadores}
             servicios={servicios}
             base={base}
             crear={crear}
+            bloquear={bloquear}
+            quitarBloqueo={quitarBloqueo}
           />
         )}
       </CardContent>

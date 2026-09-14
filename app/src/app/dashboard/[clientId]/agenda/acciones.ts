@@ -5,7 +5,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DIAS_SEMANA, horarioInicial, type Tramo } from "@/lib/agenda";
 import { normalizarNombre, parsearServicios } from "@/lib/agenda-csv";
-import { prepararCita, type NuevaCita } from "@/lib/citas";
+import {
+  prepararBloqueo,
+  prepararCita,
+  type NuevaCita,
+  type NuevoBloqueo,
+} from "@/lib/citas";
 
 /**
  * Todo lo que escribe la agenda desde el panel de la agencia.
@@ -597,6 +602,74 @@ export async function crearCitaAgencia(
           : "No se ha podido guardar la cita.",
     };
   }
+
+  revalidatePath(`/dashboard/${clientId}/agenda`);
+  return { ok: true };
+}
+
+// === Bloqueos de horario ===
+
+/**
+ * Tapar un rato: vacaciones, el médico del jueves, una formación.
+ *
+ * Sin esto, la única forma de que el bot no ofreciera un hueco era inventarse
+ * una cita falsa — y entonces la agenda ya miente sobre lo que pasa ese día, que
+ * es justo lo que se estaba intentando evitar.
+ *
+ * El bot respeta `staff_time_off` desde la migración 0014; lo que faltaba era
+ * poder escribirlo.
+ */
+export async function crearBloqueoAgencia(
+  clientId: string,
+  datos: NuevoBloqueo
+): Promise<{ ok: boolean; mensaje?: string }> {
+  const preparado = prepararBloqueo(datos);
+  if (!preparado.ok) return { ok: false, mensaje: preparado.mensaje };
+
+  const supabase = await createClient();
+
+  // Que la trabajadora sea de este cliente lo comprueba la RLS, pero se mira
+  // aquí también para poder decirlo con palabras en vez de devolver un error
+  // de permisos que no explica nada.
+  const { data: trabajador } = await supabase
+    .from("staff")
+    .select("id, client_id")
+    .eq("id", datos.staff_id)
+    .maybeSingle();
+
+  if (!trabajador || trabajador.client_id !== clientId) {
+    return { ok: false, mensaje: "Esa persona no es de este cliente." };
+  }
+
+  const { error } = await supabase.from("staff_time_off").insert({
+    staff_id: datos.staff_id,
+    inicio: preparado.inicio,
+    fin: preparado.fin,
+    motivo: datos.motivo.trim(),
+  });
+
+  if (error) return { ok: false, mensaje: `No se ha podido guardar: ${error.message}` };
+
+  revalidatePath(`/dashboard/${clientId}/agenda`);
+  return { ok: true };
+}
+
+/**
+ * Quitar un bloqueo.
+ *
+ * Se borra de verdad, al revés que una cita: un rato tapado no es historial de
+ * nada, y dejarlo marcado como "cancelado" solo serviría para que el hueco
+ * siguiera pareciendo ocupado.
+ */
+export async function borrarBloqueoAgencia(
+  clientId: string,
+  bloqueoId: string
+): Promise<{ ok: boolean; mensaje?: string }> {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("staff_time_off").delete().eq("id", bloqueoId);
+
+  if (error) return { ok: false, mensaje: `No se ha podido quitar: ${error.message}` };
 
   revalidatePath(`/dashboard/${clientId}/agenda`);
   return { ok: true };

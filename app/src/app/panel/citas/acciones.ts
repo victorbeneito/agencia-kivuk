@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { clienteDelPanel } from "@/lib/auth";
-import { prepararCita, type NuevaCita } from "@/lib/citas";
+import {
+  prepararBloqueo,
+  prepararCita,
+  type NuevaCita,
+  type NuevoBloqueo,
+} from "@/lib/citas";
 
 export type Resultado = { ok: boolean; mensaje?: string };
 
@@ -122,6 +127,74 @@ export async function crearCitaCliente(datos: NuevaCita): Promise<Resultado> {
           : "No se ha podido guardar la cita.",
     };
   }
+
+  revalidatePath("/panel/citas");
+  return { ok: true };
+}
+
+// === Bloqueos de horario ===
+
+/**
+ * Tapar un rato desde el panel del negocio.
+ *
+ * El `client_user` solo lee `staff_time_off` (0014), así que se escribe con
+ * `service_role` comprobando aquí lo que comprobaría la RLS: que la persona a
+ * la que se le bloquea el rato es de su equipo.
+ */
+export async function crearBloqueoCliente(datos: NuevoBloqueo): Promise<Resultado> {
+  const perfil = await clienteDelPanel();
+
+  const preparado = prepararBloqueo(datos);
+  if (!preparado.ok) return { ok: false, mensaje: preparado.mensaje };
+
+  const admin = createServiceRoleClient();
+
+  const { data: trabajador } = await admin
+    .from("staff")
+    .select("id, client_id")
+    .eq("id", datos.staff_id)
+    .maybeSingle();
+
+  if (!trabajador || trabajador.client_id !== perfil.clientId) {
+    return { ok: false, mensaje: "Esa persona no es de tu equipo." };
+  }
+
+  const { error } = await admin.from("staff_time_off").insert({
+    staff_id: datos.staff_id,
+    inicio: preparado.inicio,
+    fin: preparado.fin,
+    motivo: datos.motivo.trim(),
+  });
+
+  if (error) return { ok: false, mensaje: `No se ha podido guardar: ${error.message}` };
+
+  revalidatePath("/panel/citas");
+  return { ok: true };
+}
+
+export async function borrarBloqueoCliente(bloqueoId: string): Promise<Resultado> {
+  const perfil = await clienteDelPanel();
+  const admin = createServiceRoleClient();
+
+  // El bloqueo no tiene `client_id`: cuelga de la persona. Así que se comprueba
+  // por ahí antes de borrar nada, o bastaría con mandar el id de un bloqueo de
+  // otro negocio para abrirle un hueco.
+  const { data: bloqueo } = await admin
+    .from("staff_time_off")
+    .select("id, staff_id, staff(client_id)")
+    .eq("id", bloqueoId)
+    .maybeSingle();
+
+  const duenyo = bloqueo?.staff as { client_id: string } | { client_id: string }[] | null;
+  const clientIdDelBloqueo = Array.isArray(duenyo) ? duenyo[0]?.client_id : duenyo?.client_id;
+
+  if (!bloqueo || clientIdDelBloqueo !== perfil.clientId) {
+    return { ok: false, mensaje: "Ese bloqueo no es tuyo." };
+  }
+
+  const { error } = await admin.from("staff_time_off").delete().eq("id", bloqueoId);
+
+  if (error) return { ok: false, mensaje: `No se ha podido quitar: ${error.message}` };
 
   revalidatePath("/panel/citas");
   return { ok: true };

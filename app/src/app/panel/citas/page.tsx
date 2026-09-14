@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { clienteDelPanel, modulosActivos } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
+  ausenciasEntre,
   citasEntre,
   citasProximas,
   diasDeLaVista,
@@ -16,7 +17,12 @@ import {
   type Vista,
 } from "@/components/calendario-citas";
 import { CitasLista } from "@/components/citas-lista";
-import { cancelarCita, crearCitaCliente } from "./acciones";
+import {
+  borrarBloqueoCliente,
+  cancelarCita,
+  crearBloqueoCliente,
+  crearCitaCliente,
+} from "./acciones";
 
 /**
  * Las citas, vistas por el negocio.
@@ -84,6 +90,15 @@ export default async function PanelCitasPage({
     serviciosReservables(supabase, perfil.clientId),
   ]);
 
+  // Depende de la lista de trabajadoras, así que va después: `staff_time_off`
+  // no tiene `client_id`, cuelga de la persona.
+  const ausencias = await ausenciasEntre(
+    supabase,
+    trabajadores.map((t) => t.id),
+    dias[0],
+    dias[dias.length - 1]
+  );
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <Cabecera
@@ -101,10 +116,13 @@ export default async function PanelCitasPage({
         vista={vista}
         fecha={fecha}
         citas={citas}
+        ausencias={ausencias}
         trabajadores={trabajadores}
         servicios={servicios}
         base={base}
         crear={crearCitaCliente}
+        bloquear={crearBloqueoCliente}
+        quitarBloqueo={borrarBloqueoCliente}
       />
     </div>
   );

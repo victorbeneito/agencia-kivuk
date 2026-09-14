@@ -17,8 +17,10 @@ import {
   fechaEnMadrid,
   minutosEnMadrid,
   sumarDias,
+  type Ausencia,
   type Cita,
   type NuevaCita,
+  type NuevoBloqueo,
   type ServicioReservable,
   type TrabajadorDeCalendario,
 } from "@/lib/citas";
@@ -112,21 +114,27 @@ export function CalendarioCitas({
   vista,
   fecha,
   citas,
+  ausencias,
   trabajadores,
   servicios,
   base,
   crear,
+  bloquear,
+  quitarBloqueo,
 }: {
   vista: Vista;
   /** El día que se mira, o cualquiera de la semana que se mira. */
   fecha: string;
   citas: Cita[];
+  ausencias: Ausencia[];
   trabajadores: TrabajadorDeCalendario[];
   servicios: ServicioReservable[];
   /** Ruta sobre la que se construyen los enlaces de navegación. */
   base: string;
   /** Si no se pasa, el calendario es de solo lectura. */
   crear?: (datos: NuevaCita) => Promise<{ ok: boolean; mensaje?: string }>;
+  bloquear?: (datos: NuevoBloqueo) => Promise<{ ok: boolean; mensaje?: string }>;
+  quitarBloqueo?: (id: string) => Promise<{ ok: boolean; mensaje?: string }>;
 }) {
   const [abierta, setAbierta] = useState<Cita | null>(null);
   const [nueva, setNueva] = useState<CitaPrevia | null>(null);
@@ -316,6 +324,24 @@ export function CalendarioCitas({
                       />
                     ))}
 
+                    {/* Los bloqueos van antes que las citas: si por lo que sea
+                        coinciden, la cita manda a la vista. */}
+                    {col.trabajadores.map((t, i) =>
+                      ausencias
+                        .filter((a) => a.staff_id === t.id)
+                        .map((a) => (
+                          <CajaBloqueo
+                            key={a.id}
+                            ausencia={a}
+                            fecha={col.fecha}
+                            franja={franja}
+                            izquierda={(i / col.trabajadores.length) * 100}
+                            ancho={100 / col.trabajadores.length}
+                            onQuitar={quitarBloqueo}
+                          />
+                        ))
+                    )}
+
                     {col.trabajadores.map((t, i) =>
                       citas
                         .filter(
@@ -364,6 +390,7 @@ export function CalendarioCitas({
           trabajadores={trabajadores}
           servicios={servicios}
           crear={crear}
+          bloquear={bloquear}
           onCerrar={() => setNueva(null)}
         />
       ) : null}
@@ -477,6 +504,92 @@ function CajaCita({
         <span className="block truncate">{cita.nombre_contacto || "Sin nombre"}</span>
       ) : null}
     </button>
+  );
+}
+
+/**
+ * Un rato tapado: vacaciones, el médico, una formación.
+ *
+ * Se dibuja a rayas y sin color de nadie, para que no se confunda ni un segundo
+ * con una cita. Lo que importa de un bloqueo no es quién viene —no viene
+ * nadie— sino que ahí no se puede meter a nadie.
+ *
+ * Se recorta a la franja visible: una semana de vacaciones empieza el lunes a
+ * las 00:00 y si se dibujara entera se saldría por arriba en todos los días.
+ */
+function CajaBloqueo({
+  ausencia,
+  fecha,
+  franja,
+  izquierda,
+  ancho,
+  onQuitar,
+}: {
+  ausencia: Ausencia;
+  fecha: string;
+  franja: { desde: number; hasta: number };
+  izquierda: number;
+  ancho: number;
+  onQuitar?: (id: string) => Promise<{ ok: boolean; mensaje?: string }>;
+}) {
+  const [quitando, setQuitando] = useState(false);
+  const total = franja.hasta - franja.desde;
+
+  // Se recorta a lo que cae dentro de ESTE día y de la franja que se dibuja.
+  // Una semana de vacaciones es un solo bloqueo que va del lunes a las 00:00 al
+  // sábado a las 00:00: en cada día hay que pintar el trozo que le toca.
+  //
+  // Los infinitos hacen el trabajo de los cuatro `if` que había aquí antes: si
+  // el bloqueo empieza después de hoy o acabó antes, el trozo sale vacío y no
+  // se dibuja nada, sin tener que enumerar los casos.
+  const diaInicio = fechaEnMadrid(ausencia.inicio);
+  const diaFin = fechaEnMadrid(ausencia.fin);
+
+  const desde =
+    diaInicio < fecha ? franja.desde
+    : diaInicio === fecha ? minutosEnMadrid(ausencia.inicio)
+    : Infinity;
+
+  const hasta =
+    diaFin > fecha ? franja.hasta
+    : diaFin === fecha ? minutosEnMadrid(ausencia.fin)
+    : -Infinity;
+
+  const arriba = Math.max(desde, franja.desde);
+  const abajo = Math.min(hasta, franja.hasta);
+  if (!(abajo > arriba)) return null;
+
+  return (
+    <div
+      className="absolute overflow-hidden rounded-sm border border-dashed border-muted-foreground/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,rgba(120,120,120,0.16)_5px,rgba(120,120,120,0.16)_10px)] px-1 text-[11px] leading-tight text-muted-foreground"
+      style={{
+        left: `calc(${izquierda}% + 1px)`,
+        width: `calc(${ancho}% - 2px)`,
+        top: ((arriba - franja.desde) / total) * 100 + "%",
+        height: ((abajo - arriba) / total) * 100 + "%",
+      }}
+      title={ausencia.motivo || "Bloqueado"}
+    >
+      <span className="block truncate font-medium">
+        {ausencia.motivo || "Bloqueado"}
+      </span>
+      {onQuitar ? (
+        <button
+          type="button"
+          className="absolute right-0.5 top-0.5 rounded bg-card/80 px-1 text-[10px] hover:bg-card"
+          disabled={quitando}
+          onClick={async (e) => {
+            e.stopPropagation();
+            setQuitando(true);
+            await onQuitar(ausencia.id);
+            setQuitando(false);
+          }}
+          aria-label="Quitar el bloqueo"
+        >
+          {quitando ? "…" : "✕"}
+        </button>
+      ) : null}
+    </div>
   );
 }
 

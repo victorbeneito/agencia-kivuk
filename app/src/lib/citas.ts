@@ -459,3 +459,106 @@ export function prepararCita(datos: NuevaCita):
     servicios: nombre ? [{ nombre, duracion_min: duracion }] : [],
   };
 }
+
+// === Bloqueos de horario =====================================================
+//
+// `staff_time_off` guarda desde una semana de vacaciones hasta la hora del
+// médico del jueves. Sin esto, tapar un rato obligaba a inventarse una cita
+// falsa — y entonces la agenda ya está mintiendo sobre lo que pasa ese día.
+
+export type Ausencia = {
+  id: string;
+  staff_id: string;
+  inicio: string;
+  fin: string;
+  motivo: string;
+};
+
+/**
+ * Los bloqueos de un equipo entre dos fechas.
+ *
+ * Se filtra por la lista de trabajadoras y no por cliente porque
+ * `staff_time_off` no tiene `client_id`: cuelga de la persona. La lista ya la
+ * tiene la pantalla para dibujar las columnas, así que no cuesta nada.
+ */
+export async function ausenciasEntre(
+  supabase: SupabaseClient,
+  staffIds: string[],
+  desde: string,
+  hasta: string
+): Promise<Ausencia[]> {
+  if (!staffIds.length) return [];
+
+  const { data } = await supabase
+    .from("staff_time_off")
+    .select("id, staff_id, inicio, fin, motivo")
+    .in("staff_id", staffIds)
+    // Se solapan con la ventana: una semana de vacaciones que empezó el lunes
+    // anterior tiene que salir igual al mirar el miércoles.
+    .lt("inicio", `${sumarDias(hasta, 1)}T00:00:00Z`)
+    .gt("fin", `${sumarDias(desde, -1)}T00:00:00Z`)
+    .order("inicio");
+
+  return ((data ?? []) as Ausencia[]).map((a) => ({
+    ...a,
+    motivo: (a.motivo ?? "").trim(),
+  }));
+}
+
+export type NuevoBloqueo = {
+  staff_id: string;
+  /** Día en que empieza, "YYYY-MM-DD". */
+  desde: string;
+  /** Día en que acaba, incluido. Igual que `desde` para un rato suelto. */
+  hasta: string;
+  todo_el_dia: boolean;
+  hora_inicio: string;
+  hora_fin: string;
+  motivo: string;
+};
+
+/**
+ * Convierte un bloqueo del formulario en el par de instantes que guarda la base.
+ *
+ * "Todo el día" va de las 00:00 del primer día a las 00:00 del siguiente al
+ * último: así una semana de vacaciones de lunes a viernes incluye el viernes
+ * entero, que es lo que quiere decir quien lo escribe.
+ */
+export function prepararBloqueo(datos: NuevoBloqueo):
+  | { ok: false; mensaje: string }
+  | { ok: true; inicio: string; fin: string } {
+  if (!datos.staff_id) return { ok: false, mensaje: "Elige a quién le bloqueas el rato." };
+
+  const fechas = [datos.desde, datos.hasta];
+  if (fechas.some((f) => !/^\d{4}-\d{2}-\d{2}$/.test(f))) {
+    return { ok: false, mensaje: "Las fechas no son válidas." };
+  }
+  if (datos.hasta < datos.desde) {
+    return { ok: false, mensaje: "El día de fin es anterior al de inicio." };
+  }
+
+  if (datos.todo_el_dia) {
+    return {
+      ok: true,
+      inicio: instanteEnMadrid(datos.desde, "00:00"),
+      fin: instanteEnMadrid(sumarDias(datos.hasta, 1), "00:00"),
+    };
+  }
+
+  if (![datos.hora_inicio, datos.hora_fin].every((h) => /^\d{2}:\d{2}$/.test(h))) {
+    return { ok: false, mensaje: "Las horas no son válidas." };
+  }
+  if (datos.hora_fin <= datos.hora_inicio) {
+    return { ok: false, mensaje: "La hora de fin tiene que ser posterior a la de inicio." };
+  }
+
+  // Un rato suelto es siempre de un solo día. "De 15:00 a 17:00 del lunes al
+  // viernes" significa cosas distintas según quién lo lea —¿ese rato cada día,
+  // o desde el lunes a las 15:00 hasta el viernes a las 17:00?—, así que el
+  // formulario no ofrece rango salvo en "todo el día", donde no hay duda.
+  return {
+    ok: true,
+    inicio: instanteEnMadrid(datos.desde, datos.hora_inicio),
+    fin: instanteEnMadrid(datos.desde, datos.hora_fin),
+  };
+}
