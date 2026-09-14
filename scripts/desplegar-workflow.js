@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
- * Actualiza un workflow que YA existe en n8n y lo publica, sin pasar por el
- * navegador.
+ * Publica un workflow en n8n sin pasar por el navegador. Si no existe, con
+ * `--crear` lo crea (y lo deja activado).
  *
  *   node scripts/desplegar-workflow.js n8n/workflows/catalogo-ingesta.json
  *   node scripts/desplegar-workflow.js <archivo.json> "<nombre en n8n>"
+ *   node scripts/desplegar-workflow.js <archivo.json> --crear --aplicar
  *
  * Importar el JSON desde la interfaz **crea un workflow nuevo** con el mismo
  * nombre, así que no sirve para actualizar: acabas con dos y el webhook lo
@@ -60,12 +61,64 @@ function dolar(texto) {
   return `$${etiqueta}$${texto}$${etiqueta}$`;
 }
 
+/**
+ * Crea la fila de un workflow que todavía no existe y devuelve su id.
+ *
+ * Esto se hacía importando el JSON desde la interfaz, y ahí hay una trampa que
+ * ya costó un susto: **«Import from File» importa DENTRO del workflow que
+ * tengas abierto**. Si estabas mirando el bot de WhatsApp, te quedas con un
+ * workflow de 61 nodos —los 50 del bot más los 11 nuevos— y con el nombre del
+ * fichero importado. Y como `desplegar-workflow.js` busca por nombre, el
+ * siguiente despliegue del bot no encuentra nada y el del workflow nuevo
+ * machaca el bot entero. Nada de eso da un error visible en el momento.
+ *
+ * Tres tablas, que es justo lo que la interfaz hace por dentro:
+ *   - `workflow_entity`, la fila.
+ *   - `workflow_history`, la primera versión (la fila apunta a ella).
+ *   - `shared_workflow`, el dueño; sin esto el workflow existe y no se ve.
+ */
+function crearWorkflow(nombre, aplicar) {
+  // El proyecto personal del dueño: el mismo donde están los demás.
+  const proyectos = consultar(
+    `select "projectId", count(*) from shared_workflow group by 1 order by 2 desc limit 1;`
+  );
+  if (!proyectos.length) throw new Error('no encuentro ningún proyecto de n8n donde crear el workflow');
+  const proyecto = proyectos[0][0];
+
+  // Los ids de n8n son cadenas de 16 caracteres, no uuids.
+  const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let id = '';
+  for (let i = 0; i < 16; i++) id += abc[crypto.randomInt(abc.length)];
+
+  console.log(`\nNo existe "${nombre}" en n8n: se creará con id ${id} en el proyecto ${proyecto}.`);
+  if (!aplicar) return id;
+
+  psql(`
+begin;
+
+insert into workflow_entity (id, name, active, nodes, connections, settings, "pinData", "versionId", "triggerCount")
+values (${dolar(id)}, ${dolar(nombre)}, false, '[]'::json, '{}'::json, '{}'::json, '{}'::json, ${dolar(
+    crypto.randomUUID()
+  )}, 0);
+
+insert into shared_workflow ("workflowId", "projectId", role)
+values (${dolar(id)}, ${dolar(proyecto)}, 'workflow:owner');
+
+commit;
+`);
+
+  return id;
+}
+
 function main() {
   const [archivo, nombreArg] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   const aplicar = process.argv.includes('--aplicar');
+  const crear = process.argv.includes('--crear');
 
   if (!archivo) {
-    console.error('uso: node scripts/desplegar-workflow.js <archivo.json> ["<nombre en n8n>"] [--aplicar]');
+    console.error(
+      'uso: node scripts/desplegar-workflow.js <archivo.json> ["<nombre en n8n>"] [--crear] [--aplicar]'
+    );
     process.exit(1);
   }
 
@@ -80,20 +133,17 @@ function main() {
       `where name = ${dolar(nombre)} and "isArchived" = false;`
   );
 
-  // Un workflow NUEVO hay que crearlo una vez desde la interfaz. Crearlo a mano
-  // aquí es tentador y no compensa: además de la fila hay que darle proyecto,
-  // permisos y versión publicada, y un workflow mal creado no da error — aparece
-  // en la lista y no se ejecuta nunca.
-  if (filas.length === 0) {
-    throw new Error(
-      `no hay ningún workflow activo llamado "${nombre}" en n8n.\n` +
-        '  Si es nuevo, impórtalo una vez desde la interfaz (Import from File) y\n' +
-        '  actívalo; a partir de ahí este script ya lo actualiza.'
-    );
-  }
   if (filas.length > 1) throw new Error(`hay ${filas.length} workflows sin archivar llamados "${nombre}"`);
 
-  const [id, activo, contador] = filas[0];
+  if (filas.length === 0 && !crear) {
+    throw new Error(
+      `no hay ningún workflow activo llamado "${nombre}" en n8n.\n` +
+        '  Si es nuevo: node scripts/desplegar-workflow.js <archivo> --crear --aplicar'
+    );
+  }
+
+  const esNuevo = filas.length === 0;
+  const [id, activo, contador] = esNuevo ? [crearWorkflow(nombre, aplicar), 'f', 0] : filas[0];
 
   // Un nodo webhook sin webhookId activa bien y registra la ruta, pero al
   // llegar la primera petición responde "Cannot read properties of undefined
@@ -146,6 +196,12 @@ update workflow_entity set
   "versionId" = ${dolar(versionId)},
   "activeVersionId" = ${dolar(versionId)},
   "versionCounter" = "versionCounter" + 1,
+  ${
+    // Un workflow recién creado nace apagado, y apagado no lo dispara nada: ni
+    // su webhook ni su reloj. Se enciende aquí y no en la interfaz porque el
+    // sentido de crearlo desde el script es no tener que abrirla.
+    esNuevo ? 'active = true,\n  "triggerCount" = 1,' : ''
+  }
   "updatedAt" = now()
 where id = ${dolar(id)};
 

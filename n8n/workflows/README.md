@@ -130,11 +130,18 @@ escribir texto libre.
 El razonamiento entero —la plantilla, la ventana rodante, por qué se marca la
 cita solo cuando Meta acepta— está en `docs/recordatorios-whatsapp.md`.
 
-**Un workflow nuevo hay que crearlo una vez desde la interfaz** (Import from
-File → activarlo). `desplegar-workflow.js` solo sabe actualizar uno que ya
-existe: busca por nombre, y sin fila que actualizar no puede inventarse el
-proyecto al que pertenece ni sus permisos. A partir de esa primera vez, el
-despliegue es el de siempre.
+**Un workflow nuevo se crea con `--crear`, no desde la interfaz:**
+
+```bash
+node scripts/desplegar-workflow.js n8n/workflows/recordatorios-citas.json --crear --aplicar
+```
+
+Porque **«Import from File» importa DENTRO del workflow que tengas abierto**.
+Se aprendió por las malas: importando este mismo fichero con el bot de WhatsApp
+en pantalla, el bot pasó a tener 61 nodos —los suyos 50 más los 11 nuevos— y a
+llamarse «Recordatorios de citas». Y como el despliegue busca por nombre, a
+partir de ahí el del bot no encontraba nada y el de los recordatorios habría
+machacado el bot entero. Ninguno de esos dos pasos da un error visible.
 
 ## Canal de voz (Vapi)
 
