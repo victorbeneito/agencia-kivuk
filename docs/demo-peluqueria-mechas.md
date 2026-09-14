@@ -209,14 +209,24 @@ fue el paso donde más gente abandona), y por eso mismo apareció `confirmar`
 —sin el email, preguntar «¿tenéis hueco el viernes?» se habría convertido en una
 cita que nadie pidió—.
 
-### Un detalle que conviene decidir
+### El recordatorio de la víspera, desplegado el 14/09/2026
 
-**El recordatorio de la víspera necesita plantilla de Meta.** La confirmación ya
-va por WhatsApp —es el propio mensaje del bot, y llega al hilo donde esa persona
-volverá a mirar «¿a qué hora era?»—, pero un recordatorio el día antes cae fuera
-de la ventana de 24 horas de la Cloud API y exige una plantilla aprobada. Es de
-utilidad, se aprueba en un rato y el coste por mensaje es pequeño; conviene
-pedirla con tiempo y no el día antes de la primera demo. Es la fase 5.
+La confirmación ya iba por WhatsApp —es el propio mensaje del bot, y llega al
+hilo donde esa persona volverá a mirar «¿a qué hora era?»—. El recordatorio del
+día antes cae fuera de la ventana de 24 horas de la Cloud API y exigía una
+plantilla aprobada: **`recordatorio_cita` está aprobada** en esta cuenta, el
+reloj de n8n corre cada hora y el interruptor está encendido para esta
+peluquería (24 horas antes).
+
+Probado contra producción: el aviso salió a un número real con el texto
+*«Recordatorio de tu cita — Te recordamos tu cita en Peluqueria Mechas. Día:
+mañana martes 15 de septiembre. Hora: 10:30. Con: Luisa»*, y la cita quedó
+marcada para que no se repita. El razonamiento completo, en
+`docs/recordatorios-whatsapp.md`.
+
+Ojo con el número de pruebas: **solo habla con los cinco números dados de alta**,
+así que el recordatorio a cualquier otro se rechaza. Es una razón más para la
+línea real.
 
 **El bot no cambia ni anula citas; el panel sí.** Desde la pantalla de Citas se
 cancela y se dan citas a mano —pulsando el hueco en la rejilla—, que es lo que
@@ -226,8 +236,10 @@ Es la segunda pregunta que hará quien vea la demo, así que conviene tener la
 respuesta preparada: hoy se resuelve desde el panel, y automatizarlo por el chat
 es una pieza más adelante.
 
-Tampoco se puede **mover** una cita: se cancela y se da otra. Arrastrarla por la
-rejilla es lo que uno espera de un calendario y está en el mapa.
+Una cita **se mueve arrastrándola** por la rejilla: cambia de hora y de persona,
+y si se suelta encima de otra, lo para la base de datos. Lo que todavía no hace
+es **avisar a quien la tenía**; eso necesita su propia plantilla de Meta, y
+conviene decirlo antes de que lo pregunten.
 
 ---
 
@@ -301,8 +313,12 @@ El orden está pensado para que cada mensaje conteste una objeción distinta:
    *Sabe los matices, no suelta un folleto.*
 3. **«teneis hueco el viernes por la tarde?»** → huecos reales del viernes.
    *No se los inventa: son los de mi agenda.*
-4. **«a las 5 me va bien»** y el correo → cita confirmada, correo enviado.
-   Se enseña la cita ya metida en el panel.
+4. **«a las 5 me va bien»** → cita confirmada sin pedir ni el correo. Se enseña
+   la cita ya metida en el panel, en su hueco y con su color.
+   Aquí es donde se cuenta el recordatorio: *el día antes le llega esto*, y se
+   enseña el WhatsApp del recordatorio en el móvil. **Es el mensaje que recupera
+   la silla vacía**, y es el argumento que mejor entiende quien ha perdido una
+   tarde entera esperando a alguien que no apareció.
 5. **«me podeis dejar rubio platino? tengo tinte negro de casa»** → no valora un
    pelo por chat, invita a pasar por el salón. *No me va a prometer imposibles a
    mis clientas.*

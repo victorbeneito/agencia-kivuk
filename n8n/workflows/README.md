@@ -11,6 +11,7 @@ el panel de la agencia escribe por cliente.
 | `whatsapp-bot.json` | Versión actual: WhatsApp + IA con memoria, disponibilidad real de agenda, Google Calendar y confirmación por email (Resend). |
 | `enviar-whatsapp.json` | Envía un mensaje escrito por una persona desde la bandeja del panel. Es el único workflow que llama el panel para hablar con Meta. |
 | `agenda-api.json` | API interna de agenda: consultar disponibilidad y reservar. La comparten el bot de WhatsApp y el agente de voz. |
+| `recordatorios-citas.json` | Reloj cada hora: avisa por WhatsApp a quien tiene cita, con una plantilla aprobada por Meta. Detalle en `docs/recordatorios-whatsapp.md`. |
 | `voz-vapi.json` | Adaptador entre las tool calls de Vapi (agente de voz) y la Agenda API. |
 | `catalogo-ingesta.json` | Recorre el sitemap de la tienda de un cliente y vuelca sus productos en `catalog_products`. |
 | `contenido-generar.json` | Elige productos del catálogo, pide los copys a la IA, manda renderizar la pieza y la deja pendiente de aprobación. |
@@ -77,8 +78,9 @@ lo que hay que saber para tocar esto:
 ```bash
 node n8n/logica/construir-workflows.js          # regenera los workflows
 node n8n/logica/construir-workflows.js --check  # falla si están desactualizados
-node n8n/logica/motor-agenda.prueba.js          # 62 comprobaciones del motor
-node n8n/logica/nodos.prueba.js                 # 20 del pegamento con n8n
+node n8n/logica/motor-agenda.prueba.js          # 85 comprobaciones del motor
+node n8n/logica/nodos.prueba.js                 # el pegamento con n8n
+node n8n/logica/recordatorios.prueba.js         # 41 del nodo de recordatorios
 ```
 
 Un nodo se marca poniendo estas dos líneas en su `jsCode`, y el script escribe
@@ -116,6 +118,23 @@ La lógica de cálculo de huecos vive además en un único fichero
 código en los nodos que lo necesitan. Es a propósito: cuando esa lógica estaba
 duplicada, cada corrección había que hacerla dos veces y era cuestión de tiempo
 que divergieran.
+
+## Recordatorios de cita
+
+`recordatorios-citas.json` es el primero que no lo llama nadie: lo dispara un
+reloj cada hora. Lee las citas confirmadas que aún no se han avisado, mira quién
+tiene el recordatorio encendido y manda una **plantilla aprobada por Meta**,
+porque fuera de las 24 horas desde el último mensaje de la persona no se puede
+escribir texto libre.
+
+El razonamiento entero —la plantilla, la ventana rodante, por qué se marca la
+cita solo cuando Meta acepta— está en `docs/recordatorios-whatsapp.md`.
+
+**Un workflow nuevo hay que crearlo una vez desde la interfaz** (Import from
+File → activarlo). `desplegar-workflow.js` solo sabe actualizar uno que ya
+existe: busca por nombre, y sin fila que actualizar no puede inventarse el
+proyecto al que pertenece ni sus permisos. A partir de esa primera vez, el
+despliegue es el de siempre.
 
 ## Canal de voz (Vapi)
 

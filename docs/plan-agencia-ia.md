@@ -155,7 +155,18 @@ periodo con un botón, numeración correlativa por serie y ejercicio, PDF y env�
 por correo con el adjunto, y las facturas visibles para el cliente en su panel.
 Migración `0013_facturacion.sql`.
 
+**Hecho — recordatorio de la cita por WhatsApp**
+(`docs/recordatorios-whatsapp.md`): plantilla `recordatorio_cita` aprobada por
+Meta, workflow de reloj (`recordatorios-citas.json`) que avisa a quien tiene
+cita el día antes, y el interruptor por cliente en el panel. Era la pieza que
+cerraba la agenda: confirmar ya lo hacía el bot en el momento, pero recordar
+cae fuera de la ventana de 24 horas de la Cloud API y sin plantilla no había
+forma de escribir.
+
 **Pendiente:**
+- **Avisar de un cambio de cita**, cuando se mueve o se cancela desde el panel.
+  Es otra plantilla —Meta las revisa por separado— sobre el camino que ya dejó
+  abierto el recordatorio.
 - **Cobro automático con Stripe.** Hoy se pega a mano un enlace de pago en la
   factura. Falta crear el `Customer` y la suscripción desde la ficha del
   cliente, y el webhook que marque la factura como pagada.

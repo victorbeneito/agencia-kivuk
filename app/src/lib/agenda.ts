@@ -33,6 +33,24 @@ export const HORARIO_POR_DEFECTO = {
   dias_reserva: "30",
 };
 
+/**
+ * El recordatorio de la cita por WhatsApp.
+ *
+ * No lleva `activo`: se enciende a mano en el panel y punto. Todo lo demás de
+ * este archivo son valores por defecto de algo que ya está funcionando; esto
+ * manda mensajes a los clientes del negocio, y eso no se hereda de un valor por
+ * defecto.
+ *
+ * `plantilla` e `idioma` tienen que coincidir con lo que Meta tenga aprobado:
+ * el alta la hace `scripts/plantilla-whatsapp.js`, que es donde está escrito el
+ * texto exacto.
+ */
+export const RECORDATORIO_POR_DEFECTO = {
+  horas: "24",
+  plantilla: "recordatorio_cita",
+  idioma: "es",
+};
+
 /** Un tramo de trabajo dentro de un día, tal como lo guarda `staff_hours`. */
 export type Tramo = {
   dia: number;

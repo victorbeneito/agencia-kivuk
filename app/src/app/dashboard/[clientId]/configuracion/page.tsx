@@ -1,11 +1,16 @@
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
-import { DIAS_SEMANA, HORARIO_POR_DEFECTO } from "@/lib/agenda";
+import {
+  DIAS_SEMANA,
+  HORARIO_POR_DEFECTO,
+  RECORDATORIO_POR_DEFECTO,
+} from "@/lib/agenda";
 import { AccesoCliente, type UsuarioCliente } from "../acceso-cliente";
 import { VerPanelDelCliente } from "../ver-panel";
 import {
   updateAgentConfig,
   updateBrandConfig,
   updateCalendarConfig,
+  updateCalendarReminder,
   updateCalendarSchedule,
   updateEmailConfig,
   updateSocialConfig,
@@ -122,6 +127,19 @@ export default async function ClientConfigPage({
     paso_min: calendarConfig.paso_min || HORARIO_POR_DEFECTO.paso_min,
     dias_reserva:
       calendarConfig.dias_reserva || HORARIO_POR_DEFECTO.dias_reserva,
+  };
+
+  // El recordatorio vive en el mismo config, pero en su propio formulario: es
+  // lo único de aquí que le escribe a los clientes del negocio, y se enciende
+  // y se apaga sin tocar el horario.
+  const recordatorio = {
+    recordatorio_activo: calendarConfig.recordatorio_activo || "false",
+    recordatorio_horas:
+      calendarConfig.recordatorio_horas || RECORDATORIO_POR_DEFECTO.horas,
+    recordatorio_plantilla:
+      calendarConfig.recordatorio_plantilla || RECORDATORIO_POR_DEFECTO.plantilla,
+    recordatorio_idioma:
+      calendarConfig.recordatorio_idioma || RECORDATORIO_POR_DEFECTO.idioma,
   };
 
   const diasActivos = new Set(horario.dias_laborables.split(",").filter(Boolean));
@@ -654,6 +672,89 @@ export default async function ClientConfigPage({
           </CardContent>
           <CardFooter>
             <Button type="submit">Guardar horario</Button>
+          </CardFooter>
+        </form>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recordatorio de la cita por WhatsApp</CardTitle>
+          <CardDescription>
+            Un mensaje a quien tiene cita, antes de que le toque. Va apagado
+            hasta que se enciende aquí: lo que se manda no lo lee el negocio,
+            lo lee su clienta.{" "}
+            <strong>Necesita una plantilla aprobada por Meta</strong>, porque
+            pasadas 24 horas desde el último mensaje de la persona no se puede
+            escribir texto libre. Se pide una vez por cuenta con{" "}
+            <span className="font-mono text-xs">
+              node scripts/plantilla-whatsapp.js
+            </span>
+            .
+          </CardDescription>
+        </CardHeader>
+        <form key={JSON.stringify(recordatorio)} action={updateCalendarReminder}>
+          <input type="hidden" name="client_id" value={clientId} />
+          <CardContent className="flex flex-col gap-4">
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-primary/5">
+              <input
+                type="checkbox"
+                name="recordatorio_activo"
+                value="true"
+                defaultChecked={recordatorio.recordatorio_activo === "true"}
+                className="size-4 accent-primary"
+              />
+              Mandar el recordatorio
+            </label>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="recordatorio_horas">Cuánto antes</Label>
+                <select
+                  id="recordatorio_horas"
+                  name="recordatorio_horas"
+                  defaultValue={recordatorio.recordatorio_horas}
+                  className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
+                >
+                  <option value="4">4 horas antes</option>
+                  <option value="24">El día antes (24 horas)</option>
+                  <option value="48">Dos días antes (48 horas)</option>
+                  <option value="72">Tres días antes (72 horas)</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="recordatorio_plantilla">Plantilla en Meta</Label>
+                <Input
+                  id="recordatorio_plantilla"
+                  name="recordatorio_plantilla"
+                  defaultValue={recordatorio.recordatorio_plantilla}
+                  placeholder="recordatorio_cita"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="recordatorio_idioma">Idioma de la plantilla</Label>
+                <Input
+                  id="recordatorio_idioma"
+                  name="recordatorio_idioma"
+                  defaultValue={recordatorio.recordatorio_idioma}
+                  placeholder="es"
+                />
+              </div>
+            </div>
+            <p className="-mt-2 text-sm text-muted-foreground">
+              El nombre y el idioma tienen que ser exactamente los de la
+              plantilla aprobada. La de serie dice el negocio, el día, la hora y
+              con quién es la cita, y pide que contesten si no pueden venir:
+              esa respuesta abre la ventana de 24 horas y a partir de ahí el bot
+              ya puede cambiarla hablando normal.
+            </p>
+            <p className="-mt-2 text-sm text-muted-foreground">
+              No se manda dos veces, y tampoco se manda si la cita se dio para
+              dentro de un rato: a menos de dos horas ya no hay nada que
+              recordar.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button type="submit">Guardar recordatorio</Button>
           </CardFooter>
         </form>
       </Card>

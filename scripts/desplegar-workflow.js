@@ -80,7 +80,17 @@ function main() {
       `where name = ${dolar(nombre)} and "isArchived" = false;`
   );
 
-  if (filas.length === 0) throw new Error(`no hay ningún workflow activo llamado "${nombre}" en n8n`);
+  // Un workflow NUEVO hay que crearlo una vez desde la interfaz. Crearlo a mano
+  // aquí es tentador y no compensa: además de la fila hay que darle proyecto,
+  // permisos y versión publicada, y un workflow mal creado no da error — aparece
+  // en la lista y no se ejecuta nunca.
+  if (filas.length === 0) {
+    throw new Error(
+      `no hay ningún workflow activo llamado "${nombre}" en n8n.\n` +
+        '  Si es nuevo, impórtalo una vez desde la interfaz (Import from File) y\n' +
+        '  actívalo; a partir de ahí este script ya lo actualiza.'
+    );
+  }
   if (filas.length > 1) throw new Error(`hay ${filas.length} workflows sin archivar llamados "${nombre}"`);
 
   const [id, activo, contador] = filas[0];

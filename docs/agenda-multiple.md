@@ -354,9 +354,9 @@ confirmación. La confirmación es ahora el propio mensaje del bot, que llega al
 mismo hilo donde esa persona volverá a preguntar «¿a qué hora era?». Si lo dan,
 viaja y se manda el correo como siempre.
 
-Lo que sí seguirá necesitando correo —o mejor, una plantilla aprobada de
-WhatsApp— es el **recordatorio de la víspera**, que cae fuera de la ventana de
-24 horas de la Cloud API. Eso es la fase 5.
+Lo que sí necesitaba una plantilla aprobada de WhatsApp es el **recordatorio de
+la víspera**, que cae fuera de la ventana de 24 horas de la Cloud API. Ya está
+construido: `docs/recordatorios-whatsapp.md`.
 
 ### `confirmar`: preguntar no es pedir
 
@@ -483,8 +483,10 @@ la cita se queda donde estaba.
 ### Lo que sigue faltando aquí
 
 - **Avisar a quien tenía la cita** cuando se mueve o se cancela. Hoy es una
-  llamada de teléfono, y el sistema no finge que esté hecho. Necesita la
-  plantilla de WhatsApp de la fase 5, la misma que el recordatorio.
+  llamada de teléfono, y el sistema no finge que esté hecho. Necesita **su
+  propia** plantilla de WhatsApp: recordar una cita y avisar de que ha cambiado
+  son dos mensajes distintos, y Meta los revisa por separado. El camino ya está
+  abierto y probado por el recordatorio (`docs/recordatorios-whatsapp.md`).
 - **El evento de Google** no se borra al cancelar ni se mueve al arrastrar:
   hace falta el token del negocio, que solo usa n8n.
 - **Que el cliente mueva o anule su cita por WhatsApp.** El bot lo escala a una

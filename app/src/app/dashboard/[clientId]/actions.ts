@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { RECORDATORIO_POR_DEFECTO } from "@/lib/agenda";
 
 export async function updateAgentConfig(formData: FormData) {
   const clientId = formData.get("client_id") as string;
@@ -204,6 +205,36 @@ export async function updateCalendarSchedule(formData: FormData) {
 
   if (error) {
     throw new Error(`No se pudo guardar el horario: ${error.message}`);
+  }
+
+  revalidatePath(`/dashboard/${clientId}`);
+}
+
+/**
+ * El recordatorio de la cita por WhatsApp, que lo manda el cron de n8n.
+ *
+ * Se guarda en el mismo `config` del módulo calendar, pero en su propio
+ * formulario: es lo único de la pantalla que le escribe a los clientes del
+ * negocio, y tiene que poder apagarse sin tocar nada más. Como es una casilla,
+ * viene o no viene: si no viene es que está desmarcada, y hay que escribir
+ * "false" explícitamente en vez de dejar el campo como estaba.
+ */
+export async function updateCalendarReminder(formData: FormData) {
+  const clientId = formData.get("client_id") as string;
+
+  const horas = String(formData.get("recordatorio_horas") || "").trim();
+  const plantilla = String(formData.get("recordatorio_plantilla") || "").trim();
+  const idioma = String(formData.get("recordatorio_idioma") || "").trim();
+
+  const error = await mergeModuleConfig(clientId, "calendar", {
+    recordatorio_activo: formData.get("recordatorio_activo") ? "true" : "false",
+    recordatorio_horas: horas || RECORDATORIO_POR_DEFECTO.horas,
+    recordatorio_plantilla: plantilla || RECORDATORIO_POR_DEFECTO.plantilla,
+    recordatorio_idioma: idioma || RECORDATORIO_POR_DEFECTO.idioma,
+  });
+
+  if (error) {
+    throw new Error(`No se pudo guardar el recordatorio: ${error.message}`);
   }
 
   revalidatePath(`/dashboard/${clientId}`);

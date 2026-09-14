@@ -1,0 +1,458 @@
+{
+  "name": "Recordatorios de citas",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5 * * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -208,
+        288
+      ],
+      "id": "rc000001-001-401-801-000000000001",
+      "name": "Cada hora",
+      "notes": "Cada hora y no una vez al día: así el aviso sale a la misma distancia de la cita para todo el mundo, y una hora caída no se lleva por delante los recordatorios de ese día."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/appointments?select=id,client_id,inicio,contacto,nombre_contacto,conversation_id,cliente:clients(name),trabajador:staff(nombre),servicios:appointment_services(nombre,posicion)&estado=eq.confirmada&recordatorio_enviado_at=is.null&inicio=gte.{{ $now.toUTC().toISO() }}&inicio=lte.{{ $now.plus({ hours: 73 }).toUTC().toISO() }}&order=inicio&limit=500",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        0,
+        288
+      ],
+      "id": "rc000002-002-402-802-000000000002",
+      "name": "Citas próximas",
+      "alwaysOutputData": true,
+      "notes": "73 horas: el máximo configurable son 72, y una de margen. Las ya avisadas quedan fuera por recordatorio_enviado_at, no por la hora."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?select=client_id,activo:config->>recordatorio_activo,horas:config->>recordatorio_horas,plantilla:config->>recordatorio_plantilla,idioma:config->>recordatorio_idioma,zona:config->>zona&module=eq.calendar&active=is.true",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        192,
+        288
+      ],
+      "id": "rc000003-003-403-803-000000000003",
+      "name": "Configuración de agenda",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "notes": "Se piden los campos sueltos y no el config entero: ahí dentro viven el client_secret y el refresh_token de Google, y este JSON atraviesa nodos, logs y mensajes de error. executeOnce porque si no, se llamaría una vez por cita."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?select=client_id,token:config->>access_token,phone_number_id:config->>phone_number_id&module=eq.whatsapp&active=is.true",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        384,
+        288
+      ],
+      "id": "rc000004-004-404-804-000000000004",
+      "name": "Credenciales de WhatsApp",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "notes": "El token de Meta de cada negocio. No sale de aquí: el panel no lo ve ni lo necesita."
+    },
+    {
+      "parameters": {
+        "jsCode": "// A quién toca avisar ahora, y con qué texto exacto.\n//\n// La ventana NO es \"la hora justa\". Se avisa de todo lo que esté a menos de las\n// horas configuradas y a más de dos, y esto resuelve tres problemas de una vez:\n//\n//   - Si n8n estuvo parado una hora, el aviso sale en la siguiente pasada en\n//     vez de perderse para siempre.\n//   - Como la ventana se cierra sola dos horas antes de la cita, un número que\n//     Meta rechaza deja de reintentarse solo, sin lista de reintentos.\n//   - A quien pide cita para dentro de tres horas no se le manda un\n//     recordatorio de algo que acaba de decidir.\n//\n// Que no se mande dos veces lo garantiza `recordatorio_enviado_at`, que se\n// escribe SOLO cuando Meta acepta el mensaje.\n\nconst MINIMO_HORAS = 2;\nconst HORAS_POR_DEFECTO = 24;\n\n/** Lo que sacó un nodo, o nada si no llegó a ejecutarse o vino vacío. */\nfunction deNodo(nombre) {\n  try {\n    return $(nombre)\n      .all()\n      .map((i) => i.json)\n      .filter((j) => j && j.client_id);\n  } catch (e) {\n    return [];\n  }\n}\n\nconst citas = deNodo('Citas próximas');\nconst configs = deNodo('Configuración de agenda');\nconst credenciales = deNodo('Credenciales de WhatsApp');\nconst ahora = $now.toMillis();\n\n/** \"+34 600 11 22 33\" -> \"34600112233\". Meta quiere dígitos y con país. */\nfunction telefono(valor) {\n  let d = String(valor || '').replace(/[^0-9]/g, '');\n  if (d.slice(0, 2) === '00') d = d.slice(2);\n  // Nueve dígitos es un número español escrito como lo escribe todo el mundo.\n  if (d.length === 9) d = '34' + d;\n  return d.length >= 11 ? d : '';\n}\n\nfunction enZona(iso, zona, opciones) {\n  return new Intl.DateTimeFormat('es-ES', Object.assign({ timeZone: zona }, opciones)).format(\n    new Date(iso)\n  );\n}\n\n/** El día del calendario en la zona del negocio, para comparar días sin líos. */\nfunction diaDe(ms, zona) {\n  return new Intl.DateTimeFormat('sv-SE', { timeZone: zona }).format(new Date(ms));\n}\n\nconst avisos = [];\n\nfor (const cita of citas) {\n  const cfg = configs.find((c) => c.client_id === cita.client_id);\n\n  // Sin activarlo en el panel no se manda nada. El recordatorio le escribe a\n  // los clientes de otro negocio: eso se enciende a mano, no por defecto.\n  if (!cfg || String(cfg.activo) !== 'true') continue;\n\n  const zona = cfg.zona || 'Europe/Madrid';\n  const pedidas = parseInt(cfg.horas || HORAS_POR_DEFECTO, 10) || HORAS_POR_DEFECTO;\n  const horas = Math.min(Math.max(pedidas, MINIMO_HORAS + 1), 72);\n\n  const faltan = (new Date(cita.inicio).getTime() - ahora) / 3600000;\n  if (faltan > horas || faltan < MINIMO_HORAS) continue;\n\n  const cred = credenciales.find((c) => c.client_id === cita.client_id);\n  if (!cred || !cred.token || !cred.phone_number_id) continue;\n\n  const para = telefono(cita.contacto);\n  if (!para) continue;\n\n  const negocio = (cita.cliente && cita.cliente.name) || 'tu cita';\n  const quien = (cita.trabajador && cita.trabajador.nombre) || 'nosotros';\n\n  let dia = enZona(cita.inicio, zona, { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');\n  if (diaDe(new Date(cita.inicio).getTime(), zona) === diaDe(ahora + 86400000, zona)) {\n    dia = 'mañana ' + dia;\n  }\n\n  const hora = enZona(cita.inicio, zona, { hour: '2-digit', minute: '2-digit', hour12: false });\n\n  avisos.push({\n    json: {\n      cita_id: cita.id,\n      client_id: cita.client_id,\n      conversation_id: cita.conversation_id || null,\n      para,\n      phone_number_id: cred.phone_number_id,\n      token: cred.token,\n      plantilla: cfg.plantilla || 'recordatorio_cita',\n      idioma: cfg.idioma || 'es',\n      parametros: [negocio, dia, hora, quien],\n\n      // El mismo texto que va a leer la clienta, para dejarlo en la bandeja:\n      // quien coja luego esa conversación tiene que ver lo que se le dijo. Si\n      // se cambia la plantilla en scripts/plantilla-whatsapp.js, hay que\n      // cambiarlo aquí: Meta no devuelve el texto ya montado.\n      texto:\n        'Recordatorio de tu cita\\n\\n' +\n        'Te recordamos tu cita en ' + negocio + '.\\n\\n' +\n        'Día: ' + dia + '\\n' +\n        'Hora: ' + hora + '\\n' +\n        'Con: ' + quien + '\\n\\n' +\n        'Si no puedes venir o quieres cambiarla, contéstanos a este mensaje y lo vemos.',\n    },\n  });\n}\n\nreturn avisos;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        288
+      ],
+      "id": "rc000005-005-405-805-000000000005",
+      "name": "Preparar avisos",
+      "notes": "Si no hay nada que avisar devuelve cero items y la ejecución acaba aquí, que es lo normal en la mayoría de las horas."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/{{ $env.META_API_VERSION || 'v25.0' }}/{{ $json.phone_number_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.para, type: 'template', template: { name: $json.plantilla, language: { code: $json.idioma }, components: [{ type: 'body', parameters: $json.parametros.map(t => ({ type: 'text', text: t })) }] } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        768,
+        288
+      ],
+      "id": "rc000006-006-406-806-000000000006",
+      "name": "Enviar plantilla",
+      "onError": "continueRegularOutput",
+      "notes": "Una plantilla, no un mensaje normal: fuera de las 24 horas desde el último mensaje de la persona, Meta solo deja plantillas aprobadas. neverError a propósito, para poder leer el motivo del rechazo en vez de que la ejecución muera."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-rc0007",
+              "leftValue": "={{ Boolean($json.messages && $json.messages[0] && $json.messages[0].id) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        960,
+        288
+      ],
+      "id": "rc000007-007-407-807-000000000007",
+      "name": "¿Lo aceptó Meta?"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/appointments?id=eq.{{ $('Preparar avisos').item.json.cita_id }}&select=id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ recordatorio_enviado_at: $now.toISO() }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1152,
+        192
+      ],
+      "id": "rc000008-008-408-808-000000000008",
+      "name": "Marcar como avisada",
+      "notes": "Va antes de guardar el mensaje a propósito: si fallara el orden inverso, un fallo al escribir en la bandeja haría que la próxima pasada mandara el recordatorio otra vez. Perder una línea del historial es peor que mandar dos WhatsApp, no al revés."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-rc0009",
+              "leftValue": "={{ Boolean($('Preparar avisos').item.json.conversation_id) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1344,
+        192
+      ],
+      "id": "rc000009-009-409-809-000000000009",
+      "name": "¿Hay conversación?",
+      "notes": "Una cita dada a mano en el mostrador puede no tener conversación de WhatsApp detrás. El recordatorio sale igual; lo que no hay es hilo donde dejarlo escrito, hasta que la persona conteste y el bot le abra uno."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ conversation_id: $('Preparar avisos').item.json.conversation_id, role: 'assistant', sender: 'bot', content: $('Preparar avisos').item.json.texto, created_at: $now.toISO() }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1536,
+        192
+      ],
+      "id": "rc000010-0010-4010-8010-000000000010",
+      "name": "Guardar en la conversación",
+      "onError": "continueRegularOutput",
+      "notes": "Con sender 'bot' para que la bandeja lo pinte como lo que es. Si esto falla, la cita ya está marcada y no se reintenta: mejor una línea de menos en el historial que un segundo recordatorio."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Meta no lo ha aceptado. No se marca la cita: la próxima pasada lo reintenta,\n// y la ventana se cierra sola dos horas antes de la cita, así que un número\n// malo no se reintenta eternamente.\nconst error = $json.error || {};\n\nreturn {\n  json: {\n    ok: false,\n    cita_id: $('Preparar avisos').item.json.cita_id,\n    para: $('Preparar avisos').item.json.para,\n    motivo: error.message || 'Meta no ha devuelto un id de mensaje',\n    codigo: error.code || null,\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        400
+      ],
+      "id": "rc000011-0011-4011-8011-000000000011",
+      "name": "Sin enviar",
+      "notes": "Deja el motivo a la vista en la lista de ejecuciones. El caso más común con el número de pruebas de Meta: solo habla con los cinco números de la lista blanca."
+    }
+  ],
+  "connections": {
+    "Cada hora": {
+      "main": [
+        [
+          {
+            "node": "Citas próximas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Citas próximas": {
+      "main": [
+        [
+          {
+            "node": "Configuración de agenda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración de agenda": {
+      "main": [
+        [
+          {
+            "node": "Credenciales de WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Credenciales de WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Preparar avisos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar avisos": {
+      "main": [
+        [
+          {
+            "node": "Enviar plantilla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar plantilla": {
+      "main": [
+        [
+          {
+            "node": "¿Lo aceptó Meta?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Lo aceptó Meta?": {
+      "main": [
+        [
+          {
+            "node": "Marcar como avisada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sin enviar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar como avisada": {
+      "main": [
+        [
+          {
+            "node": "¿Hay conversación?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay conversación?": {
+      "main": [
+        [
+          {
+            "node": "Guardar en la conversación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
