@@ -440,11 +440,52 @@ RLS ya lo permite); desde el del cliente, con `service_role` comprobando que la
 trabajadora es de ese negocio — sin eso bastaría con mandar el id de la
 trabajadora de otro cliente para colarle una cita.
 
+### Bloquear un rato
+
+`staff_time_off` existía desde la `0014` y el bot ya la respetaba; lo que
+faltaba era poder escribirla. Sin eso, la única forma de que el bot no ofreciera
+un hueco era **inventarse una cita falsa** —y entonces la agenda ya miente sobre
+lo que pasa ese día, que es justo lo que se intentaba evitar—.
+
+Se bloquea con el mismo gesto con el que se da una cita: se señala el hueco y el
+diálogo pregunta qué va ahí. Dos botones separados obligarían a decidir antes de
+mirar el calendario, que es al revés de como se piensa.
+
+Admite las dos formas que tiene esto en un salón: **un rato suelto** («de 16:00
+a 18:00, médico») y **días enteros** («del lunes al viernes, vacaciones»). Los
+días enteros van de las 00:00 del primero a las 00:00 del siguiente al último,
+que es lo que quiere decir quien escribe «hasta el viernes».
+
+Un rato suelto es siempre de un solo día, a propósito: *«de 15:00 a 17:00 del
+lunes al viernes»* significa cosas distintas según quién lo lea —¿ese rato cada
+día, o desde el lunes a las 15:00 hasta el viernes a las 17:00?—, así que el
+formulario no ofrece rango salvo en días enteros, donde no hay duda.
+
+En la rejilla se pintan **a rayas y sin color de nadie**, para que no se
+confundan ni un segundo con una cita: lo que importa de un bloqueo no es quién
+viene —no viene nadie— sino que ahí no cabe nadie. Y se borran de verdad, al
+revés que una cita: un rato tapado no es historial de nada.
+
+### Mover una cita
+
+Se arrastra y se suelta donde va: la Y dice la hora (redondeada a cuartos, que
+es como se habla en un salón) y la X, de quién es la columna — así que en la
+vista semana se pasa de Ana a Luisa sin salir del día.
+
+**Conserva lo que dura.** Arrastrar una cita significa «esto mismo, pero ahí».
+
+El solape lo decide la base: la restricción `appointments_sin_solape` salta
+igual en un `UPDATE` que en un `INSERT` (código `23P01`), así que no hay que
+comprobar nada antes — y menos aquí, donde el bot puede estar dando esa misma
+hora mientras alguien arrastra. Ese código se traduce a «Ahí ya hay otra cita» y
+la cita se queda donde estaba.
+
 ### Lo que sigue faltando aquí
 
-- **Bloquear un rato** (`staff_time_off` existe desde la `0014` y el bot ya la
-  respeta, pero no hay pantalla). Es lo primero que pedirá quien use la rejilla:
-  «bloquéame el jueves por la tarde, que tengo médico».
-- **Mover una cita** arrastrándola. Hoy se cancela y se da otra.
-- **Varios servicios en una cita a mano.** El bot sí sabe sumarlos; el
-  formulario del panel coge uno y deja retocar los minutos.
+- **Avisar a quien tenía la cita** cuando se mueve o se cancela. Hoy es una
+  llamada de teléfono, y el sistema no finge que esté hecho. Necesita la
+  plantilla de WhatsApp de la fase 5, la misma que el recordatorio.
+- **El evento de Google** no se borra al cancelar ni se mueve al arrastrar:
+  hace falta el token del negocio, que solo usa n8n.
+- **Que el cliente mueva o anule su cita por WhatsApp.** El bot lo escala a una
+  persona, que es lo honesto mientras no esté construido.
