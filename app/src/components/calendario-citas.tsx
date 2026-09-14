@@ -227,7 +227,12 @@ export function CalendarioCitas({
             {/* La regla de horas, pegada a la izquierda para que no se pierda
                 al desplazarse de lado en la vista semana. */}
             <div className="sticky left-0 z-30 w-12 shrink-0 bg-card">
-              <div className="sticky top-0 z-30 bg-card" style={{ height: ALTO_CABECERA }} />
+              {/* Solo reserva el alto de la fila de títulos. Sin fondo ni
+                  capa: llevaba `bg-card` y `z-30`, y eso pintaba blanco por
+                  encima de la mitad de la etiqueta "10:00", que sobresale
+                  hacia arriba por ir centrada en su línea. Se veía como una
+                  hora cortada, no como un elemento tapando a otro. */}
+              <div style={{ height: ALTO_CABECERA }} />
               <div className="relative" style={{ height: alto }}>
                 {horas.map((m) => (
                   <span
