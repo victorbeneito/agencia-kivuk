@@ -22,6 +22,7 @@ import {
   cancelarCita,
   crearBloqueoCliente,
   crearCitaCliente,
+  moverCitaCliente,
 } from "./acciones";
 
 /**
@@ -123,6 +124,7 @@ export default async function PanelCitasPage({
         crear={crearCitaCliente}
         bloquear={crearBloqueoCliente}
         quitarBloqueo={borrarBloqueoCliente}
+        mover={moverCitaCliente}
       />
     </div>
   );

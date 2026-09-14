@@ -670,3 +670,58 @@ export async function borrarBloqueoAgencia(
   revalidatePath(`/dashboard/${clientId}/agenda`);
   return { ok: true };
 }
+
+/**
+ * Mover una cita: de hora, de día o de persona.
+ *
+ * Conserva lo que dura. Arrastrar una cita en un calendario significa "esto
+ * mismo, pero ahí"; que al soltarla cambiara también de duración sería una
+ * sorpresa desagradable.
+ *
+ * El solape lo decide la base, como en todo lo demás: la restricción salta en
+ * un UPDATE igual que en un INSERT, así que no hay que comprobar nada antes —y
+ * menos aquí, donde el bot puede estar dando esa misma hora mientras se
+ * arrastra—. El código 23P01 es esa restricción, y se traduce a un aviso normal.
+ */
+export async function moverCitaAgencia(
+  clientId: string,
+  citaId: string,
+  staffId: string,
+  inicio: string
+): Promise<{ ok: boolean; mensaje?: string }> {
+  const supabase = await createClient();
+
+  const { data: cita } = await supabase
+    .from("appointments")
+    .select("id, client_id, estado, inicio, fin")
+    .eq("id", citaId)
+    .maybeSingle();
+
+  if (!cita || cita.client_id !== clientId) {
+    return { ok: false, mensaje: "Esa cita no es de este cliente." };
+  }
+  if (cita.estado !== "confirmada") {
+    return { ok: false, mensaje: "Esa cita está cancelada. Recarga la página." };
+  }
+
+  const duracion = new Date(cita.fin).getTime() - new Date(cita.inicio).getTime();
+  const fin = new Date(new Date(inicio).getTime() + duracion).toISOString();
+
+  const { error } = await supabase
+    .from("appointments")
+    .update({ staff_id: staffId, inicio, fin })
+    .eq("id", citaId);
+
+  if (error) {
+    return {
+      ok: false,
+      mensaje:
+        error.code === "23P01"
+          ? "Ahí ya hay otra cita."
+          : `No se ha podido mover: ${error.message}`,
+    };
+  }
+
+  revalidatePath(`/dashboard/${clientId}/agenda`);
+  return { ok: true };
+}

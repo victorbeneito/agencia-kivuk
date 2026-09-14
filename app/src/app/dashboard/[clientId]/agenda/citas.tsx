@@ -21,6 +21,7 @@ import {
   cancelarCitaAgencia,
   crearBloqueoAgencia,
   crearCitaAgencia,
+  moverCitaAgencia,
 } from "./acciones";
 
 /**
@@ -76,6 +77,11 @@ export function CitasDelCliente({
     return borrarBloqueoAgencia(clientId, id);
   }
 
+  async function mover(citaId: string, staffId: string, inicio: string) {
+    "use server";
+    return moverCitaAgencia(clientId, citaId, staffId, inicio);
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-wrap items-start justify-between gap-2">
@@ -110,6 +116,7 @@ export function CitasDelCliente({
             crear={crear}
             bloquear={bloquear}
             quitarBloqueo={quitarBloqueo}
+            mover={mover}
           />
         )}
       </CardContent>

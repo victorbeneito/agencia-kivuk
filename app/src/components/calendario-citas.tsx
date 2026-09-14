@@ -15,6 +15,7 @@ import {
   franjaDelDia,
   horaEnMadrid,
   fechaEnMadrid,
+  instanteEnMadrid,
   minutosEnMadrid,
   sumarDias,
   type Ausencia,
@@ -121,6 +122,7 @@ export function CalendarioCitas({
   crear,
   bloquear,
   quitarBloqueo,
+  mover,
 }: {
   vista: Vista;
   /** El día que se mira, o cualquiera de la semana que se mira. */
@@ -135,9 +137,17 @@ export function CalendarioCitas({
   crear?: (datos: NuevaCita) => Promise<{ ok: boolean; mensaje?: string }>;
   bloquear?: (datos: NuevoBloqueo) => Promise<{ ok: boolean; mensaje?: string }>;
   quitarBloqueo?: (id: string) => Promise<{ ok: boolean; mensaje?: string }>;
+  /** Si no se pasa, las citas no se pueden arrastrar. */
+  mover?: (
+    citaId: string,
+    staffId: string,
+    inicio: string
+  ) => Promise<{ ok: boolean; mensaje?: string }>;
 }) {
   const [abierta, setAbierta] = useState<Cita | null>(null);
   const [nueva, setNueva] = useState<CitaPrevia | null>(null);
+  const [arrastrando, setArrastrando] = useState<string | null>(null);
+  const [avisoMover, setAvisoMover] = useState("");
 
   const dias = diasDeLaVista(vista, fecha);
 
@@ -273,7 +283,50 @@ export function CalendarioCitas({
                     {col.titulo}
                   </p>
 
-                  <div className="relative" style={{ height: alto }}>
+                  <div
+                    className="relative"
+                    style={{ height: alto }}
+                    // Soltar aquí mueve la cita. El destino sale de dónde se
+                    // suelta: la X dice de quién es la columna (en la vista
+                    // semana cada día lleva dentro a todo el equipo) y la Y, la
+                    // hora, redondeada a cuartos.
+                    onDragOver={mover ? (e) => e.preventDefault() : undefined}
+                    onDrop={
+                      mover
+                        ? (e) => {
+                            e.preventDefault();
+                            const citaId = e.dataTransfer.getData("text/plain");
+                            setArrastrando(null);
+                            if (!citaId) return;
+
+                            const caja = e.currentTarget.getBoundingClientRect();
+                            const parteY = (e.clientY - caja.top) / caja.height;
+                            const minuto =
+                              franja.desde + Math.round((parteY * totalMin) / 15) * 15;
+
+                            const cuantos = col.trabajadores.length;
+                            const indice = Math.min(
+                              cuantos - 1,
+                              Math.max(
+                                0,
+                                Math.floor(((e.clientX - caja.left) / caja.width) * cuantos)
+                              )
+                            );
+                            const destino = col.trabajadores[indice];
+                            if (!destino) return;
+
+                            setAvisoMover("");
+                            mover(
+                              citaId,
+                              destino.id,
+                              instanteEnMadrid(col.fecha, comoHora(minuto))
+                            ).then((r) => {
+                              if (!r.ok) setAvisoMover(r.mensaje ?? "No se ha podido mover.");
+                            });
+                          }
+                        : undefined
+                    }
+                  >
                     {/* Pulsar el hueco: la forma natural de dar una cita en un
                         calendario es señalar dónde va. Se redondea a cuartos de
                         hora, que es como se habla en un salón. */}
@@ -358,6 +411,10 @@ export function CalendarioCitas({
                             ancho={100 / col.trabajadores.length}
                             compacta={vista === "semana"}
                             onAbrir={() => setAbierta(c)}
+                            arrastrable={Boolean(mover)}
+                            arrastrando={arrastrando === c.id}
+                            onEmpezarArrastre={() => setArrastrando(c.id)}
+                            onTerminarArrastre={() => setArrastrando(null)}
                           />
                         ))
                     )}
@@ -368,6 +425,12 @@ export function CalendarioCitas({
           </div>
         </div>
       )}
+
+      {avisoMover ? (
+        <p className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {avisoMover}
+        </p>
+      ) : null}
 
       {vista === "semana" && trabajadores.length > 1 ? (
         <div className="flex flex-wrap gap-3">
@@ -456,6 +519,10 @@ function CajaCita({
   ancho,
   compacta,
   onAbrir,
+  arrastrable,
+  arrastrando,
+  onEmpezarArrastre,
+  onTerminarArrastre,
 }: {
   cita: Cita;
   color: (typeof COLORES)[number];
@@ -464,6 +531,10 @@ function CajaCita({
   ancho: number;
   compacta: boolean;
   onAbrir: () => void;
+  arrastrable?: boolean;
+  arrastrando?: boolean;
+  onEmpezarArrastre?: () => void;
+  onTerminarArrastre?: () => void;
 }) {
   const total = franja.hasta - franja.desde;
   const inicio = minutosEnMadrid(cita.inicio);
@@ -477,9 +548,18 @@ function CajaCita({
     <button
       type="button"
       onClick={onAbrir}
+      draggable={arrastrable}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", cita.id);
+        e.dataTransfer.effectAllowed = "move";
+        onEmpezarArrastre?.();
+      }}
+      onDragEnd={() => onTerminarArrastre?.()}
       title={`${horaEnMadrid(cita.inicio)} · ${cita.nombre_contacto || "Sin nombre"}`}
       className={cn(
         "absolute overflow-hidden rounded-sm border-l-2 px-1 text-left text-[11px] leading-tight transition-opacity hover:opacity-80",
+        arrastrable && "cursor-grab active:cursor-grabbing",
+        arrastrando && "opacity-40",
         color.fondo,
         color.borde,
         color.texto

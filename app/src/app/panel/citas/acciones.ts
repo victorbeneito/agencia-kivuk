@@ -195,3 +195,61 @@ export async function borrarBloqueoCliente(bloqueoId: string): Promise<Resultado
   revalidatePath("/panel/citas");
   return { ok: true };
 }
+
+/**
+ * Mover una cita desde el panel del negocio.
+ *
+ * Conserva la duración y deja que la base decida el solape, igual que la
+ * versión de la agencia. Con `service_role`, comprobando que la cita y la
+ * persona son suyas: son dos identificadores que vienen del navegador.
+ *
+ * Lo que NO hace es avisar a quien tenía la cita. Mientras no exista la
+ * plantilla de WhatsApp para escribir fuera de las 24 horas, avisar es una
+ * llamada de teléfono — y es mejor que quien mueve la cita lo sepa a que el
+ * sistema finja que ya está hecho.
+ */
+export async function moverCitaCliente(
+  citaId: string,
+  staffId: string,
+  inicio: string
+): Promise<Resultado> {
+  const perfil = await clienteDelPanel();
+  const admin = createServiceRoleClient();
+
+  const [{ data: cita }, { data: trabajador }] = await Promise.all([
+    admin
+      .from("appointments")
+      .select("id, client_id, estado, inicio, fin")
+      .eq("id", citaId)
+      .maybeSingle(),
+    admin.from("staff").select("id, client_id").eq("id", staffId).maybeSingle(),
+  ]);
+
+  if (!cita || cita.client_id !== perfil.clientId) {
+    return { ok: false, mensaje: "Esa cita no es tuya." };
+  }
+  if (!trabajador || trabajador.client_id !== perfil.clientId) {
+    return { ok: false, mensaje: "Esa persona no es de tu equipo." };
+  }
+  if (cita.estado !== "confirmada") {
+    return { ok: false, mensaje: "Esa cita está cancelada. Recarga la página." };
+  }
+
+  const duracion = new Date(cita.fin).getTime() - new Date(cita.inicio).getTime();
+  const fin = new Date(new Date(inicio).getTime() + duracion).toISOString();
+
+  const { error } = await admin
+    .from("appointments")
+    .update({ staff_id: staffId, inicio, fin })
+    .eq("id", citaId);
+
+  if (error) {
+    return {
+      ok: false,
+      mensaje: error.code === "23P01" ? "Ahí ya hay otra cita." : `No se ha podido mover: ${error.message}`,
+    };
+  }
+
+  revalidatePath("/panel/citas");
+  return { ok: true };
+}
