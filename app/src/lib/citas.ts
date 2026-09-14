@@ -397,9 +397,14 @@ export type NuevaCita = {
   staff_id: string;
   fecha: string;
   hora: string;
+  /**
+   * Lo que ocupa la cita. Empieza siendo la suma de los servicios y se puede
+   * cambiar: en un salón se acorta y se alarga a ojo, y la que manda para el
+   * hueco es esta, no la suma del catálogo.
+   */
   duracion_min: number;
-  servicio_id: string | null;
-  servicio_nombre: string;
+  /** En el orden en que se hacen: lavar, cortar, peinar. */
+  servicios: { id: string | null; nombre: string; duracion_min: number }[];
   nombre: string;
   contacto: string;
   notas: string;
@@ -437,7 +442,12 @@ export async function serviciosReservables(
  */
 export function prepararCita(datos: NuevaCita):
   | { ok: false; mensaje: string }
-  | { ok: true; inicio: string; fin: string; servicios: ServicioDeCita[] } {
+  | {
+      ok: true;
+      inicio: string;
+      fin: string;
+      servicios: { id: string | null; nombre: string; duracion_min: number }[];
+    } {
   if (!datos.staff_id) return { ok: false, mensaje: "Elige con quién es la cita." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datos.fecha)) return { ok: false, mensaje: "La fecha no es válida." };
   if (!/^\d{2}:\d{2}$/.test(datos.hora)) return { ok: false, mensaje: "La hora no es válida." };
@@ -450,14 +460,7 @@ export function prepararCita(datos: NuevaCita):
   const inicio = instanteEnMadrid(datos.fecha, datos.hora);
   const fin = new Date(new Date(inicio).getTime() + duracion * 60000).toISOString();
 
-  const nombre = datos.servicio_nombre.trim();
-
-  return {
-    ok: true,
-    inicio,
-    fin,
-    servicios: nombre ? [{ nombre, duracion_min: duracion }] : [],
-  };
+  return { ok: true, inicio, fin, servicios: datos.servicios };
 }
 
 // === Bloqueos de horario =====================================================

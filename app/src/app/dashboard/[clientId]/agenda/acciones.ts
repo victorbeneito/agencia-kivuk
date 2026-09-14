@@ -577,11 +577,7 @@ export async function crearCitaAgencia(
     p_staff_id: datos.staff_id,
     p_inicio: preparada.inicio,
     p_fin: preparada.fin,
-    p_servicios: preparada.servicios.map((s) => ({
-      id: datos.servicio_id,
-      nombre: s.nombre,
-      duracion_min: s.duracion_min,
-    })),
+    p_servicios: preparada.servicios,
     p_nombre: datos.nombre.trim(),
     p_contacto: datos.contacto.trim(),
     p_email: null,

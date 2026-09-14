@@ -82,14 +82,37 @@ export function NuevaCitaDialogo({
   const [staffId, setStaffId] = useState(previa.staff_id);
   const [fecha, setFecha] = useState(previa.fecha);
   const [hora, setHora] = useState(previa.hora);
-  const [servicioId, setServicioId] = useState(servicios[0]?.id ?? "");
+  // Varios, porque una visita es "lavar y cortar" mucho más a menudo que una
+  // sola cosa. El orden es el de la lista del negocio, que es el orden en que
+  // se hacen.
+  const [elegidos, setElegidos] = useState<string[]>(
+    servicios[0] ? [servicios[0].id] : []
+  );
   const [duracion, setDuracion] = useState(servicios[0]?.duracion_min ?? 30);
+  // Si alguien ha retocado los minutos a mano, marcar otro servicio no se los
+  // pisa: se respeta lo que ha escrito una persona por encima del catálogo.
+  const [duracionTocada, setDuracionTocada] = useState(false);
   const [nombre, setNombre] = useState("");
   const [contacto, setContacto] = useState("");
   const [notas, setNotas] = useState("");
 
-  const servicio = servicios.find((x) => x.id === servicioId);
+  const elegidosEnOrden = servicios.filter((x) => elegidos.includes(x.id));
   const trabajador = trabajadores.find((t) => t.id === staffId);
+
+  function alternar(id: string) {
+    const nuevos = elegidos.includes(id)
+      ? elegidos.filter((x) => x !== id)
+      : [...elegidos, id];
+
+    setElegidos(nuevos);
+
+    if (!duracionTocada) {
+      const suma = servicios
+        .filter((x) => nuevos.includes(x.id))
+        .reduce((t, x) => t + x.duracion_min, 0);
+      if (suma) setDuracion(suma);
+    }
+  }
 
   function guardarBloqueo() {
     if (!bloquear) return;
@@ -119,8 +142,11 @@ export function NuevaCitaDialogo({
         fecha,
         hora,
         duracion_min: duracion,
-        servicio_id: servicioId || null,
-        servicio_nombre: servicio?.nombre ?? "",
+        servicios: elegidosEnOrden.map((x) => ({
+          id: x.id,
+          nombre: x.nombre,
+          duracion_min: x.duracion_min,
+        })),
         nombre,
         contacto,
         notas,
@@ -271,42 +297,57 @@ export function NuevaCitaDialogo({
             </>
           ) : null}
 
-          <div className={modo === "cita" ? "grid grid-cols-[1fr_7rem] gap-3" : "hidden"}>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cita-servicio">Qué se hace</Label>
-              <select
-                id="cita-servicio"
-                className={CAMPO}
-                value={servicioId}
-                // Elegir servicio trae su duración. Se hace aquí y no en un
-                // efecto porque es una consecuencia de la acción, no del
-                // estado: si alguien retoca los minutos a mano y no toca el
-                // servicio, sus minutos se quedan.
-                onChange={(e) => {
-                  setServicioId(e.target.value);
-                  const s = servicios.find((x) => x.id === e.target.value);
-                  if (s) setDuracion(s.duracion_min);
-                }}
-              >
-                {servicios.length ? null : <option value="">Sin servicios definidos</option>}
+          <div className={modo === "cita" ? "flex flex-col gap-1.5" : "hidden"}>
+            <Label>Qué se hace</Label>
+            {servicios.length ? (
+              <div className="max-h-40 overflow-y-auto rounded-lg border p-2">
                 {servicios.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nombre} ({s.duracion_min} min)
-                  </option>
+                  <label
+                    key={s.id}
+                    className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-muted"
+                  >
+                    <input
+                      type="checkbox"
+                      className="size-4"
+                      checked={elegidos.includes(s.id)}
+                      onChange={() => alternar(s.id)}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{s.nombre}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {s.duracion_min} min
+                    </span>
+                  </label>
                 ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cita-duracion">Minutos</Label>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Este negocio no tiene servicios definidos todavía.
+              </p>
+            )}
+
+            <div className="flex items-center gap-2">
+              <Label htmlFor="cita-duracion" className="shrink-0">
+                Ocupa
+              </Label>
               <Input
                 id="cita-duracion"
                 type="number"
+                className="w-24"
                 min={5}
                 max={600}
                 step={5}
                 value={duracion}
-                onChange={(e) => setDuracion(Number(e.target.value))}
+                onChange={(e) => {
+                  setDuracion(Number(e.target.value));
+                  setDuracionTocada(true);
+                }}
               />
+              <span className="text-sm text-muted-foreground">
+                minutos
+                {elegidosEnOrden.length > 1
+                  ? ` · ${elegidosEnOrden.map((x) => x.nombre).join(" + ")}`
+                  : ""}
+              </span>
             </div>
           </div>
 
