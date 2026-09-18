@@ -391,6 +391,31 @@ La tienda propia, cesteriaaparici.es, es donde está el catálogo completo y don
 
 ---
 
+## 19. Qué pieza es la de cada uso
+
+- **Categoría:** Productos
+- **URL de origen:** https://www.cesteriaaparici.es/shop
+
+```
+Busco algo para la leña. Quiero un cesto para la ropa. ¿Qué me llevo a la playa? Algo para la compra. Para guardar mantas. Para las plantas. Para poner flores. Algo para la entrada de casa.
+
+La gente llama "cesto" o "cesta" a casi todo, y cada uso tiene su pieza con su nombre propio. Esta es la correspondencia:
+
+- Para la leña, junto a la chimenea: los leñeros de esparto. Los hay redondos, ovalados, con una o dos asas, con asa transversal y forrados de arpillera o yute. Van de unos 19 € a unos 103 €.
+- Para la playa: los capazos de palma. Los tamaños que se llevan a la playa son el N°7, el N°8 y el N°9; el N°8 es el familiar y el N°9 el más grande.
+- Para la compra o el mercado: capazos del N°6 al N°9, según lo que se quiera cargar.
+- Como bolso de mano o de diario: capazos N°4, N°5 y N°6, y los bolsos de palma y de fibras naturales.
+- Para la ropa: cestos con tapa y cestos grandes de fibra.
+- Para mantas, revistas o almacenaje en el salón: cestos grandes, capazos N°8 y N°9, y el baúl.
+- Para plantas y flores: maceteros de esparto, de pared o colgantes, y cestos redondos.
+- Para servir o presentar en la mesa: bandejas de palma y de seagrass, y el menaje natural.
+- Para regalo gourmet o de Navidad: las cestas de Navidad, que las hay de uno, dos y tres pisos.
+
+Si lo que busca no encaja en ninguna de estas, o quiere una medida que no existe, se puede hacer a medida.
+```
+
+---
+
 # Pendiente de confirmar con el cliente
 
 Resueltos el 03/08/2026 por el cliente: **horario** (9:00-13:00), **formas de
