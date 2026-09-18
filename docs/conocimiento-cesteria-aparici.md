@@ -325,21 +325,29 @@ Para limpiarlas, un paño ligeramente húmedo y dejar secar al aire. Nada de sum
 ## 16. Medidas de los capazos: qué significa cada número
 
 - **Categoría:** Productos
-- **URL de origen:** https://www.cesteriaaparici.es/blog/cesteria-2/guia-de-tamanos-de-los-capazos-de-mimbre-276
+- **URL de origen:** https://www.cesteriaaparici.es/tamanos-de-capazos
 
 ```
 ¿Qué medidas tiene el capazo? ¿Qué tamaños hay? ¿De qué tamaño es un N7? ¿Cuál es el más grande? ¿Cuánto mide? ¿Qué capazo me llevo a la playa? ¿Cuál es el tamaño normal?
 
 El número del capazo no es una talla cualquiera: es el número de vueltas completas de palma trenzada que lo forman. Un N°7 lleva siete vueltas, y de ahí sale su tamaño.
 
-Hay seis tamaños. Estas son sus medidas aproximadas, en ancho x fondo x alto:
+Hay seis tamaños, que se agrupan en tres parejas:
 
-- N°4 — 28 x 15 x 14 cm, base redonda. Es el pequeño: bolso de mano para lo justo, cesto para cosméticos o recipiente para un regalo.
-- N°5 — 32 x 18 x 17 cm, base ovalada. Bolso de mano de diario, algo más amplio que el N°4.
-- N°6 — 38 x 20 x 22 cm. Para la compra en el mercado y para llevar de picnic.
-- N°7 — 42 x 23 x 25 cm. Es el tamaño estándar y el más conocido. Vale igual para la playa y para la ciudad, y como cesta de la compra semanal.
-- N°8 — 45 x 25 x 27 cm. El capazo de playa familiar: caben toallas, juguetes y cremas. También para compras voluminosas o como cesto de almacenaje en casa.
-- N°9 — 55 x 28 x 35 cm. El más grande de todos. Para la compra semanal grande o un día de playa en familia sin dejarse nada.
+- N°4 y N°5, los pequeños. Manejables y coquetos: como bolso de mano, como centro de mesa, como macetero o como elemento decorativo.
+- N°6 y N°7, los medianos. El equilibrio: para el día a día, como cesta de la compra y como organizadores en estanterías y armarios.
+- N°8 y N°9, los grandes. Máxima capacidad: días de playa y de campo, o almacenaje grande en casa.
+
+Estas son sus medidas aproximadas, en ancho x fondo x alto:
+
+- N°4 — 28 x 15 x 14 cm. El más pequeño. Cesta para flores, regalos gourmet, decoración.
+- N°5 — 32 x 18 x 14 cm. Para los esenciales del día o como pieza decorativa en casa.
+- N°6 — 38 x 20 x 22 cm. Bolso manejable donde cabe lo justo: los esenciales, un libro, lo de una tarde de paseo.
+- N°7 — 42 x 23 x 25 cm. El equilibrio entre ligereza y capacidad, y el más conocido. El todoterreno para quien pasa muchas horas fuera de casa.
+- N°8 — 45 x 25 x 27 cm. Formato grande: playa, piscina y la compra diaria. En casa, revistero, guarda-mantas o cesta de almacenaje.
+- N°9 — 52 x 28 x 35 cm. El maxi. Para la playa con toallas, cremas y pareos, o para las compras más grandes.
+
+Los seis se pueden personalizar: bordados, pintura, telas o parches. Para marcas y pedidos personalizados hay presupuesto a medida.
 
 Estas medidas son siempre aproximadas, y conviene decirlo de entrada: cada capazo se trenza a mano, así que es muy difícil encontrar dos exactamente iguales y puede haber unos centímetros de diferencia entre dos del mismo número. No es un fallo ni un descuido: es la diferencia entre una pieza hecha a mano y una fabricada en serie, y es lo que hace que cada capazo sea único. Se cuenta como lo que es, algo bueno, no como una pega ni pidiendo disculpas.
 
@@ -422,7 +430,17 @@ Queda esto:
    proyecto grande no los debe cerrar un bot. Hay que decidir el criterio y a
    qué teléfono o correo deriva.
 
-8. **La errata del blog.** La guía de tamaños publica «32x8x17cm» para el N°5 y
-   el fondo real es 18: se comieron el 1. Está corregido en el documento 16,
-   pero **la errata sigue en su web** y conviene que la arreglen ellos, o el día
-   que alguien compare el bot con el blog no cuadrará.
+8. **El blog viejo contradice a la guía nueva en dos medidas.** El documento 16
+   toma ya las medidas de `cesteriaaparici.es/tamanos-de-capazos` (la guía de
+   2026, que es la oficial). Pero el post del blog de 2025 sigue publicado y dice
+   otra cosa en dos de los seis tamaños:
+
+   | | Blog 2025 | Guía 2026 |
+   |---|---|---|
+   | N°5 | 32 x **8** x **17** | 32 x **18** x **14** |
+   | N°9 | **55** x 28 x 35 | **52** x 28 x 35 |
+
+   El 8 del N°5 es claramente una errata (se comieron el 1), pero el alto (17 vs
+   14) y el ancho del N°9 (55 vs 52) son diferencias de verdad. Conviene que
+   borren o actualicen el post viejo: mientras los dos estén en Google, un
+   cliente puede leer una medida y que el bot le diga otra.
