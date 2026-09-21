@@ -1,0 +1,21 @@
+nombre,duracion_min,alias
+Primera visita,30,primera vez,primera visita gratis,primera consulta,valoracion,pedir presupuesto
+Revisión,30,revision,chequeo,revision anual,revision general
+Limpieza dental,45,limpieza,higiene dental,limpiar los dientes,sarro,tartrectomia
+Revisión y limpieza,60,revision y limpieza,limpieza y revision
+Urgencia,30,me duele,dolor,dolor de muelas,flemon,se me ha roto,diente roto,se me ha caido un diente
+Empaste,45,empastar,caries,obturacion,se me ha caido un empaste
+Endodoncia,90,matar el nervio,tratamiento de conductos,desvitalizar
+Extracción,30,sacar una muela,quitar una muela,sacar un diente,quitar un diente,extraer
+Extracción muela del juicio,60,muela del juicio,muelas del juicio,cordal,cordales
+Implante - cirugía,90,implante,implantes,poner un implante
+Corona,45,funda,fundas,coronas,corona sobre implante
+Blanqueamiento,90,blanquear,blanqueamiento dental,dientes mas blancos
+Carillas,60,carilla,carillas de porcelana,carillas de composite
+Periodoncia - raspado,60,periodoncia,raspado,curetaje,limpieza profunda,piorrea
+Estudio de ortodoncia,45,ortodoncia,brackets,aparato,ortodoncia invisible,invisalign,alineadores
+Revisión de ortodoncia,20,revision de ortodoncia,revision de brackets,ajuste de brackets,cambio de alineadores,ajustar el aparato,revision del aparato
+Revisión infantil,30,revision infantil,dentista infantil,odontopediatria,niño,niña,revision para mi hijo,revision para mi hija
+Selladores,30,sellador,sellado de fisuras,sellar las muelas
+Férula de descarga,30,ferula,bruxismo,rechinar los dientes,apretar los dientes,aprieto los dientes,rechino los dientes
+Prótesis removible,45,dentadura,dentadura postiza,protesis,postiza

@@ -252,6 +252,10 @@ conviene decirlo antes de que lo pregunten.
 se limpió el de origen antes de escribir el destino. Para devolverlo, el mismo
 movimiento al revés; la WABA y el token no cambian.
 
+Desde el 21/09/2026 hay una segunda demo, la **Clínica Dental Muelas**
+(`docs/demo-clinica-dental-muelas.md`), y las dos comparten este número. Se mueve
+de una a otra con `node scripts/pasar-numero-demo.js "<cliente>" --aplicar`.
+
 Con él ya se puede probar de verdad, con las dos limitaciones del número de test:
 solo habla con hasta cinco números dados de alta a mano en el panel de Meta, y
 aparece como «Test Number».

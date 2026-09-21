@@ -1,0 +1,105 @@
+# Batería de preguntas reales para el bot de Clínica Dental Muelas (demo).
+# Se lanza con:
+#   node scripts/probar-conocimiento.js "Clinica Dental Muelas" --bateria docs/preguntas-clinica-dental-muelas.txt
+#
+# Cada línea es una pregunta tal y como la escribiría un paciente por WhatsApp:
+# sin tildes, con faltas y con prisa. Las últimas son las importantes: preguntas
+# cuya respuesta NO está en la base de conocimiento. Ahí el bot tiene que decir
+# que no lo sabe, y eso se comprueba viendo que no recupera nada relevante.
+
+# --- revisión y limpieza ---
+cuanto cuesta una limpieza
+que precio tiene la revision
+la primera visita es gratis?
+cada cuanto hay que hacerse una limpieza
+la limpieza duele?
+cuanto vale una radiografia
+
+# --- urgencias y dolor ---
+me duele mucho una muela me podeis ver hoy
+se me ha caido un empaste
+se me ha roto un diente comiendo
+tengo la cara hinchada y fiebre
+atendeis urgencias el sabado
+mi hijo se ha caido y se le ha salido un diente
+cuanto cuesta la urgencia
+
+# --- empastes, endodoncias y extracciones ---
+cuanto cuesta un empaste
+cuanto vale matar el nervio
+la endodoncia duele
+cuanto cuesta sacar una muela
+precio quitar muela del juicio
+me dormis para sacar la muela del juicio
+
+# --- implantes y prótesis ---
+cuanto cuesta un implante
+cuanto vale un implante con la corona puesta
+cuanto se tarda en poner un implante
+teneis implantes de carga inmediata
+cuanto vale una funda de zirconio
+cuanto cuesta una dentadura postiza
+se me ha roto la dentadura me la arreglais
+
+# --- estética ---
+cuanto cuesta un blanqueamiento
+el blanqueamiento estropea los dientes
+precio de las carillas
+
+# --- encías ---
+me sangran las encias al cepillarme es normal
+que es la piorrea
+cuanto cuesta un curetaje
+
+# --- ortodoncia ---
+cuanto cuestan los brackets
+haceis invisalign
+cuanto dura una ortodoncia
+se puede poner ortodoncia con 40 años
+se me ha soltado un bracket
+
+# --- niños ---
+atendeis a niños
+a que edad llevo a mi hijo al dentista
+que son los selladores
+
+# --- bruxismo ---
+aprieto los dientes por la noche que hago
+cuanto cuesta una ferula de descarga
+
+# --- pagos y seguros ---
+se puede pagar a plazos
+aceptais bizum
+trabajais con sanitas
+hay que pagar todo por adelantado
+
+# --- horario, equipo y clínica ---
+a que hora abris
+abris los viernes por la tarde
+donde estais
+quien pone los implantes
+que dias viene la ortodoncista
+puedo pedir con la doctora elena
+
+# --- políticas y dudas prácticas ---
+si no puedo ir puedo anular la cita
+que pasa si llego tarde
+me da mucho miedo el dentista
+estoy embarazada me puedo hacer una limpieza
+tomo sintrom me podeis sacar una muela
+que puedo comer despues de sacarme una muela
+puedo fumar despues de un implante
+donde aparco
+hablais valenciano
+haceis sedacion con anestesista
+poneis botox en los labios
+
+# --- preguntas SIN respuesta en la base: el bot tiene que decir que no lo sabe ---
+teneis hueco esta tarde a las 6
+os mando una foto de mi muela y me decis que tengo
+que antibiotico me tomo para el flemon
+cuanto me costaria a mi arreglarme toda la boca
+haceis ortodoncia lingual por dentro de los dientes
+me podeis dar un justificante para el trabajo
+me guardais la radiografia que me hicieron el año pasado
+cuanto me cubre mi seguro de adeslas
