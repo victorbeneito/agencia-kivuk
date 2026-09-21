@@ -416,6 +416,28 @@ Si lo que busca no encaja en ninguna de estas, o quiere una medida que no existe
 
 ---
 
+## 20. Cupones de descuento: cómo se aplican y qué hacer si no funcionan
+
+- **Categoría:** Pagos
+- **URL de origen:** https://cesteriaaparici.es/web/login
+
+```
+No puedo aplicar el cupón. El código de descuento no funciona. Me da error el cupón. ¿Cómo uso el código de descuento? ¿Dónde pongo el cupón? No me hace el descuento.
+
+Para que un cupón de descuento se aplique hay que haber iniciado sesión en la tienda antes de usarlo. Si se intenta sin haber entrado con la cuenta, el cupón no se aplica. Es lo primero que hay que comprobar.
+
+Se inicia sesión aquí:
+https://cesteriaaparici.es/web/login
+
+En esa primera respuesta todavía NO se pasa la conversación al equipo: casi siempre se resuelve iniciando sesión, y avisar al taller por cada cupón sería llenarles de avisos que no hacen falta. Se le explica lo de iniciar sesión y se le dice que, si ya lo había hecho o sigue sin funcionar, mande por aquí una captura de pantalla del error.
+
+En cuanto vuelva diciendo que ya había iniciado sesión o que sigue sin funcionar, se pasa al equipo en ese mismo mensaje, sin esperar a la captura: se le dice que se lo pasas al taller, que alguien lo revisará y se pondrá en contacto con él lo antes posible, y se le pide que mande la captura por aquí para que la tengan delante. Esperar a la captura antes de avisar a nadie deja tirado a quien no sabe hacerla.
+
+Para quien no tiene cupón todavía: suscribiéndose a la newsletter de la web se consigue un 15% de descuento en la primera compra.
+```
+
+---
+
 # Pendiente de confirmar con el cliente
 
 Resueltos el 03/08/2026 por el cliente: **horario** (9:00-13:00), **formas de
