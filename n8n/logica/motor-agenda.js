@@ -106,6 +106,16 @@ function diasEntreFechas(a, b) {
   );
 }
 
+/**
+ * "2026-09-24" -> "24-09-2026", que es como se escribe una fecha en España.
+ * Solo para los textos que lee una persona: los campos `fecha` siguen en ISO
+ * porque con ellos se compara, se ordena y se reserva.
+ */
+function fechaLegible(fecha) {
+  var f = String(fecha).split('-');
+  return f.length === 3 ? f[2] + '-' + f[1] + '-' + f[0] : String(fecha);
+}
+
 // === Texto ===================================================================
 
 function normalizar(texto) {
@@ -705,7 +715,7 @@ function resolver(contexto, peticion, ahora) {
         fecha: fecha,
         hasta: ultimo,
         mensaje: 'Todavía no tengo abierta la agenda tan lejos. De momento puedo darte cita hasta el ' +
-          ultimo + '. Si quieres, te aviso cuando se abra.',
+          fechaLegible(ultimo) + '. Si quieres, te aviso cuando se abra.',
       };
     }
   }
@@ -733,10 +743,10 @@ function resolver(contexto, peticion, ahora) {
 
     var mensaje = soloEseDia.length
       ? soloEseDia.map(function (d) {
-          return d.dia + ' ' + d.fecha + ': ' + rangos(d.horas, paso);
+          return d.dia + ' ' + fechaLegible(d.fecha) + ': ' + rangos(d.horas, paso);
         }).join('\n')
       : fecha
-        ? 'No queda ningún hueco libre el ' + fecha + '.'
+        ? 'No queda ningún hueco libre el ' + fechaLegible(fecha) + '.'
         : 'No queda ningún hueco libre en los próximos 7 días.';
 
     return Object.assign(base, {
@@ -759,7 +769,7 @@ function resolver(contexto, peticion, ahora) {
   if (!quien.length) {
     var alternativas = alternativasCerca(dias, fecha, hora);
     var texto = alternativas
-      .map(function (a) { return a.dia + ' ' + a.fecha + ': ' + a.horas.join(', '); })
+      .map(function (a) { return a.dia + ' ' + fechaLegible(a.fecha) + ': ' + a.horas.join(', '); })
       .join('\n');
 
     return Object.assign(base, {
@@ -770,7 +780,7 @@ function resolver(contexto, peticion, ahora) {
       hora: hora,
       alternativas: alternativas,
       mensaje: texto
-        ? 'Las ' + hora + ' del ' + fecha + ' no están disponibles. Tengo libre:\n' +
+        ? 'Las ' + hora + ' del ' + fechaLegible(fecha) + ' no están disponibles. Tengo libre:\n' +
           texto + '\n¿Cuál te viene mejor?'
         : 'Lo siento, no me queda ningún hueco libre en los próximos días.',
     });
@@ -794,7 +804,7 @@ function resolver(contexto, peticion, ahora) {
     trabajador: { id: elegido.id, nombre: elegido.nombre, calendar_id: elegido.calendar_id || null },
     inicio: new Date(instante(fecha, hora, zona)).toISOString(),
     fin: new Date(instante(fecha, hora, zona) + duracion * 60000).toISOString(),
-    mensaje: 'El ' + dia.dia + ' ' + fecha + ' a las ' + hora + conQuien + ' está libre.',
+    mensaje: 'El ' + dia.dia + ' ' + fechaLegible(fecha) + ' a las ' + hora + conQuien + ' está libre.',
   });
 
   // El correo ya no hace falta para reservar, y esto era lo que lo exigía.
@@ -820,7 +830,7 @@ function mensajeReservada(datos, nombrar) {
     ? ' (' + datos.servicios.map(function (s) { return s.nombre; }).join(' + ') + ')'
     : '';
 
-  return '¡Listo! Tu cita queda confirmada para el ' + datos.dia + ' ' + datos.fecha +
+  return '¡Listo! Tu cita queda confirmada para el ' + datos.dia + ' ' + fechaLegible(datos.fecha) +
     ' a las ' + datos.hora + conQuien + queSeHace + '.' +
     (datos.email ? ' Te envío la confirmación a ' + datos.email + '.' : '');
 }

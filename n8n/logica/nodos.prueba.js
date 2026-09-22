@@ -352,7 +352,7 @@ ok("pero sigue dando los huecos", /HUECOS LIBRES/.test(texto));
 
 console.log("\n=== El bot: Respuesta con agenda ===");
 let rb = ejecutar(nodoBot("Respuesta con agenda"), {}, {
-  mensaje: "El viernes 2026-09-18 a las 17:00 con Ana está libre.",
+  mensaje: "El viernes 18-09-2026 a las 17:00 con Ana está libre.",
   libre: true, reservada: false,
 })[0].json;
 ok("si solo preguntaba, se le ofrece reservar", /¿Te la reservo\?$/.test(rb.reply), rb.reply);

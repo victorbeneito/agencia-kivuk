@@ -149,11 +149,13 @@ Las 25 filas del CSV entran sin un solo error con el parser del panel, y el
 emparejamiento acierta las 39 formas de pedirlo que se probaron: «mechitas»,
 «cortarme el pelo», «la raiz», «californianas», «moño», «rubio platino».
 
-Dos detalles menores que se ven en esa tabla y que conviene saber antes de que
-los vea un cliente: el motor escribe *«Sí lo hace Ana y Sonia»* (en singular) y
-da las fechas en formato `2026-09-19` dentro de algunos mensajes de alternativas.
-Ninguna de las dos rompe nada, las dos se arreglan en un rato, y en una demo se
-notan.
+Un detalle menor que se ve en esa tabla y que conviene saber antes de que lo vea
+un cliente: el motor escribe *«Sí lo hace Ana y Sonia»* (en singular). No rompe
+nada, se arregla en un rato, y en una demo se nota.
+
+Las fechas salían como `2026-09-19` en los mensajes; desde el 22/09/2026 se
+escriben `19-09-2026`, tanto las que redacta el motor como las de la IA. Por
+dentro siguen en ISO: con ellas se compara y se reserva.
 
 ---
 
