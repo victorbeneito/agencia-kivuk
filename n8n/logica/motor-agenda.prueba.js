@@ -251,6 +251,7 @@ comprobar('candidatas: la intersección, Bea y Sonia', r.candidatos.join() === '
 r = m.resolver(CTX, { accion: 'comprobar', servicios: ['mechas'], trabajador: 'Ana', fecha: '2026-09-15', hora: '17:00' }, MARTES);
 comprobar('Ana no hace mechas: se dice, y se dice quién sí', r.estado === 'no_lo_hace', r.estado);
 comprobar('el mensaje nombra a Bea y Sonia', /Bea y Sonia/.test(r.mensaje), r.mensaje);
+comprobar('y concuerda en plural: «lo hacen»', /Sí lo hacen Bea y Sonia\./.test(r.mensaje), r.mensaje);
 
 r = m.resolver(CTX, { accion: 'comprobar', servicios: ['permanente'] }, MARTES);
 comprobar('un servicio que no existe no se inventa', r.estado === 'servicio_desconocido', r.estado);

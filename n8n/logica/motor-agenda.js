@@ -633,7 +633,9 @@ function resolver(contexto, peticion, ahora) {
         mensaje: quienesSi.length
           ? pedido.nombre + ' no hace ' +
             listaLegible(elegidos.map(function (s) { return s.nombre.toLowerCase(); })) +
-            '. Sí lo hace ' + listaLegible(quienesSi) + '. ¿Te va bien con alguien de ellos?'
+            (quienesSi.length === 1
+              ? '. Sí lo hace ' + quienesSi[0] + '. ¿Te va bien con ' + quienesSi[0] + '?'
+              : '. Sí lo hacen ' + listaLegible(quienesSi) + '. ¿Te va bien con alguien de ellos?')
           : pedido.nombre + ' no hace eso, y ahora mismo no tengo a nadie más que pueda.',
       };
     }

@@ -172,6 +172,43 @@ Lo que conviene tener preparado porque lo van a preguntar:
 
 ## El número de WhatsApp
 
+### Estado: las tres demos con línea propia desde el 22/09/2026
+
+| Demo | Número | `phone_number_id` | Enlace |
+| --- | --- | --- | --- |
+| Peluqueria Mechas | +34 623 79 03 43 | `1418373878019247` | `wa.me/34623790343` |
+| Clinica Dental Muelas | +34 613 01 39 79 | `1324304980769153` | `wa.me/34613013979` |
+| Clinica Fisioterapia Masajes | +34 623 81 47 87 | `1322734470924250` | `wa.me/34623814787` |
+
+Las tres en la WABA de Agencia Kivuk (`1786850185674194`), con el token de Kivuk y
+el mismo PIN de verificación en dos pasos que el número de la agencia. El número
+de pruebas de Meta quedó en «Cliente de Prueba».
+
+Cómo se da de alta una línea (para la próxima demo sectorial):
+
+1. La eSIM en el móvil, **sin** activar WhatsApp en ella.
+2. WhatsApp Manager → cuenta Agencia Kivuk → *Añadir número de teléfono*, con
+   nombre `Kivuk Demo <sector>`, y verificar por SMS. Queda en «Pendiente»: está
+   verificado pero no registrado, y es lo esperado.
+3. `node scripts/activar-numero-demo.js "<cliente>" <phone_number_id> <pin> --aplicar`
+   lo registra, suscribe la app a la WABA y lo pone en el cliente. El
+   `phone_number_id` se ve en la ficha del número o con la API.
+
+Dos cosas que pasaron por el camino. El formulario de *Añadir número* **arrastra
+el nombre del alta anterior**: la dental se creó primero como «Kivuk Demo
+Peluquería», y mientras un nombre está en revisión Meta no deja editarlo (ni por
+la API). Como no estaba verificado, se borró y se volvió a añadir; Meta reutilizó
+el mismo `phone_number_id`. Y el listado de WhatsApp Manager llegó a **no enseñar**
+números que la API sí devolvía: antes de dar nada por borrado, recargar y mirarlo
+con la API.
+
+La plantilla `recordatorio_cita` estaba aprobada en la WABA del número de pruebas,
+no en la de Kivuk: al pasar las demos a sus líneas hubo que volver a mandarla a
+revisión con `scripts/plantilla-whatsapp.js`. Una plantilla es de la WABA, no del
+número.
+
+### Cómo se llegó aquí
+
 **Decidido el 21/09/2026: una línea por sector**, con tres eSIM (peluquería,
 dental y fisio), todas en la WABA de Agencia Kivuk y con nombre visible
 `Kivuk Demo <sector>`. El portfolio ya está verificado, así que el límite de

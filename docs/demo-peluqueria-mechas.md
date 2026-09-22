@@ -247,6 +247,12 @@ conviene decirlo antes de que lo pregunten.
 
 ## El número de WhatsApp
 
+> **Desde el 22/09/2026 tiene línea propia: +34 623 79 03 43**
+> (`wa.me/34623790343`, nombre visible «Kivuk Demo Peluquería»). Lo que sigue es
+> la historia del número de pruebas, que ya está en «Cliente de Prueba». El
+> estado de las tres demos, en «El número de WhatsApp» de
+> `docs/demo-clinica-dental-muelas.md`.
+
 **Desde el 11/09/2026 la demo tiene número: el de pruebas de Meta,
 `+1 555-153-9782`** (`phone_number_id` 1120415504498664), que estaba colgando de
 «Cliente de Prueba» y se ha movido aquí. El bot resuelve el cliente por

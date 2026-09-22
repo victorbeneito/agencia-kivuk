@@ -28,8 +28,9 @@ node scripts/probar-conocimiento.js "Clinica Fisioterapia Masajes" --bateria doc
 ```
 
 Idempotente, como las otras dos: sirve también para devolverla a su estado de
-fábrica. Falta **el número**: va con su propia eSIM y nombre visible
-`Kivuk Demo Fisio` (ver «El número de WhatsApp» en la demo de la clínica dental).
+fábrica. **Número: +34 623 81 47 87** (`wa.me/34623814787`), eSIM propia con
+nombre visible `Kivuk Demo Fisio`, activo desde el 22/09/2026 (ver «El número de
+WhatsApp» en la demo de la clínica dental).
 
 ## 1. El horario y el equipo
 
