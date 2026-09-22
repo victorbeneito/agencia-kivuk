@@ -172,7 +172,13 @@ Lo que conviene tener preparado porque lo van a preguntar:
 
 ## El número de WhatsApp
 
-**La decisión es tuya, y hay tres caminos.**
+**Decidido el 21/09/2026: una línea por sector**, con tres eSIM (peluquería,
+dental y fisio), todas en la WABA de Agencia Kivuk y con nombre visible
+`Kivuk Demo <sector>`. El portfolio ya está verificado, así que el límite de
+números no aprieta; y un nombre ficticio como «Clínica Dental Muelas» no lo
+aprobaría Meta, mientras que la marca propia más el sector sí es defendible. Lo
+que sigue es el razonamiento que llevó ahí; el número de pruebas queda para
+probar, moviéndolo con `pasar-numero-demo.js`.
 
 ### 1. Compartir el número de pruebas entre las dos demos (hoy, gratis)
 

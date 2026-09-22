@@ -1,0 +1,16 @@
+nombre,duracion_min,alias
+Primera visita,60,primera vez,primera sesion,primera consulta,valoracion,valoracion inicial,dolor de espalda,me duele la espalda,me duele el cuello,me duele la rodilla,me duele el hombro,lumbalgia,cervicales,contractura,torticolis,ciatica,esguince,tendinitis,rehabilitacion
+Sesión de fisioterapia,45,sesion de fisio,sesion de fisioterapia,una sesion,siguiente sesion,otra sesion
+Sesión corta,30,sesion corta,media hora,sesion de media hora,sesion de 30 minutos
+Punción seca,45,puncion seca,puncion
+Masaje descontracturante,45,descontracturante,un masaje,masaje de espalda,masaje terapeutico
+Masaje relajante,60,relajante,masaje de relajacion
+Masaje deportivo,45,descarga muscular,descarga de piernas,masaje de descarga
+Drenaje linfático,60,drenaje,drenaje linfatico,piernas cansadas,retencion de liquidos
+Osteopatía,50,osteopata,osteopatia
+Suelo pélvico - valoración,60,suelo pelvico,valoracion de suelo pelvico,perdidas de orina,escapes de orina,se me escapa el pis,se me escapa la orina,incontinencia,postparto,despues del parto,diastasis
+Suelo pélvico - sesión,45,sesion de suelo pelvico,sesion suelo pelvico,revision de suelo pelvico
+Pilates terapéutico individual,50,pilates,pilates individual,pilates terapeutico,pilates clinico
+Ondas de choque,30,ondas de choque
+Readaptación deportiva,60,readaptacion,readaptacion deportiva,volver a correr,vuelta al deporte
+Vendaje neuromuscular,15,vendaje,kinesiotape,kinesio,vendaje neuromuscular

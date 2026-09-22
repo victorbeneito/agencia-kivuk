@@ -1,0 +1,109 @@
+# Batería de preguntas reales para el bot de Clínica Fisioterapia Masajes (demo).
+# Se lanza con:
+#   node scripts/probar-conocimiento.js "Clinica Fisioterapia Masajes" --bateria docs/preguntas-fisioterapia-masajes.txt
+#
+# Cada línea es una pregunta tal y como la escribiría un paciente por WhatsApp:
+# sin tildes, con faltas y con prisa. Las últimas son las importantes: preguntas
+# cuya respuesta NO está en la base de conocimiento. Ahí el bot tiene que decir
+# que no lo sabe, y eso se comprueba viendo que no recupera nada relevante.
+
+# --- precios y bonos ---
+cuanto cuesta una sesion de fisio
+que precio tiene la primera visita
+teneis bonos
+cuanto dura una sesion
+la primera visita es gratis
+cuanto vale la puncion seca
+cuanto cuestan las ondas de choque
+cuanto vale un vendaje de kinesio
+
+# --- masajes ---
+cuanto cuesta un masaje
+haceis masajes relajantes
+que diferencia hay entre un masaje y una sesion de fisio
+cuanto vale un masaje deportivo
+haceis drenaje linfatico
+teneis bono de masajes
+
+# --- técnicas y especialidades ---
+que es la puncion seca
+duele la puncion
+me dan miedo las agujas
+haceis osteopatia
+cuanto cuesta el osteopata
+el osteopata me va a crujir
+
+# --- suelo pélvico ---
+haceis suelo pelvico
+se me escapa el pis al toser
+cuando puedo ir despues del parto
+tratais la diastasis
+estoy embarazada puedo ir al fisio
+
+# --- pilates ---
+teneis pilates
+cuanto cuesta el pilates
+que horarios tienen las clases de pilates
+cuantas personas hay por clase de pilates
+puedo hacer pilates con una hernia
+
+# --- deporte ---
+tratais lesiones deportivas
+me ayudais a volver a correr
+que es la readaptacion
+tengo una rotura de fibras
+
+# --- problemas frecuentes ---
+me duele la espalda me podeis ayudar
+tengo ciatica
+tratais las cervicales
+me han operado de la rodilla
+tengo torticolis
+cuantas sesiones voy a necesitar
+me dais ejercicios para casa
+
+# --- señales de alarma ---
+me duele la espalda y se me duerme la pierna
+me duele el pecho creo que es muscular
+me he caido y no puedo apoyar el pie
+tengo dolor de espalda y fiebre
+se me ha hinchado la pantorrilla despues de la operacion
+
+# --- receta, seguros y pagos ---
+necesito receta del medico para ir al fisio
+he tenido un accidente de coche me cubre el seguro
+trabajais con aseguradoras
+he tenido un accidente en el trabajo
+se puede pagar con bizum
+los bonos caducan
+puedo compartir el bono con mi pareja
+puedo regalar un masaje
+
+# --- horario, equipo y clínica ---
+a que hora abris
+abris los sabados
+donde estais
+quien hace el suelo pelvico
+puedo pedir con nuria
+quien esta los sabados
+venis a casa
+teneis vestuario
+donde aparco
+
+# --- políticas ---
+si no puedo ir puedo anular
+que pasa si no aviso
+que pasa si llego tarde
+que ropa me pongo para ir
+haceis acupuntura
+teneis presoterapia para adelgazar
+
+# --- preguntas SIN respuesta en la base: el bot tiene que decir que no lo sabe ---
+teneis hueco esta tarde a las 7
+os mando la resonancia y me decis que tengo
+que estiramientos hago para la ciatica
+cuanto me costaria a mi todo el tratamiento de la rodilla
+tratais la fibromialgia
+haceis fisioterapia respiratoria
+haceis fisioterapia para bebes con plagiocefalia
+me haceis descuento si soy del gimnasio de al lado
