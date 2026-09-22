@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
@@ -123,6 +123,7 @@ export function CalendarioCitas({
   bloquear,
   quitarBloqueo,
   mover,
+  cancelar,
 }: {
   vista: Vista;
   /** El día que se mira, o cualquiera de la semana que se mira. */
@@ -143,6 +144,8 @@ export function CalendarioCitas({
     staffId: string,
     inicio: string
   ) => Promise<{ ok: boolean; mensaje?: string }>;
+  /** Si no se pasa, la ficha de la cita no ofrece cancelarla. */
+  cancelar?: (citaId: string) => Promise<{ ok: boolean; mensaje?: string }>;
 }) {
   const [abierta, setAbierta] = useState<Cita | null>(null);
   const [nueva, setNueva] = useState<CitaPrevia | null>(null);
@@ -445,7 +448,9 @@ export function CalendarioCitas({
         </div>
       ) : null}
 
-      {abierta ? <Detalle cita={abierta} onCerrar={() => setAbierta(null)} /> : null}
+      {abierta ? (
+        <Detalle cita={abierta} cancelar={cancelar} onCerrar={() => setAbierta(null)} />
+      ) : null}
 
       {nueva && crear ? (
         <NuevaCitaDialogo
@@ -674,7 +679,40 @@ function CajaBloqueo({
 }
 
 /** La ficha de una cita. Un panel abajo, no un diálogo: se cierra tocando fuera. */
-function Detalle({ cita, onCerrar }: { cita: Cita; onCerrar: () => void }) {
+function Detalle({
+  cita,
+  cancelar,
+  onCerrar,
+}: {
+  cita: Cita;
+  cancelar?: (citaId: string) => Promise<{ ok: boolean; mensaje?: string }>;
+  onCerrar: () => void;
+}) {
+  const [enCurso, empezar] = useTransition();
+  const [confirmando, setConfirmando] = useState(false);
+  const [error, setError] = useState("");
+
+  // Con quince citas en un día, ir a la lista a buscar la que ya tienes delante
+  // en el cuadrante es dar un rodeo. La confirmación va en el propio botón, como
+  // en la lista: cancelar no avisa a nadie y no se deshace, pero se decide en un
+  // segundo y un diálogo encima de otro sería un salto más en el móvil.
+  // Se mira una vez, al abrir la ficha. Si pasa mientras está abierta, la
+  // acción del servidor lo rechaza igual con su propio mensaje.
+  const [pasada] = useState(() => new Date(cita.fin).getTime() < Date.now());
+
+  function onCancelar() {
+    if (!cancelar) return;
+    setError("");
+    empezar(async () => {
+      const r = await cancelar(cita.id);
+      if (r.ok) onCerrar();
+      else {
+        setError(r.mensaje ?? "No se ha podido cancelar.");
+        setConfirmando(false);
+      }
+    });
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 sm:items-center"
@@ -736,9 +774,50 @@ function Detalle({ cita, onCerrar }: { cita: Cita; onCerrar: () => void }) {
           ) : null}
         </dl>
 
-        <Button className="mt-4 w-full" variant="outline" onClick={onCerrar}>
-          Cerrar
-        </Button>
+        {error ? <p className="mt-3 text-xs text-destructive">{error}</p> : null}
+
+        {cancelar && !pasada ? (
+          confirmando ? (
+            <div className="mt-4 flex flex-col gap-2">
+              <p className="text-sm">¿Cancelar esta cita? Su hueco vuelve a quedar libre.</p>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  variant="destructive"
+                  onClick={onCancelar}
+                  disabled={enCurso}
+                >
+                  {enCurso ? "Cancelando…" : "Sí, cancelarla"}
+                </Button>
+                <Button
+                  className="flex-1"
+                  variant="outline"
+                  onClick={() => setConfirmando(false)}
+                  disabled={enCurso}
+                >
+                  No
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 flex gap-2">
+              <Button
+                className="flex-1"
+                variant="outline"
+                onClick={() => setConfirmando(true)}
+              >
+                Cancelar cita
+              </Button>
+              <Button className="flex-1" variant="outline" onClick={onCerrar}>
+                Cerrar
+              </Button>
+            </div>
+          )
+        ) : (
+          <Button className="mt-4 w-full" variant="outline" onClick={onCerrar}>
+            Cerrar
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -117,6 +117,7 @@ export function CitasDelCliente({
             bloquear={bloquear}
             quitarBloqueo={quitarBloqueo}
             mover={mover}
+            cancelar={cancelar}
           />
         )}
       </CardContent>

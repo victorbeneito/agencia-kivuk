@@ -125,6 +125,7 @@ export default async function PanelCitasPage({
         bloquear={crearBloqueoCliente}
         quitarBloqueo={borrarBloqueoCliente}
         mover={moverCitaCliente}
+        cancelar={cancelarCita}
       />
     </div>
   );
