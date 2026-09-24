@@ -76,6 +76,33 @@ viene relleno, hace que la acción responda «recibido» sin enviar nada), y si 
 envío falla el formulario lo dice en vez de dar las gracias — un lead perdido en
 silencio es peor que un error a la cara.
 
+### «Pruébalo tú mismo»: la segunda acción, y por qué se acepta
+
+La landing se escribió con una sola salida —abrir conversación con Kivuk— y la
+sección de demos (24/09/2026) abre otra: tres WhatsApp que no son el nuestro,
+uno por sector. Va después de «El problema», justo donde la cabeza está en «ya,
+¿pero esto funciona?».
+
+Se acepta porque probarlo convence más que leerlo, y porque el riesgo se acota:
+se prueba **un solo sector**, el suyo; la sección está en medio de la página y
+detrás siguen servicios, precio y contacto; y **los tres bots de demo saben
+devolver la visita**. Si les preguntan si son un bot, si el negocio existe,
+quién ha hecho esto o cuánto cuesta, lo dicen y mandan a `agenciakivuk.com` y al
+WhatsApp de Kivuk; si no se lo preguntan, no lo sacan. Eso último importa más de
+lo que parece: la mayoría de quien prueba una demo llega por un reenvío de un
+conocido, sin ver esta web, y sin esa frase no tiene forma de saber quién está
+detrás.
+
+En móvil cada tarjeta es un botón que abre el chat con la primera pregunta ya
+escrita; en ordenador se enseña el QR, porque nadie prueba un bot de WhatsApp en
+WhatsApp Web. Las dos versiones se pintan siempre y las reparte el CSS, así que
+la sección no lleva JavaScript.
+
+Los números viven en `lib/web/demos.ts`, los QR en `public/demos/` (los genera
+`scripts/generar-qr-demos.js`, que hace también las tarjetas A6 de
+`docs/material-venta/demos/`) y el texto que da la referencia está en los
+prompts `docs/prompt-*.md` de las tres demos.
+
 ### La conversación del hero es HTML, no una captura
 
 `components/web/chat-demo.tsx` dibuja un hilo de WhatsApp con CSS. Pesa nada, se

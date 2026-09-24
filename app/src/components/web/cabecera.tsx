@@ -4,6 +4,7 @@ import { MessageCircle } from "lucide-react";
 import { enlaceContacto } from "@/lib/web/kivuk";
 
 const SECCIONES = [
+  { href: "#probar", texto: "Probarlo" },
   { href: "#servicios", texto: "Servicios" },
   { href: "#como-funciona", texto: "Cómo funciona" },
   { href: "#casos", texto: "Casos" },

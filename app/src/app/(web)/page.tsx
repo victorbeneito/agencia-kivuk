@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { ChatDemo } from "@/components/web/chat-demo";
+import { Pruebalo } from "@/components/web/pruebalo";
 import { ServiciosTabs } from "@/components/web/servicios-tabs";
 import { FormularioContacto } from "./formulario-contacto";
 import { KIVUK, enlaceContacto, hayWhatsApp } from "@/lib/web/kivuk";
@@ -41,6 +42,7 @@ export default function Home() {
     <>
       <Hero />
       <Problema />
+      <PruebaloSeccion />
       <Servicios />
       <Relevo />
       <ComoFunciona />
@@ -177,6 +179,36 @@ function Problema() {
           </div>
         ))}
       </div>
+    </Seccion>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+/**
+ * Va justo después del problema y antes de los servicios a propósito: primero
+ * se nombra lo que se pierde, y cuando la cabeza está en «ya, ¿y esto funciona
+ * de verdad?», se contesta dejando probarlo en vez de explicándolo.
+ */
+function PruebaloSeccion() {
+  return (
+    <Seccion id="probar" tono="claro">
+      <Titulo
+        eyebrow="Pruébalo tú mismo"
+        titulo="Escríbele al de tu sector, ahora mismo"
+        texto="Tres asistentes funcionando, uno por sector. Son negocios inventados, pero el asistente es el mismo que montamos para un cliente: responde con precios, sabe quién hace qué y da cita en hueco libre."
+      />
+
+      <div className="mt-12">
+        <Pruebalo />
+      </div>
+
+      <p className="mt-8 max-w-2xl text-sm leading-relaxed text-kivuk-gris">
+        Pregúntale lo que se le pregunta a un negocio de verdad: cuánto vale,
+        qué día tenéis libre, si podéis atenderme hoy. Y prueba también a pedir
+        algo que no sepa: verás que dice que no lo sabe y avisa al equipo, que es
+        lo que hace que puedas dejarlo contestando solo.
+      </p>
     </Seccion>
   );
 }
