@@ -456,7 +456,7 @@ Cestería Aparici tiene un programa para clientes profesionales llamado Club Art
 
 Las ventajas del Club Artesano PRO son estas:
 
-Tarifa exclusiva. Grandes descuentos sobre el PVP, de hasta el 50%, y un 5% extra en la primera compra. Es un HASTA: el descuento que le corresponde a cada cliente depende del producto, de la cantidad y de las condiciones que se acuerden, así que nunca se promete un 50% ni ningún otro porcentaje concreto. Quien lo fija es el equipo Business, con un presupuesto personalizado. Además hay ofertas y promociones reservadas a profesionales.
+Tarifa exclusiva. Grandes descuentos sobre el PVP, de hasta el 50%. Es un HASTA: el descuento que le corresponde a cada cliente depende del producto, de la cantidad y de las condiciones que se acuerden, así que nunca se promete un 50% ni ningún otro porcentaje concreto. Quien lo fija es el equipo Business, con un presupuesto personalizado. Además hay ofertas y promociones reservadas a profesionales.
 
 Atención telefónica prioritaria. Contacto directo con el equipo Business, asesoramiento en tiempo real y compromiso de respuesta en menos de 24 horas.
 
@@ -470,6 +470,8 @@ Un proyecto con valores. Producto sostenible, hecho a mano, que contribuye a man
 
 Para darse de alta como profesional se rellena el formulario de la web, y el equipo Business se pone en contacto:
 https://www.cesteriaaparici.es/formulario-b2b
+
+Quien se registra recibe además un cupón del 5% adicional en su correo electrónico. Es el gancho para darse de alta: no es un descuento que el cliente ya tenga, es un cupón que le llega al correo después de registrarse. Por eso la forma de cerrar cualquier conversación con un profesional es siempre esta, con el enlace debajo: «Regístrate ahora y obtén en tu correo electrónico un cupón del 5% adicional».
 
 El pedido mínimo para clientes profesionales es de 99 €.
 
@@ -492,7 +494,9 @@ Arquitectura e interiorismo. Hoteles y alojamientos. Hostelería y restauración
 
 También se sirve al por mayor el catálogo habitual: capazos, cestas y bandejas de mimbre, entre otros productos.
 
-Todo esto se canaliza a través de la cuenta profesional, que se solicita en el formulario de profesionales de la web:
+Todo esto se canaliza a través de la cuenta profesional, que se solicita en el formulario de profesionales de la web. La forma de cerrar cualquier conversación con un profesional es siempre esta, con el enlace debajo:
+
+Regístrate ahora y obtén en tu correo electrónico un cupón del 5% adicional:
 https://www.cesteriaaparici.es/formulario-b2b
 
 Para productos personalizados o hechos a medida, el pedido mínimo es de 50 unidades. Para el resto del catálogo, el pedido mínimo profesional es de 99 €.
