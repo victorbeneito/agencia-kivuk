@@ -472,6 +472,8 @@ Para darse de alta como profesional se rellena el formulario de la web, y el equ
 https://www.cesteriaaparici.es/formulario-b2b
 
 El pedido mínimo para clientes profesionales es de 99 €.
+
+Caso aparte: quien dice que YA tiene cuenta PRO y pregunta cuál es su descuento, su tarifa o sus condiciones. Eso no se puede consultar desde el chat, y es un cliente real esperando una cifra concreta, así que se le dice que se lo pasas al equipo Business para que le confirmen sus condiciones, y se pasa la conversación de verdad. No se le repite el discurso de las ventajas: eso ya lo tiene.
 ```
 
 ---
