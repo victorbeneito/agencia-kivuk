@@ -197,6 +197,69 @@ export async function borrarBloqueoCliente(bloqueoId: string): Promise<Resultado
 }
 
 /**
+ * Corregir una cita desde el panel del negocio.
+ *
+ * Lo que el bot apuntó no siempre es lo que hay: guarda el nombre con el que
+ * alguien usa WhatsApp y el servicio que dedujo de una frase. Sin esto, la
+ * única forma de arreglar un dato era cancelar y volver a darla, que además
+ * pierde el hilo con la conversación.
+ *
+ * Va por `agenda_editar` (0019) y no por dos escrituras seguidas: cambiar el
+ * tratamiento cambia la duración, y la cita y sus servicios tienen que moverse
+ * juntos o no moverse. El solape lo decide la base, como al mover.
+ */
+export async function editarCitaCliente(
+  citaId: string,
+  datos: NuevaCita
+): Promise<Resultado> {
+  const perfil = await clienteDelPanel();
+
+  const preparada = prepararCita(datos);
+  if (!preparada.ok) return { ok: false, mensaje: preparada.mensaje };
+
+  const admin = createServiceRoleClient();
+
+  const [{ data: cita }, { data: trabajador }] = await Promise.all([
+    admin.from("appointments").select("id, client_id").eq("id", citaId).maybeSingle(),
+    admin.from("staff").select("id, client_id").eq("id", datos.staff_id).maybeSingle(),
+  ]);
+
+  if (!cita || cita.client_id !== perfil.clientId) {
+    return { ok: false, mensaje: "Esa cita no es tuya." };
+  }
+  if (!trabajador || trabajador.client_id !== perfil.clientId) {
+    return { ok: false, mensaje: "Esa persona no es de tu equipo." };
+  }
+
+  const { data, error } = await admin.rpc("agenda_editar", {
+    p_id: citaId,
+    p_staff_id: datos.staff_id,
+    p_inicio: preparada.inicio,
+    p_fin: preparada.fin,
+    p_servicios: preparada.servicios,
+    p_nombre: datos.nombre.trim(),
+    p_contacto: datos.contacto.trim(),
+    p_notas: datos.notas.trim(),
+  });
+
+  if (error) return { ok: false, mensaje: `No se ha podido guardar: ${error.message}` };
+
+  const resultado = data as { ok: boolean; motivo?: string };
+  if (!resultado?.ok) return { ok: false, mensaje: motivoDeEdicion(resultado?.motivo) };
+
+  revalidatePath("/panel/citas");
+  return { ok: true };
+}
+
+/** El «no se ha podido» de `agenda_editar`, dicho como lo diría una persona. */
+function motivoDeEdicion(motivo?: string) {
+  if (motivo === "ocupado") return "Así ya no cabe: se pisa con otra cita.";
+  if (motivo === "cancelada") return "Esa cita está cancelada. Recarga la página.";
+  if (motivo === "no_existe") return "Esa cita ya no existe. Recarga la página.";
+  return "No se ha podido guardar la cita.";
+}
+
+/**
  * Mover una cita desde el panel del negocio.
  *
  * Conserva la duración y deja que la base decida el solape, igual que la

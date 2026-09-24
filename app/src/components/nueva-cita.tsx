@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type {
-  NuevaCita,
-  NuevoBloqueo,
-  ServicioReservable,
-  TrabajadorDeCalendario,
+import {
+  fechaEnMadrid,
+  horaEnMadrid,
+  type Cita,
+  type NuevaCita,
+  type NuevoBloqueo,
+  type ServicioReservable,
+  type TrabajadorDeCalendario,
 } from "@/lib/citas";
 
 export type Resultado = { ok: boolean; mensaje?: string };
@@ -53,16 +56,28 @@ const CAMPO =
  */
 export function NuevaCitaDialogo({
   previa,
+  cita,
   trabajadores,
   servicios,
   crear,
+  editar,
   bloquear,
   onCerrar,
 }: {
   previa: CitaPrevia;
+  /**
+   * La cita que se está corrigiendo. Con ella el formulario es el mismo, pero
+   * llega relleno y guarda encima en vez de crear: lo que se corrige de una
+   * cita son los mismos campos con los que se da, y mantener dos pantallas
+   * parecidas es garantizar que una se quede atrás.
+   */
+  cita?: Cita;
   trabajadores: TrabajadorDeCalendario[];
   servicios: ServicioReservable[];
-  crear: (datos: NuevaCita) => Promise<Resultado>;
+  /** Hace falta para dar una cita nueva; en modo edición no se usa. */
+  crear?: (datos: NuevaCita) => Promise<Resultado>;
+  /** Hace falta para que el modo edición pueda guardar. */
+  editar?: (citaId: string, datos: NuevaCita) => Promise<Resultado>;
   /** Si no se pasa, solo se pueden dar citas. */
   bloquear?: (datos: NuevoBloqueo) => Promise<Resultado>;
   onCerrar: () => void;
@@ -79,22 +94,48 @@ export function NuevaCitaDialogo({
   const [horaFin, setHoraFin] = useState(sumarHora(previa.hora));
   const [motivo, setMotivo] = useState("");
 
-  const [staffId, setStaffId] = useState(previa.staff_id);
-  const [fecha, setFecha] = useState(previa.fecha);
-  const [hora, setHora] = useState(previa.hora);
+  // Los servicios de una cita se guardan copiados (nombre y minutos), no
+  // apuntando al catálogo: así renombrar un servicio no reescribe lo que pasó.
+  // Para marcar las casillas hay que volver a emparejarlos por nombre, y lo que
+  // ya no exista en el catálogo simplemente no se marca; su duración sí se
+  // conserva, que es lo que ocupa el hueco.
+  const delCatalogo = (cita?.servicios ?? [])
+    .map((s) => servicios.find((x) => x.nombre === s.nombre))
+    .filter((x): x is ServicioReservable => Boolean(x));
+
+  const minutosDeLaCita = cita
+    ? Math.round((new Date(cita.fin).getTime() - new Date(cita.inicio).getTime()) / 60000)
+    : 0;
+
+  const [staffId, setStaffId] = useState(cita?.staff_id ?? previa.staff_id);
+  const [fecha, setFecha] = useState(cita ? fechaEnMadrid(cita.inicio) : previa.fecha);
+  const [hora, setHora] = useState(cita ? horaEnMadrid(cita.inicio) : previa.hora);
   // Varios, porque una visita es "lavar y cortar" mucho más a menudo que una
   // sola cosa. El orden es el de la lista del negocio, que es el orden en que
   // se hacen.
   const [elegidos, setElegidos] = useState<string[]>(
-    servicios[0] ? [servicios[0].id] : []
+    cita
+      ? delCatalogo.map((x) => x.id)
+      : servicios[0]
+        ? [servicios[0].id]
+        : []
   );
-  const [duracion, setDuracion] = useState(servicios[0]?.duracion_min ?? 30);
+  const [duracion, setDuracion] = useState(
+    cita ? minutosDeLaCita : servicios[0]?.duracion_min ?? 30
+  );
   // Si alguien ha retocado los minutos a mano, marcar otro servicio no se los
   // pisa: se respeta lo que ha escrito una persona por encima del catálogo.
-  const [duracionTocada, setDuracionTocada] = useState(false);
-  const [nombre, setNombre] = useState("");
-  const [contacto, setContacto] = useState("");
-  const [notas, setNotas] = useState("");
+  // Al abrir una cita ya dada se da por tocada solo si sus minutos no son los
+  // del catálogo —alguien la alargó, o el servicio ya no existe—; si cuadran,
+  // cambiar de tratamiento vuelve a recalcular la duración, que es lo que se
+  // espera al corregirlo.
+  const [duracionTocada, setDuracionTocada] = useState(
+    Boolean(cita) &&
+      delCatalogo.reduce((t, x) => t + x.duracion_min, 0) !== minutosDeLaCita
+  );
+  const [nombre, setNombre] = useState(cita?.nombre_contacto ?? "");
+  const [contacto, setContacto] = useState(cita?.contacto ?? "");
+  const [notas, setNotas] = useState(cita?.notas ?? "");
 
   const elegidosEnOrden = servicios.filter((x) => elegidos.includes(x.id));
   const trabajador = trabajadores.find((t) => t.id === staffId);
@@ -137,7 +178,7 @@ export function NuevaCitaDialogo({
     if (modo === "bloqueo") return guardarBloqueo();
     setError("");
     empezar(async () => {
-      const r = await crear({
+      const datos = {
         staff_id: staffId,
         fecha,
         hora,
@@ -150,7 +191,14 @@ export function NuevaCitaDialogo({
         nombre,
         contacto,
         notas,
-      });
+      };
+
+      const r =
+        cita && editar
+          ? await editar(cita.id, datos)
+          : crear
+            ? await crear(datos)
+            : { ok: false, mensaje: "Esta agenda es de solo lectura." };
 
       if (r.ok) onCerrar();
       else setError(r.mensaje ?? "No se ha podido guardar.");
@@ -167,9 +215,9 @@ export function NuevaCitaDialogo({
         className="w-full max-w-md rounded-lg border bg-card p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
-        aria-label="Nueva cita"
+        aria-label={cita ? "Editar cita" : "Nueva cita"}
       >
-        {bloquear ? (
+        {bloquear && !cita ? (
           <div className="mb-3 flex overflow-hidden rounded-lg border">
             {([
               { clave: "cita" as const, texto: "Dar cita" },
@@ -196,12 +244,14 @@ export function NuevaCitaDialogo({
         ) : null}
 
         <h2 className="text-lg font-medium">
-          {modo === "cita" ? "Nueva cita" : "Bloquear un rato"}
+          {cita ? "Editar cita" : modo === "cita" ? "Nueva cita" : "Bloquear un rato"}
         </h2>
         <p className="text-sm text-muted-foreground">
-          {modo === "cita"
-            ? `${trabajador ? `Con ${trabajador.nombre}. ` : ""}La reserva se comprueba al guardar: si esa hora se acaba de ocupar, se avisa y no se pierde nada.`
-            : "El bot deja de ofrecer estas horas. No es una cita: no aparece a nombre de nadie ni se le manda nada a nadie."}
+          {cita
+            ? "A quien tiene la cita no se le avisa de los cambios: eso sigue siendo una llamada."
+            : modo === "cita"
+              ? `${trabajador ? `Con ${trabajador.nombre}. ` : ""}La reserva se comprueba al guardar: si esa hora se acaba de ocupar, se avisa y no se pierde nada.`
+              : "El bot deja de ofrecer estas horas. No es una cita: no aparece a nombre de nadie ni se le manda nada a nadie."}
         </p>
 
         <div className="mt-4 flex flex-col gap-3">
@@ -389,9 +439,11 @@ export function NuevaCitaDialogo({
           <Button className="flex-1" onClick={guardar} disabled={enCurso}>
             {enCurso
               ? "Guardando…"
-              : modo === "cita"
-                ? "Guardar cita"
-                : "Bloquear"}
+              : cita
+                ? "Guardar cambios"
+                : modo === "cita"
+                  ? "Guardar cita"
+                  : "Bloquear"}
           </Button>
           <Button variant="outline" onClick={onCerrar} disabled={enCurso}>
             Cancelar

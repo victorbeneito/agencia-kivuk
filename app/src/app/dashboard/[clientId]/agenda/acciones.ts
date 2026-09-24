@@ -683,6 +683,62 @@ export async function borrarBloqueoAgencia(
  * menos aquí, donde el bot puede estar dando esa misma hora mientras se
  * arrastra—. El código 23P01 es esa restricción, y se traduce a un aviso normal.
  */
+/**
+ * Corregir una cita desde el panel de la agencia.
+ *
+ * La misma `agenda_editar` (0019) que usa el panel del cliente: la cita y sus
+ * servicios cambian juntos, porque cambiar el tratamiento cambia la duración.
+ */
+export async function editarCitaAgencia(
+  clientId: string,
+  citaId: string,
+  datos: NuevaCita
+): Promise<{ ok: boolean; mensaje?: string }> {
+  const preparada = prepararCita(datos);
+  if (!preparada.ok) return { ok: false, mensaje: preparada.mensaje };
+
+  const supabase = await createClient();
+
+  const { data: cita } = await supabase
+    .from("appointments")
+    .select("id, client_id")
+    .eq("id", citaId)
+    .maybeSingle();
+
+  if (!cita || cita.client_id !== clientId) {
+    return { ok: false, mensaje: "Esa cita no es de este cliente." };
+  }
+
+  const { data, error } = await supabase.rpc("agenda_editar", {
+    p_id: citaId,
+    p_staff_id: datos.staff_id,
+    p_inicio: preparada.inicio,
+    p_fin: preparada.fin,
+    p_servicios: preparada.servicios,
+    p_nombre: datos.nombre.trim(),
+    p_contacto: datos.contacto.trim(),
+    p_notas: datos.notas.trim(),
+  });
+
+  if (error) return { ok: false, mensaje: `No se ha podido guardar: ${error.message}` };
+
+  const resultado = data as { ok: boolean; motivo?: string };
+  if (!resultado?.ok) {
+    return {
+      ok: false,
+      mensaje:
+        resultado?.motivo === "ocupado"
+          ? "Así ya no cabe: se pisa con otra cita."
+          : resultado?.motivo === "cancelada"
+            ? "Esa cita está cancelada. Recarga la página."
+            : "No se ha podido guardar la cita.",
+    };
+  }
+
+  revalidatePath(`/dashboard/${clientId}/agenda`);
+  return { ok: true };
+}
+
 export async function moverCitaAgencia(
   clientId: string,
   citaId: string,

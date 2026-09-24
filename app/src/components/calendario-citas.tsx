@@ -124,6 +124,7 @@ export function CalendarioCitas({
   quitarBloqueo,
   mover,
   cancelar,
+  editar,
 }: {
   vista: Vista;
   /** El día que se mira, o cualquiera de la semana que se mira. */
@@ -146,8 +147,17 @@ export function CalendarioCitas({
   ) => Promise<{ ok: boolean; mensaje?: string }>;
   /** Si no se pasa, la ficha de la cita no ofrece cancelarla. */
   cancelar?: (citaId: string) => Promise<{ ok: boolean; mensaje?: string }>;
+  /** Si no se pasa, la ficha no ofrece corregirla. */
+  editar?: (
+    citaId: string,
+    datos: NuevaCita
+  ) => Promise<{ ok: boolean; mensaje?: string }>;
 }) {
   const [abierta, setAbierta] = useState<Cita | null>(null);
+  // La cita que se está corrigiendo. Va aparte de `abierta` porque al abrir el
+  // formulario la ficha se cierra: dos capas encima del calendario, en un
+  // móvil, no dejan ver ninguna de las dos.
+  const [editando, setEditando] = useState<Cita | null>(null);
   const [nueva, setNueva] = useState<CitaPrevia | null>(null);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
   const [avisoMover, setAvisoMover] = useState("");
@@ -449,7 +459,34 @@ export function CalendarioCitas({
       ) : null}
 
       {abierta ? (
-        <Detalle cita={abierta} cancelar={cancelar} onCerrar={() => setAbierta(null)} />
+        <Detalle
+          cita={abierta}
+          cancelar={cancelar}
+          onEditar={
+            editar
+              ? () => {
+                  setEditando(abierta);
+                  setAbierta(null);
+                }
+              : undefined
+          }
+          onCerrar={() => setAbierta(null)}
+        />
+      ) : null}
+
+      {editando && editar ? (
+        <NuevaCitaDialogo
+          previa={{
+            staff_id: editando.staff_id,
+            fecha: fechaEnMadrid(editando.inicio),
+            hora: horaEnMadrid(editando.inicio),
+          }}
+          cita={editando}
+          trabajadores={trabajadores}
+          servicios={servicios}
+          editar={editar}
+          onCerrar={() => setEditando(null)}
+        />
       ) : null}
 
       {nueva && crear ? (
@@ -682,10 +719,13 @@ function CajaBloqueo({
 function Detalle({
   cita,
   cancelar,
+  onEditar,
   onCerrar,
 }: {
   cita: Cita;
   cancelar?: (citaId: string) => Promise<{ ok: boolean; mensaje?: string }>;
+  /** Si no se pasa, la cita no se puede corregir desde aquí. */
+  onEditar?: () => void;
   onCerrar: () => void;
 }) {
   const [enCurso, empezar] = useTransition();
@@ -800,23 +840,37 @@ function Detalle({
               </div>
             </div>
           ) : (
-            <div className="mt-4 flex gap-2">
-              <Button
-                className="flex-1"
-                variant="outline"
-                onClick={() => setConfirmando(true)}
-              >
-                Cancelar cita
-              </Button>
-              <Button className="flex-1" variant="outline" onClick={onCerrar}>
-                Cerrar
-              </Button>
+            <div className="mt-4 flex flex-col gap-2">
+              {onEditar && !pasada ? (
+                <Button className="w-full" onClick={onEditar}>
+                  Editar
+                </Button>
+              ) : null}
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  variant="outline"
+                  onClick={() => setConfirmando(true)}
+                >
+                  Cancelar cita
+                </Button>
+                <Button className="flex-1" variant="outline" onClick={onCerrar}>
+                  Cerrar
+                </Button>
+              </div>
             </div>
           )
         ) : (
-          <Button className="mt-4 w-full" variant="outline" onClick={onCerrar}>
-            Cerrar
-          </Button>
+          <div className="mt-4 flex flex-col gap-2">
+            {onEditar && !pasada ? (
+              <Button className="w-full" onClick={onEditar}>
+                Editar
+              </Button>
+            ) : null}
+            <Button className="w-full" variant="outline" onClick={onCerrar}>
+              Cerrar
+            </Button>
+          </div>
         )}
       </div>
     </div>
