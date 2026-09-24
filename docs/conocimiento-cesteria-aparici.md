@@ -264,7 +264,13 @@ Cestería Aparici hace proyectos a medida además de su catálogo. Los más habi
 
 Trabajan para hoteles y alojamientos, restaurantes, marcas de moda y retail, arquitectos e interioristas, museos y empresas que buscan regalos corporativos. Han hecho proyectos para Meliá Hotels, el Grand Hotel Central de Barcelona, el Museo Dalí, el Thyssen-Bornemisza Art Contemporary, Mango, Oysho, Tiffany & Co., Eroski y RTVE.
 
-Para pedir un proyecto a medida hay que contactar directamente con la empresa, por teléfono en el 96 236 03 33 o el 633 67 81 92, o por correo a gestion@cesteriaaparici.es. Los profesionales pueden hacerlo también creando su cuenta PRO en la web.
+Un proyecto a medida no se cierra por el chat, pero tampoco hay que mandar a nadie a otro sitio ni darle teléfonos: la atención personal es en esta misma conversación.
+
+En cuanto alguien plantea un proyecto —unas cuantas unidades, una fecha, un local, una marca—, se pasa al equipo EN ESE MISMO MENSAJE, a la vez que se le piden los detalles que falten (qué pieza, cuántas unidades y para cuándo). No se espera a tenerlos para avisar: quien deja de contestar después de la primera pregunta se pierde entero, y un proyecto es justo lo que no se puede perder.
+
+Si además es un profesional, se le indica el formulario de alta PRO, https://www.cesteriaaparici.es/formulario-b2b, que es por donde trabaja el equipo Business.
+
+Y si prefiere hablar con la empresa directamente, en vez de esperar por aquí, el WhatsApp y teléfono de Cestería Aparici es el 633 67 81 92, el fijo el 96 236 03 33 y el correo gestion@cesteriaaparici.es. Es una alternativa que se le ofrece además de pasar la conversación al equipo, nunca en lugar de hacerlo.
 
 Sobre cómo funciona un encargo a medida: el presupuesto que se entrega tiene una validez de 30 días. Para empezar a fabricar se pide un anticipo de entre el 50 % y el 80 % del importe, que no es reembolsable, porque la pieza se fabrica expresamente para ese cliente. Por el mismo motivo, un producto personalizado no admite devolución ni cambio una vez hecho.
 ```
@@ -434,6 +440,60 @@ En esa primera respuesta todavía NO se pasa la conversación al equipo: casi si
 En cuanto vuelva diciendo que ya había iniciado sesión o que sigue sin funcionar, se pasa al equipo en ese mismo mensaje, sin esperar a la captura: se le dice que se lo pasas al taller, que alguien lo revisará y se pondrá en contacto con él lo antes posible, y se le pide que mande la captura por aquí para que la tengan delante. Esperar a la captura antes de avisar a nadie deja tirado a quien no sabe hacerla.
 
 Para quien no tiene cupón todavía: suscribiéndose a la newsletter de la web se consigue un 15% de descuento en la primera compra.
+```
+
+---
+
+## 21. Club Artesano PRO: qué ventajas y qué descuentos tiene un profesional
+
+- **Categoría:** La empresa
+- **URL de origen:** https://www.cesteriaaparici.es/formulario-b2b
+
+```
+Tengo una tienda, ¿me hacéis descuento? Soy profesional, ¿tenéis precios especiales? ¿Qué descuento hacéis a empresas? ¿Tenéis tarifa para profesionales? Quiero comprar para mi negocio. ¿Cómo me doy de alta como profesional? ¿Qué es la cuenta PRO? ¿Qué ventajas tiene ser cliente profesional?
+
+Cestería Aparici tiene un programa para clientes profesionales llamado Club Artesano PRO. No es solo un descuento: es una forma distinta de trabajar con la marca, con un equipo Business que acompaña el proyecto de principio a fin.
+
+Las ventajas del Club Artesano PRO son estas:
+
+Tarifa exclusiva. Grandes descuentos sobre el PVP, de hasta el 50%, y un 5% extra en la primera compra. Es un HASTA: el descuento que le corresponde a cada cliente depende del producto, de la cantidad y de las condiciones que se acuerden, así que nunca se promete un 50% ni ningún otro porcentaje concreto. Quien lo fija es el equipo Business, con un presupuesto personalizado. Además hay ofertas y promociones reservadas a profesionales.
+
+Atención telefónica prioritaria. Contacto directo con el equipo Business, asesoramiento en tiempo real y compromiso de respuesta en menos de 24 horas.
+
+Logística adaptada. Entrega a pie de calle o premium en la estancia que se elija, envíos express en una selección de productos con seguimiento en tiempo real, y posibilidad de entrega única y montaje.
+
+Diseños exclusivos. Posibilidad de fabricar productos a medida y de crear una colección propia para la marca del cliente.
+
+Visibilidad para su marca. Presencia en la web de Aparici y difusión del proyecto en sus redes sociales, sujeto a aprobación.
+
+Un proyecto con valores. Producto sostenible, hecho a mano, que contribuye a mantener viva la cultura artesanal.
+
+Para darse de alta como profesional se rellena el formulario de la web, y el equipo Business se pone en contacto:
+https://www.cesteriaaparici.es/formulario-b2b
+
+El pedido mínimo para clientes profesionales es de 99 €.
+```
+
+---
+
+## 22. A qué negocios vende Aparici y compras al por mayor
+
+- **Categoría:** La empresa
+- **URL de origen:** https://www.cesteriaaparici.es/formulario-b2b
+
+```
+¿Vendéis al por mayor? ¿Trabajáis con hoteles? Soy interiorista. Tengo un restaurante. ¿Servís a tiendas? Quiero comprar capazos al por mayor. ¿Hacéis pedidos grandes para eventos? ¿Vendéis a empresas?
+
+Cestería Aparici trabaja habitualmente con clientes profesionales de muchos sectores. Entre ellos:
+
+Arquitectura e interiorismo. Hoteles y alojamientos. Hostelería y restauración. Comercios y tiendas. Oficinas y despachos. Eventos. Educación. Distribuidores gourmet y de regalo. Moda.
+
+También se sirve al por mayor el catálogo habitual: capazos, cestas y bandejas de mimbre, entre otros productos.
+
+Todo esto se canaliza a través de la cuenta profesional, que se solicita en el formulario de profesionales de la web:
+https://www.cesteriaaparici.es/formulario-b2b
+
+Para productos personalizados o hechos a medida, el pedido mínimo es de 50 unidades. Para el resto del catálogo, el pedido mínimo profesional es de 99 €.
 ```
 
 ---
