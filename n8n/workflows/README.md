@@ -353,6 +353,14 @@ Dos detalles que costaron un par de vueltas:
   el panel (`canal = 'panel'`) no se bloquea nada: quien está en el mostrador ve
   la agenda y sabe lo que hace. El razonamiento completo, en
   `docs/agenda-multiple.md`.
+- **Y el bot mueve la cita** (migración `0021`). La IA marca `cambiar_cita`, el
+  bot manda `accion: 'mover'`, la API busca la cita de ese teléfono
+  (`agenda_cita_futura`), el motor comprueba el hueco nuevo —sin contar el que
+  ocupa ella misma, para lo que `agenda_contexto` devuelve ahora el `id` de cada
+  cita— y `agenda_editar` la cambia. En dos pasos, como una reserva: *«está
+  libre, ¿te la cambio?»*. Sin cita, con dos citas, si está en Google o si el
+  cambio falla por algo que no sea «ocupado», se avisa al equipo. Anular sigue
+  siendo cosa de una persona.
 
 Los huecos salen de cruzar tres cosas: el **horario de atención** del cliente
 (configurado en el panel), las franjas **ocupadas** que devuelve la API freeBusy

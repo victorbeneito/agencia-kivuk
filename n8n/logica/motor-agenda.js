@@ -536,6 +536,81 @@ function resolver(contexto, peticion, ahora) {
     ? String(peticion.email).trim()
     : '';
 
+  // --- 0 bis. Mover una cita ya dada ---------------------------------------
+  //
+  // Mover no es reservar de nuevo, y tratarlo como tal es lo que dejaba dos
+  // citas en pie (28/09/2026): lo que se hace ya está decidido, la persona
+  // también, y lo único que cambia es cuándo.
+  //
+  // `citas` son las citas futuras de quien escribe, que busca la API. Aquí se
+  // decide si se puede mover y adónde; el cambio en sí lo hace `agenda_editar`
+  // después, igual que la reserva la hace `agenda_reservar`.
+  var moviendo = accion === 'mover';
+  var cita = null;
+
+  if (moviendo) {
+    var suyas = peticion.citas || (peticion.cita ? [peticion.cita] : []);
+
+    if (!suyas.length) {
+      return {
+        ok: true,
+        estado: 'sin_cita',
+        hay_hueco: false,
+        reservada: false,
+        movida: false,
+        // Puede ser de otro teléfono, de otro negocio o ya pasada. El bot no
+        // puede saberlo, así que no lo adivina: lo pasa a una persona.
+        escalar: true,
+        mensaje: 'No veo ninguna cita próxima a tu nombre. Te lo mira una compañera del equipo ahora mismo.',
+      };
+    }
+
+    if (suyas.length > 1) {
+      // Con dos citas por delante, adivinar cuál quiere cambiar es jugársela a
+      // moverle la que no era. Eso lo hace una persona mirando la agenda.
+      return {
+        ok: true,
+        estado: 'varias_citas',
+        hay_hueco: false,
+        reservada: false,
+        movida: false,
+        escalar: true,
+        citas: suyas,
+        mensaje: 'Veo que tienes más de una cita pedida. Te atiende una compañera del equipo para cambiarte la que necesites.',
+      };
+    }
+
+    cita = suyas[0];
+
+    // Una cita que además vive en Google Calendar no se mueve por aquí. Cambiar
+    // solo la de Supabase dejaría el calendario del negocio diciendo la hora
+    // vieja —y ese es el que miran ellos por la mañana—, que es la misma clase
+    // de mentira que las dos citas en pie. Mientras el evento no se mueva
+    // también, esto lo hace una persona desde el panel.
+    if (cita.google_event_id) {
+      return {
+        ok: true,
+        estado: 'cita_en_google',
+        hay_hueco: false,
+        reservada: false,
+        movida: false,
+        escalar: true,
+        cita_id: cita.id,
+        mensaje: 'Te cambio la cita ahora mismo: te atiende una compañera del equipo por aquí.',
+      };
+    }
+
+    // El hueco que ocupa ahora no cuenta como ocupado: es el suyo. Sin esto,
+    // mover una cita de las 17:00 a las 17:30 diría «ocupado» al pisarse con
+    // ella misma (la base sí lo sabe; el motor calcula antes y es el que habla).
+    trabajadores = trabajadores.map(function (t) {
+      if (!t.citas || !t.citas.length) return t;
+      return Object.assign({}, t, {
+        citas: t.citas.filter(function (c) { return !c.id || c.id !== cita.id; }),
+      });
+    });
+  }
+
   // --- 0. Qué servicios piden ----------------------------------------------
   var emparejados = emparejarServicios(peticion.servicios, servicios);
   var elegidos = emparejados.elegidos;
@@ -552,6 +627,18 @@ function resolver(contexto, peticion, ahora) {
   if (!elegidos.length && !emparejados.desconocidos.length && peticion.texto) {
     var pista = emparejarServicio(String(peticion.texto), servicios);
     if (pista) elegidos = [pista];
+  }
+
+  // Al mover, lo que se hace no se vuelve a preguntar: ya está apuntado en la
+  // cita. Del catálogo solo se rescatan esos servicios, y solo para saber quién
+  // puede hacerlos, por si además quieren cambiar de persona.
+  if (moviendo) {
+    var idsCita = (cita.servicios || [])
+      .map(function (s) { return s.id; })
+      .filter(Boolean);
+
+    elegidos = servicios.filter(function (s) { return idsCita.indexOf(s.id) !== -1; });
+    emparejados = { elegidos: elegidos, desconocidos: [] };
   }
 
   if (!elegidos.length && emparejados.desconocidos.length && servicios.length) {
@@ -591,6 +678,17 @@ function resolver(contexto, peticion, ahora) {
     ? elegidos.reduce(function (t, s) { return t + s.duracion_min; }, 0)
     : duracionPorDefecto;
 
+  // La cita que se mueve dura lo que ya duraba, no lo que diga hoy el catálogo:
+  // si le subieron el tiempo a las mechas la semana pasada, a quien ya tiene la
+  // suya dada se le respeta la que le prometieron.
+  if (moviendo) {
+    var suma = (cita.servicios || []).reduce(function (t, s) {
+      return t + (Number(s.duracion_min) || 0);
+    }, 0);
+    var enReloj = Math.round((Date.parse(cita.fin) - Date.parse(cita.inicio)) / 60000);
+    duracion = suma > 0 ? suma : (enReloj > 0 ? enReloj : duracion);
+  }
+
   // --- 1. Quién puede atender ----------------------------------------------
   var candidatos = trabajadores.slice();
 
@@ -604,6 +702,13 @@ function resolver(contexto, peticion, ahora) {
   var pedido = peticion.trabajador
     ? emparejarTrabajador(peticion.trabajador, trabajadores)
     : null;
+
+  // Una cita se mueve de hora, no de manos: sigue con quien la tenía, salvo que
+  // pidan expresamente a otra persona. Se busca por id y no por nombre, que es
+  // lo único que no cambia si en el equipo hay dos Anas.
+  if (moviendo && !pedido) {
+    pedido = trabajadores.filter(function (t) { return t.id === cita.staff_id; })[0] || null;
+  }
 
   if (peticion.trabajador && !pedido) {
     return {
@@ -726,9 +831,16 @@ function resolver(contexto, peticion, ahora) {
     ok: true,
     duracion_min: duracion,
     paso_min: paso,
-    servicios: elegidos.map(function (s) {
-      return { id: s.id, nombre: s.nombre, duracion_min: s.duracion_min };
-    }),
+    // Al mover viajan los servicios de la cita, no los del catálogo: son los que
+    // hay que volver a escribir, porque `agenda_editar` reemplaza la lista
+    // entera y si no se le pasan, la cita se queda sin ellos.
+    servicios: moviendo
+      ? (cita.servicios || []).map(function (s) {
+          return { id: s.id || null, nombre: s.nombre, duracion_min: s.duracion_min };
+        })
+      : elegidos.map(function (s) {
+          return { id: s.id, nombre: s.nombre, duracion_min: s.duracion_min };
+        }),
     // La lista entera de lo que se puede reservar. El bot se la enseña a la IA
     // para que pregunte «¿corte o mechas?» con los nombres de verdad del
     // negocio, en vez de inventarse un catálogo plausible.
@@ -736,6 +848,12 @@ function resolver(contexto, peticion, ahora) {
       return { nombre: s.nombre, duracion_min: s.duracion_min };
     }),
     candidatos: candidatos.map(function (t) { return t.id; }),
+    // Cuando se está moviendo una cita, quien llame necesita saberlo: es lo que
+    // distingue «¿te la reservo?» de «¿te la cambio?», y lo que le dice a la
+    // API que aquí hay que llamar a `agenda_editar` y no a `agenda_reservar`.
+    mover: moviendo,
+    cita_id: moviendo ? cita.id : null,
+    cita: moviendo ? cita : null,
   };
 
   if (accion === 'disponibilidad' || !fecha || !hora) {
@@ -760,7 +878,9 @@ function resolver(contexto, peticion, ahora) {
       dias: soloEseDia,
       mensaje: accion === 'disponibilidad'
         ? mensaje
-        : 'Para darte cita necesito el día y la hora.',
+        : moviendo
+          ? '¿Para qué día y a qué hora quieres cambiarla?'
+          : 'Para darte cita necesito el día y la hora.',
     });
   }
 
@@ -825,6 +945,23 @@ function resolver(contexto, peticion, ahora) {
   return resultado;
 }
 
+/**
+ * El mensaje de una cita ya movida. Dice de dónde a dónde a propósito: quien
+ * cambia una cita necesita ver que la de antes ya no está, que es exactamente
+ * lo que no pasaba cuando el bot reservaba una segunda en vez de mover.
+ */
+function mensajeMovida(datos, nombrar, zona) {
+  var conQuien = nombrar && datos.trabajador ? ' con ' + datos.trabajador.nombre : '';
+  var antes = datos.cita
+    ? partesEnZona(Date.parse(datos.cita.inicio), zona || ZONA_POR_DEFECTO)
+    : null;
+
+  return 'Hecho, te he cambiado la cita' +
+    (antes ? ' del ' + fechaLegible(antes.fecha) + ' a las ' + antes.hora : '') +
+    ': ahora es el ' + datos.dia + ' ' + fechaLegible(datos.fecha) +
+    ' a las ' + datos.hora + conQuien + '.';
+}
+
 /** El mensaje de una reserva ya creada. Lo redacta el código, no el modelo. */
 function mensajeReservada(datos, nombrar) {
   var conQuien = nombrar && datos.trabajador ? ' con ' + datos.trabajador.nombre : '';
@@ -859,5 +996,6 @@ if (typeof module !== 'undefined' && module.exports) {
     rangos: rangos,
     resolver: resolver,
     mensajeReservada: mensajeReservada,
+    mensajeMovida: mensajeMovida,
   };
 }

@@ -431,6 +431,101 @@ comprobar(
   m.rangos(['09:00', '09:15', '09:30', '11:00'], 15)
 );
 
+// === Mover una cita ==========================================================
+seccion('Mover una cita ya dada');
+
+var CORTE = { id: 'sv-corte', nombre: 'Corte', duracion_min: 30, alias: [], staff: ['t1', 't2'] };
+var MECHAS = { id: 'sv-mechas', nombre: 'Mechas', duracion_min: 120, alias: [], staff: ['t2'] };
+
+// La cita a mover: el miércoles a las 17:00 con Ana, un corte de 30 minutos.
+var LA_CITA = {
+  id: 'cita-1',
+  inicio: new Date(m.instante('2026-09-16', '17:00', ZONA)).toISOString(),
+  fin: new Date(m.instante('2026-09-16', '17:30', ZONA)).toISOString(),
+  staff_id: 't1',
+  staff_nombre: 'Ana',
+  servicios: [{ id: 'sv-corte', nombre: 'Corte', duracion_min: 30 }],
+};
+
+function ctxConLaCita(extra) {
+  return contexto(
+    [
+      trabajador('t1', 'Ana', { citas: [{ id: 'cita-1', inicio: LA_CITA.inicio, fin: LA_CITA.fin }] }),
+      trabajador('t2', 'Bea', { orden: 1 }),
+    ],
+    [CORTE, MECHAS],
+    extra
+  );
+}
+
+var CTXM = ctxConLaCita();
+
+r = m.resolver(CTXM, { accion: 'mover', citas: [], fecha: '2026-09-17', hora: '10:00' }, MARTES);
+comprobar('sin cita que mover, lo pasa a una persona', r.estado === 'sin_cita' && r.escalar === true, r.estado);
+
+r = m.resolver(CTXM, {
+  accion: 'mover',
+  citas: [LA_CITA, Object.assign({}, LA_CITA, { id: 'cita-2' })],
+  fecha: '2026-09-17', hora: '10:00',
+}, MARTES);
+comprobar('con dos citas no adivina cuál, la pasa a una persona', r.estado === 'varias_citas' && r.escalar === true, r.estado);
+
+r = m.resolver(CTXM, {
+  accion: 'mover',
+  citas: [Object.assign({}, LA_CITA, { google_event_id: 'abc123' })],
+  fecha: '2026-09-17', hora: '10:00',
+}, MARTES);
+comprobar('una cita que también está en Google la mueve una persona',
+  r.estado === 'cita_en_google' && r.escalar === true, r.estado);
+
+r = m.resolver(CTXM, { accion: 'mover', citas: [LA_CITA] }, MARTES);
+comprobar('sin día ni hora, pregunta a cuándo', r.estado === 'faltan_datos' && /cambiarla/.test(r.mensaje), r.mensaje);
+
+r = m.resolver(CTXM, { accion: 'mover', citas: [LA_CITA], fecha: '2026-09-17', hora: '10:00' }, MARTES);
+comprobar('mueve al día siguiente y sigue con quien la tenía',
+  r.estado === 'libre' && r.trabajador.nombre === 'Ana', r.estado + ' ' + JSON.stringify(r.trabajador));
+comprobar('y dura lo que ya duraba, no la duración por defecto', r.duracion_min === 30, String(r.duracion_min));
+comprobar('se anuncia como un cambio, no como una reserva', r.mover === true && r.cita_id === 'cita-1', JSON.stringify([r.mover, r.cita_id]));
+comprobar('y lleva los servicios de la cita, que hay que reescribir',
+  r.servicios.length === 1 && r.servicios[0].nombre === 'Corte', JSON.stringify(r.servicios));
+
+// Lo que rompía si el motor no supiera cuál es su propio hueco.
+r = m.resolver(CTXM, { accion: 'mover', citas: [LA_CITA], fecha: '2026-09-16', hora: '17:15' }, MARTES);
+comprobar('moverla media hora no la hace chocar consigo misma', r.estado === 'libre', r.estado + ' ' + r.mensaje);
+
+// Y el hueco de OTRA persona sí sigue ocupado.
+var CTXOCUPADO = contexto(
+  [
+    trabajador('t1', 'Ana', { citas: [{ id: 'cita-1', inicio: LA_CITA.inicio, fin: LA_CITA.fin }] }),
+    trabajador('t2', 'Bea', {
+      orden: 1,
+      citas: [{
+        id: 'otra',
+        inicio: new Date(m.instante('2026-09-17', '10:00', ZONA)).toISOString(),
+        fin: new Date(m.instante('2026-09-17', '11:00', ZONA)).toISOString(),
+      }],
+    }),
+  ],
+  [CORTE, MECHAS]
+);
+r = m.resolver(CTXOCUPADO, { accion: 'mover', citas: [LA_CITA], trabajador: 'Bea', fecha: '2026-09-17', hora: '10:00' }, MARTES);
+comprobar('la cita de otra persona sigue ocupando', r.estado === 'ocupado', r.estado + ' ' + r.mensaje);
+
+// Cambiar de persona al mover: se comprueba que esa persona haga el servicio.
+var MECHAS_CITA = Object.assign({}, LA_CITA, {
+  servicios: [{ id: 'sv-mechas', nombre: 'Mechas', duracion_min: 120 }],
+});
+r = m.resolver(CTXM, { accion: 'mover', citas: [MECHAS_CITA], trabajador: 'Ana', fecha: '2026-09-17', hora: '10:00' }, MARTES);
+comprobar('pedir a quien no hace ese servicio se dice como tal', r.estado === 'no_lo_hace', r.estado + ' ' + r.mensaje);
+
+var mensajeCambio = m.mensajeMovida({
+  dia: 'jueves', fecha: '2026-09-17', hora: '10:00',
+  trabajador: { nombre: 'Ana' },
+  cita: LA_CITA,
+}, true, ZONA);
+comprobar('el mensaje dice de cuándo a cuándo',
+  /16-09-2026 a las 17:00/.test(mensajeCambio) && /17-09-2026 a las 10:00/.test(mensajeCambio), mensajeCambio);
+
 var mensajeReserva = m.mensajeReservada({
   dia: 'martes', fecha: '2026-09-15', hora: '17:00', email: 'a@b.com',
   trabajador: { nombre: 'Bea' },

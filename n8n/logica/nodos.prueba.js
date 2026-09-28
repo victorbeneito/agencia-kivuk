@@ -164,6 +164,66 @@ ok("dice cuando es la que ya tiene, en hora de Madrid",
   /martes 29-09-2026 a las 17:00/.test(r[0].json.mensaje), r[0].json.mensaje);
 ok("y con quien", /con Elena/.test(r[0].json.mensaje), r[0].json.mensaje);
 
+console.log("\n=== Mover una cita ===");
+// La cita que ya tiene esa persona, tal y como la devuelve `agenda_cita_futura`.
+const SU_CITA = {
+  id: "cc000000-0000-4000-8000-000000000001",
+  inicio: "2026-09-16T15:00:00+00:00",
+  fin: "2026-09-16T15:30:00+00:00",
+  staff_id: "e3526d7b-2d79-4aba-8e1b-a538fef2b7d3",
+  staff_nombre: "Ana",
+  nombre_contacto: "Marta",
+  contacto: "34600111222",
+  notas: "",
+  google_event_id: null,
+  servicios: [{ id: "00000000-0000-0000-0000-0000000000f2", nombre: "Corte", duracion_min: 30 }],
+};
+
+const decidirMover = ejecutar(nodo("Decidir"), {
+  "Leer petición": Object.assign({}, PET, {
+    accion: "mover",
+    fecha: proximoDia("2026-09-17"),
+    hora: "10:00",
+    servicios: [],
+    confirmar: true,
+  }),
+  "Cargar contexto": contexto,
+  "Buscar su cita": SU_CITA,
+}, {})[0].json;
+
+ok("el nodo Decidir recoge la cita de esa persona", decidirMover.mover === true, JSON.stringify(decidirMover.estado));
+ok("y arrastra el confirmar para saber si hay que tocarla", decidirMover.confirmar === true, JSON.stringify(decidirMover.confirmar));
+ok("con su duracion, no la de por defecto", decidirMover.duracion_min === 30, String(decidirMover.duracion_min));
+
+// Sin cita ninguna: el nodo 'Buscar su cita' devuelve un item vacio.
+const sinCita = ejecutar(nodo("Decidir"), {
+  "Leer petición": Object.assign({}, PET, { accion: "mover", confirmar: true }),
+  "Cargar contexto": contexto,
+  "Buscar su cita": {},
+}, {})[0].json;
+ok("sin cita que mover, lo pasa a una persona", sinCita.estado === "sin_cita" && sinCita.escalar === true, sinCita.estado);
+
+r = ejecutar(nodo("Respuesta movida"), {
+  Decidir: Object.assign({}, decidirMover, { cita: SU_CITA, nombrar: true }),
+}, {});
+ok("el mensaje del cambio dice de cuando a cuando",
+  /16-09-2026 a las 17:00/.test(r[0].json.mensaje) && /a las 10:00/.test(r[0].json.mensaje), r[0].json.mensaje);
+ok("y se marca como movida, no como reservada",
+  r[0].json.movida === true && r[0].json.reservada === false, JSON.stringify(r[0].json.movida));
+
+r = ejecutar(nodo("Respuesta no movida"), {
+  Decidir: decidirMover,
+  "Mover cita": { ok: false, motivo: "ocupado" },
+}, {});
+ok("si se lo han quitado por el camino, pide otra hora", /Dime otra/.test(r[0].json.mensaje), r[0].json.mensaje);
+ok("y eso no se escala: se sigue hablando", r[0].json.escalar === false, JSON.stringify(r[0].json.escalar));
+
+r = ejecutar(nodo("Respuesta no movida"), {
+  Decidir: decidirMover,
+  "Mover cita": { ok: false, motivo: "cancelada" },
+}, {});
+ok("cualquier otro motivo sí se escala", r[0].json.escalar === true, JSON.stringify(r[0].json.escalar));
+
 console.log("\n=== Nodo 'Respuesta del motor' (disponibilidad) ===");
 const disp = ejecutar(nodo("Decidir"), {
   "Leer petición": Object.assign({}, PET, { accion: "disponibilidad", fecha: null, hora: null, servicios: [] }),
@@ -342,6 +402,25 @@ for (const si of [
 
 d = decidir(Object.assign({}, PIDE, { confirmar: false }), "no hace falta");
 ok("y tras un no tampoco se vuelve a ofrecer el hueco", d.accion === "ninguna", d.accion);
+
+// Cambiar una cita: la otra mitad del mismo fallo. Antes esto reservaba una
+// segunda cita y dejaba la primera en pie.
+d = decidir(Object.assign({}, PIDE, { cambiar_cita: true, confirmar: false }),
+  "no me va bien el viernes, me la cambias al martes?");
+ok("cambiar una cita no reserva: mueve", d.accion === "mover", d.accion);
+ok("y no se da por hecho hasta que dice que si", d.confirmar === false, JSON.stringify(d.confirmar));
+
+d = decidir(Object.assign({}, PIDE, { cambiar_cita: true, confirmar: true }), "si, cambiamela a esa hora");
+ok("cuando dice que si, se mueve de verdad", d.accion === "mover" && d.confirmar === true, d.accion);
+
+d = decidir(Object.assign({}, PIDE, { cambiar_cita: true, date: null, time: null }), "quiero cambiar mi cita");
+ok("sin dia ni hora sigue siendo mover: ya preguntara el motor", d.accion === "mover", d.accion);
+
+d = decidir(Object.assign({}, PIDE, { cambiar_cita: true }), "no hace falta");
+ok("y un no tambien para el cambio", d.accion === "ninguna", d.accion);
+
+d = decidir(Object.assign({}, PIDE, { cambiar_cita: true }), "cambiamela al martes", false);
+ok("un cliente sin agenda tampoco mueve nada", d.accion === "ninguna", d.accion);
 
 console.log("\n=== El bot: Preparar contexto ===");
 // Por este nodo pasa CADA mensaje que recibe el bot, tenga agenda o no. Si

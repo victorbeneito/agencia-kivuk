@@ -403,6 +403,43 @@ Tres decisiones dentro de esa comprobación:
   antes que dejar citas fantasma. Cuando el bot sepa mover citas —`agenda_editar`
   ya existe desde `0019`, pero hoy solo lo usa el panel— esto se podrá relajar.
 
+### Mover la cita por el chat (migración `0021`)
+
+El candado de `0020` evita el daño, pero la persona sigue queriendo lo mismo:
+*«no me va bien el martes, mejor el miércoles»*. Ahora el bot lo hace.
+
+Lo que había que añadir no era la escritura —`agenda_editar` ya existía para el
+panel— sino **encontrar la cita y reconocerla**:
+
+- `agenda_cita_futura(client_id, contacto)` devuelve las citas futuras de un
+  teléfono con sus servicios. La regla de comparar teléfonos (solo dígitos, los
+  nueve últimos) vive aquí y en el candado de `0020`, en ningún sitio más.
+- `agenda_contexto` devuelve ahora el `id` de cada cita ocupada. Sin él, mover
+  una cita de las 17:00 a las 17:30 diría «ocupado»: el motor vería su propio
+  hueco. La base no tiene ese problema —una restricción de exclusión no compara
+  una fila con su versión anterior—, pero el que calcula y responde es el motor.
+
+En el motor, `accion: 'mover'` decide igual que una reserva pero con tres cosas
+ya resueltas, que son las que **no** se vuelven a preguntar: qué se hace (lo que
+ponga la cita), con quién (la misma persona, salvo que pidan otra) y cuánto dura
+(lo que ya duraba, aunque el catálogo haya cambiado desde entonces). Y se hace
+en dos pasos, igual que reservar: *«el jueves a las 17:00 con Elena está libre.
+¿Te la cambio?»* — preguntar no es pedir, tampoco para un cambio.
+
+Cuatro casos se apartan y los atiende una persona, porque acertar a ciegas es
+peor que pasarlos:
+
+| Caso | Por qué |
+| --- | --- |
+| No se le encuentra ninguna cita | Puede ser de otro teléfono, de otro negocio o ya pasada. El bot no puede saberlo. |
+| Tiene dos o más citas próximas | Adivinar cuál quiere cambiar es jugarse mover la que no era. |
+| La cita está también en Google Calendar | Cambiar solo la de Supabase dejaría el calendario del negocio con la hora vieja, y ese es el que miran ellos por la mañana. Mientras el evento no se mueva también, esto lo hace el panel. |
+| `agenda_editar` falla por algo que no sea «ocupado» | Una cita cancelada por medio, un trabajador que ya no está: no lo arregla la conversación. |
+
+**Anular por el chat sigue sin hacerse**, y es deliberado: cancelar es la
+operación que más cuesta deshacer, y un hueco liberado por error a las once de
+la noche no se recupera.
+
 ### Lo que encontró el despliegue
 
 Un cliente **sin módulo de correo** reservaba bien y se quedaba sin respuesta.
