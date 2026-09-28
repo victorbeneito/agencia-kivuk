@@ -378,7 +378,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const api = $input.first().json || {};\n\nlet reply = api.mensaje;\n\nif (!reply) {\n  reply = 'Ahora mismo no puedo consultar la agenda. Inténtalo de nuevo en un momento.';\n} else if (api.libre && !api.reservada) {\n  // El hueco esta libre y la persona todavia no ha pedido la cita: solo estaba\n  // preguntando. Antes aqui se le pedia el email, que era el requisito que\n  // faltaba para reservar; ahora lo unico que falta es que diga que si.\n  reply = reply + ' ¿Te la reservo?';\n}\n\nreturn [{ json: { reply } }];"
+        "jsCode": "const api = $input.first().json || {};\n\nlet reply = api.mensaje;\n\nif (!reply) {\n  reply = 'Ahora mismo no puedo consultar la agenda. Inténtalo de nuevo en un momento.';\n} else if (api.libre && !api.reservada) {\n  // El hueco esta libre y la persona todavia no ha pedido la cita: solo estaba\n  // preguntando. Antes aqui se le pedia el email, que era el requisito que\n  // faltaba para reservar; ahora lo unico que falta es que diga que si.\n  reply = reply + ' ¿Te la reservo?';\n}\n\n// `escalar` puede venir de dos sitios: de la IA (la persona ha pedido que\n// le atienda alguien) o de la propia agenda (ya tenia cita y hay que\n// cambiarsela). Las dos acaban en el mismo aviso al equipo.\nreturn [{ json: { reply, escalar: api.escalar === true } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -391,7 +391,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// No había fecha y hora que comprobar: vale la respuesta de la IA.\nreturn [{ json: { reply: $('Decidir acción').first().json.reply } }];"
+        "jsCode": "// No había fecha y hora que comprobar: vale la respuesta de la IA.\nreturn [{ json: { reply: $('Decidir acción').first().json.reply, escalar: false } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -736,7 +736,7 @@
           "conditions": [
             {
               "id": "wa-cond-escalar",
-              "leftValue": "={{ $('Decidir acción').first().json.escalar }}",
+              "leftValue": "={{ $('Decidir acción').first().json.escalar === true || $('Respuesta final').first().json.escalar === true }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",

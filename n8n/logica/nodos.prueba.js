@@ -144,6 +144,25 @@ console.log("\n=== Nodo 'Respuesta hueco perdido' ===");
 r = ejecutar(nodo("Respuesta hueco perdido"), { Decidir: decision }, {});
 ok("no dice que sea un error", r[0].json.ok === true && r[0].json.reservada === false, JSON.stringify(r[0].json));
 ok("pide otra hora", /Dime otra hora/.test(r[0].json.mensaje), r[0].json.mensaje);
+ok("y sobrevive si 'Reservar' no se ha ejecutado", r[0].json.motivo === "ocupado", r[0].json.motivo);
+
+// La otra forma de no reservar: quien escribe ya tenia una cita. El bot no sabe
+// cambiarlas, asi que en vez de ponerle otra encima avisa a una persona.
+r = ejecutar(nodo("Respuesta hueco perdido"), {
+  Decidir: Object.assign({}, decision, { zona: "Europe/Madrid" }),
+  Reservar: {
+    ok: false,
+    motivo: "ya_tiene_cita",
+    cita_id: "99999999-8888-7777-6666-555555555555",
+    cita_inicio: "2026-09-29T15:00:00+00:00",
+    cita_con: "Elena",
+  },
+}, {});
+ok("no reserva la segunda", r[0].json.reservada === false && r[0].json.motivo === "ya_tiene_cita", JSON.stringify(r[0].json));
+ok("avisa al equipo", r[0].json.escalar === true, JSON.stringify(r[0].json.escalar));
+ok("dice cuando es la que ya tiene, en hora de Madrid",
+  /martes 29-09-2026 a las 17:00/.test(r[0].json.mensaje), r[0].json.mensaje);
+ok("y con quien", /con Elena/.test(r[0].json.mensaje), r[0].json.mensaje);
 
 console.log("\n=== Nodo 'Respuesta del motor' (disponibilidad) ===");
 const disp = ejecutar(nodo("Decidir"), {

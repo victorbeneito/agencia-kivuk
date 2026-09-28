@@ -343,6 +343,16 @@ Dos detalles que costaron un par de vueltas:
   Solo cuenta el mensaje entero: *«no me va bien el lunes, resérvame el martes»*
   también empieza por «no» y sí es una reserva. Las dos cosas están probadas en
   `n8n/logica/nodos.prueba.js`.
+- **Una persona, una cita futura.** Al día siguiente apareció el otro lado del
+  mismo agujero: cita confirmada para el martes, *«mejor el miércoles»*, y el bot
+  reservó **otra** sin tocar la del martes. El bot no sabe cambiar citas, así que
+  hace lo único que sabe. Ahora `agenda_reservar` (migración `0020`) mira si ese
+  teléfono ya tiene una cita futura y, si la tiene, devuelve `ya_tiene_cita` en
+  vez de crear la segunda; la API lo cuenta con el día y la hora de la que ya
+  tiene, y **escala al equipo**, porque moverla es trabajo de una persona. Desde
+  el panel (`canal = 'panel'`) no se bloquea nada: quien está en el mostrador ve
+  la agenda y sabe lo que hace. El razonamiento completo, en
+  `docs/agenda-multiple.md`.
 
 Los huecos salen de cruzar tres cosas: el **horario de atención** del cliente
 (configurado en el panel), las franjas **ocupadas** que devuelve la API freeBusy

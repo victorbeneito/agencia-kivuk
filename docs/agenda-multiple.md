@@ -365,6 +365,44 @@ a las cinco?» se habría convertido en una cita que nadie pidió. La IA disting
 ahora preguntar de pedir, y **ante la duda se comprueba y se ofrece**: *«está
 libre, ¿te la reservo?»*.
 
+### Una persona, una cita futura (migración `0020`)
+
+El 28/09/2026, probando la demo dental: se pide cita para el martes, el bot la
+confirma, y al decirle *«no me va bien el martes, mejor el miércoles»* crea otra
+para el miércoles. **La del martes sigue ahí.** El paciente se va convencido de
+que la ha cambiado y a la clínica le queda un hueco muerto que nadie va a
+ocupar, y que encima no se ve: en la rejilla son dos citas normales, en días
+distintos.
+
+Nada de lo que había podía pararlo. La restricción anti-solape de `0014` mira
+`staff_id`, y el martes era con Elena y el miércoles con Javier: para la base
+son dos citas válidas. Y la causa de fondo es que **el bot no sabe cambiar
+citas**; solo sabe reservar, así que ante «mejor el miércoles» hace lo único que
+sabe.
+
+`agenda_reservar` comprueba ahora, antes de insertar, si ese teléfono ya tiene
+una cita futura confirmada en ese negocio. Si la tiene, no reserva: devuelve
+`motivo: 'ya_tiene_cita'` con el día, la hora y con quién, la API lo convierte en
+*«Ya tienes una cita el martes 29-09-2026 a las 17:00 con Elena. Para cambiarla
+o para darte otra te atiende ahora una compañera del equipo»*, y **marca la
+conversación para que salte el aviso al equipo**: una cita que hay que mover es
+trabajo de una persona, y si nadie se entera, no se mueve.
+
+Tres decisiones dentro de esa comprobación:
+
+- **Decide el canal, no un parámetro nuevo.** Quien reserva desde el panel
+  (`p_canal = 'panel'`) tiene la agenda delante: si le da dos citas a la misma
+  persona es porque quiere —la clienta que pide la siguiente al irse, la madre
+  que saca cita para ella y para su hijo—. El bot no ve nada de eso. Así ninguna
+  de las dos llamadas del panel cambia.
+- **Los teléfonos se comparan por sus nueve últimos dígitos.** El mismo móvil
+  llega como `34669863866` desde WhatsApp y como `669 86 38 66` escrito a mano
+  en el mostrador.
+- **Es deliberadamente conservador**: también frena la segunda cita legítima (la
+  de un familiar, o un tratamiento distinto). Prefiere pasarla a una persona
+  antes que dejar citas fantasma. Cuando el bot sepa mover citas —`agenda_editar`
+  ya existe desde `0019`, pero hoy solo lo usa el panel— esto se podrá relajar.
+
 ### Lo que encontró el despliegue
 
 Un cliente **sin módulo de correo** reservaba bien y se quedaba sin respuesta.
