@@ -293,6 +293,37 @@ ok("la hora que escribe la persona manda sobre la que extrae la IA", d.hora === 
 d = decidir(PIDE, "el viernes a las 5", false);
 ok("un cliente sin agenda no reserva nada", d.accion === "ninguna", d.accion);
 
+// Un "no" es un no, aunque la IA diga que si. Paso en una demo: a "¿te la
+// reservo?" contesto "No hace falta" y la cita se creo igual.
+const CONFIRMA = Object.assign({}, PIDE, {
+  reply: "¡Listo! Tu cita queda confirmada para el lunes 28-09-2026 a las 17:00 con Javier.",
+});
+
+for (const no of ["No hace falta", "no", "Déjalo", "mejor no", "no, gracias", "ya no", "Olvídalo"]) {
+  d = decidir(CONFIRMA, no);
+  ok('"' + no + '" no reserva', d.accion === "ninguna", d.accion);
+}
+
+d = decidir(CONFIRMA, "No hace falta");
+ok(
+  "y la confirmacion que ya habia escrito la IA no sale",
+  !/confirmada/i.test(d.reply),
+  d.reply
+);
+
+// El peligro contrario: una frase que empieza por "no" y SI es una reserva.
+for (const si of [
+  "no me va bien el lunes, reservame el martes a las 5",
+  "no tengo prisa pero si, resérvamela",
+  "no hace falta que sea con Ana, me vale cualquiera",
+]) {
+  d = decidir(PIDE, si);
+  ok('"' + si + '" si reserva', d.accion === "reservar", d.accion);
+}
+
+d = decidir(Object.assign({}, PIDE, { confirmar: false }), "no hace falta");
+ok("y tras un no tampoco se vuelve a ofrecer el hueco", d.accion === "ninguna", d.accion);
+
 console.log("\n=== El bot: Preparar contexto ===");
 // Por este nodo pasa CADA mensaje que recibe el bot, tenga agenda o no. Si
 // revienta, el cliente deja de contestar del todo.

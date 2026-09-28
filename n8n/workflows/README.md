@@ -332,6 +332,17 @@ Dos detalles que costaron un par de vueltas:
 - **Alternativas cercanas.** Cuando la hora está ocupada se ofrece la última que
   cabe *antes* y las siguientes *después* de la pedida. Ofrecer las primeras
   horas del día a quien pide las 12:00 no le sirve de nada.
+- **Un «no» es un no.** A *«¿Te la reservo?»* se le contestó **«No hace falta»**
+  y la IA lo leyó como *«no hace falta que preguntes»*: devolvió
+  `confirmar: true` y la cita se creó (visto en la demo dental el 28/09/2026).
+  Como el resto de datos, la última palabra la tiene el código: `Decidir acción`
+  mira si el mensaje **entero** es una negativa («no», «no hace falta»,
+  «déjalo», «mejor no», «ya no»...) y entonces ni reserva ni comprueba —volver a
+  ofrecer el hueco después de un no es no haber escuchado—, y si la IA ya había
+  escrito la confirmación en su respuesta, la sustituye por una línea neutra.
+  Solo cuenta el mensaje entero: *«no me va bien el lunes, resérvame el martes»*
+  también empieza por «no» y sí es una reserva. Las dos cosas están probadas en
+  `n8n/logica/nodos.prueba.js`.
 
 Los huecos salen de cruzar tres cosas: el **horario de atención** del cliente
 (configurado en el panel), las franjas **ocupadas** que devuelve la API freeBusy
