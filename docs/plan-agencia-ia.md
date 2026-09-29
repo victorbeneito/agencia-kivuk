@@ -239,9 +239,9 @@ Estado a 29 de septiembre de 2026, de más urgente a menos.
 - [x] Borrador del contrato de servicio, con el de encargado del tratamiento
       (art. 28 RGPD) y la lista de subencargados: `docs/legal/contrato-servicio.md`.
 - [ ] Revisión del contrato por la gestoría.
-- [ ] Que el asistente diga que es automático en el primer mensaje de cada
+- [x] Que el asistente diga que es automático en el primer mensaje de cada
       conversación nueva. Lo promete el contrato (4.3) y lo pide el art. 50 del
-      Reglamento europeo de IA; hoy solo lo dice si se lo preguntan.
+      Reglamento europeo de IA. Hecho el 29/09/2026 en `whatsapp-bot.json`.
 - [ ] Confirmar la región de Supabase y la ubicación del VPS de Contabo, y
       cuáles son las copias de seguridad reales. Van en el Anexo III y en la
       política de privacidad.

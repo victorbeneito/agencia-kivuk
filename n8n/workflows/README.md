@@ -608,6 +608,42 @@ igual lo que diga su prompt: quien decide tomar el mando es la persona que mira
 el panel, no el modelo. Un bot que se apagara solo dejaría conversaciones mudas
 cada vez que alguien escribiera «hola, quiero hablar con alguien» un domingo.
 
+## El bot dice que es un asistente
+
+Quien escribe tiene que saber que le contesta un asistente automático y no una
+persona. Lo promete el contrato con los clientes (`docs/legal/`, cláusula 4.3) y
+lo exige el art. 50 del Reglamento europeo de IA. Antes solo lo decía si se lo
+preguntaban. Añadido el 29/09/2026, para todos los clientes a la vez.
+
+**Cuándo** lo decide `Preparar contexto`, con el historial (que para esto trae
+también `sender` y `created_at`):
+
+- conversación nueva: no hay ningún mensaje nuestro;
+- lo último que se le escribió lo escribió una persona desde el panel: si ahora
+  contesta el bot sin decir nada, creería que sigue hablando con ella;
+- el bot no le escribe desde hace más de 30 días.
+
+Los recordatorios de cita se guardan con `sender: 'bot'`, así que contestar a
+uno no provoca otra presentación.
+
+**Qué dice** lo redacta la IA, en un campo aparte del JSON (`presentacion`),
+porque es la que sabe cómo se llama el negocio: en la base de datos solo está el
+nombre interno (`Peluqueria Mechas`, sin tilde), y cada prompt ya lleva el bueno.
+Se le pide en el idioma en que le escriben.
+
+**Que salga** lo garantiza `Respuesta final`, en código:
+
+- La pone delante de lo que se vaya a enviar. Por eso no va dentro de `reply`:
+  cuando alguien pide hora, lo que se envía es el texto de la agenda, no el de
+  la IA, y la presentación se habría perdido.
+- Si no la ha escrito, o no deja claro que es un asistente, pone una genérica
+  («Hola, te atiende un asistente virtual.»).
+- Quita el saludo del principio de la respuesta, para que no salgan dos «Hola»
+  seguidos.
+- Si la IA ya se ha presentado dentro de la respuesta, no la repite. Para eso
+  tiene que decir «soy el asistente…»: que salga la palabra «bot» no cuenta,
+  porque el bot de Kivuk habla de bots en cada respuesta.
+
 ## Enviar desde el panel (`enviar-whatsapp.json`)
 
 ```

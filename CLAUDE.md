@@ -116,8 +116,8 @@ WhatsApp con plantilla aprobada (`docs/recordatorios-whatsapp.md`).
 **Contrato** (`docs/legal/`): borrador del contrato de servicio, con el de
 encargado del tratamiento (art. 28 RGPD) y los subencargados, **pendiente de
 revisión**. `docs/legal/README.md` recoge lo que el contrato promete y la
-plataforma aún no cumple (el asistente todavía no dice que es automático sin que
-se lo pregunten). Si cambian las condiciones que cuenta el bot de Kivuk
+plataforma aún no cumple. El bot ya se presenta como asistente virtual en el
+primer mensaje (`n8n/workflows/README.md`). Si cambian las condiciones que cuenta el bot de Kivuk
 (`docs/conocimiento-kivuk-agencia.md`), hay que cambiar también el contrato.
 
 Lo siguiente es **conseguir clientes**: captación directa por sectores, y el CRM

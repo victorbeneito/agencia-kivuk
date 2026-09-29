@@ -82,15 +82,13 @@ La alternativa sin trámites es Stripe con SEPA, que está en el plan como
 Esto es lo más importante de este archivo: una cláusula que no se cumple es peor
 que no tenerla.
 
-- **El asistente se identifica como automático (4.3).** Hoy los bots solo lo
-  dicen si se lo preguntan. Además de ser coherente con la web («no lo
-  escondemos»), el art. 50 del Reglamento europeo de IA obliga a que quien habla
-  con un sistema de IA lo sepa, salvo que sea evidente, y esas obligaciones
-  aplican desde el 2 de agosto de 2026 (confirmar que no se han aplazado). La
-  forma barata de cumplirlo es que el primer mensaje de cada conversación nueva
-  diga «soy el asistente automático de…», metido una sola vez en `Preparar
-  contexto` de `whatsapp-bot.json` para todos los clientes. **Hay que hacerlo
-  antes de firmar el primer contrato, o quitar la cláusula.**
+- ~~**El asistente se identifica como automático (4.3).**~~ **Hecho el
+  29/09/2026.** El primer mensaje de cada conversación empieza por «Hola, soy el
+  asistente virtual de…», y también cuando vuelve a contestar el bot después de
+  una persona o tras más de 30 días. Es para todos los clientes a la vez; cómo
+  funciona está en `n8n/workflows/README.md`, «El bot dice que es un asistente».
+  Lo exige además el art. 50 del Reglamento europeo de IA desde el 2 de agosto
+  de 2026 (que la gestoría confirme que no se ha aplazado).
 - **Exportar los datos al terminar (9.1).** No hay botón. Se puede hacer a mano
   con una consulta por `client_id` mientras haya pocos clientes; con más, merece
   una pantalla.
