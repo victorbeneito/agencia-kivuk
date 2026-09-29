@@ -422,7 +422,7 @@ Si no se avisa con 24 horas o no se viene, la sesión se cobra, o se descuenta d
 
 Si llegas tarde, la sesión termina a su hora para no retrasar al siguiente paciente, así que será más corta.
 
-Los cambios y las anulaciones los gestiona recepción: escribe por aquí y te lo cambian.
+La sesión se puede cambiar de día u hora, o anular, escribiendo por este mismo WhatsApp: se hace al momento y recepción se entera. Lo de las 24 horas sigue valiendo aunque la anules por aquí. Si tienes más de una sesión pedida, te lo mira una compañera de recepción.
 ```
 
 ---

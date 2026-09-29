@@ -470,12 +470,14 @@ r = m.resolver(CTXM, {
 }, MARTES);
 comprobar('con dos citas no adivina cuál, la pasa a una persona', r.estado === 'varias_citas' && r.escalar === true, r.estado);
 
-r = m.resolver(CTXM, {
-  accion: 'mover',
-  citas: [Object.assign({}, LA_CITA, { google_event_id: 'abc123' })],
-  fecha: '2026-09-17', hora: '10:00',
-}, MARTES);
-comprobar('una cita que también está en Google la mueve una persona',
+var EN_GOOGLE = Object.assign({}, LA_CITA, { google_event_id: 'abc123', calendar_id: 'ana@group.calendar.google.com' });
+
+r = m.resolver(CTXM, { accion: 'mover', citas: [EN_GOOGLE], fecha: '2026-09-17', hora: '10:00' }, MARTES);
+comprobar('una cita que está en Google se mueve igual, con la misma persona',
+  r.estado === 'libre' && r.cita.google_event_id === 'abc123', r.estado + ' ' + r.mensaje);
+
+r = m.resolver(CTXM, { accion: 'mover', citas: [EN_GOOGLE], trabajador: 'Bea', fecha: '2026-09-17', hora: '10:00' }, MARTES);
+comprobar('pero cambiarla de persona estando en Google la hace alguien del panel',
   r.estado === 'cita_en_google' && r.escalar === true, r.estado);
 
 r = m.resolver(CTXM, { accion: 'mover', citas: [LA_CITA] }, MARTES);
@@ -517,6 +519,20 @@ var MECHAS_CITA = Object.assign({}, LA_CITA, {
 });
 r = m.resolver(CTXM, { accion: 'mover', citas: [MECHAS_CITA], trabajador: 'Ana', fecha: '2026-09-17', hora: '10:00' }, MARTES);
 comprobar('pedir a quien no hace ese servicio se dice como tal', r.estado === 'no_lo_hace', r.estado + ' ' + r.mensaje);
+
+seccion('Anular una cita ya dada');
+
+r = m.resolver(CTXM, { accion: 'anular', citas: [] }, MARTES);
+comprobar('sin cita que anular, lo pasa a una persona', r.estado === 'sin_cita' && r.escalar === true, r.estado);
+
+r = m.resolver(CTXM, { accion: 'anular', citas: [LA_CITA, Object.assign({}, LA_CITA, { id: 'cita-2' })] }, MARTES);
+comprobar('con dos citas no adivina cuál anular', r.estado === 'varias_citas' && /anularte/.test(r.mensaje), r.mensaje);
+
+r = m.resolver(CTXM, { accion: 'anular', citas: [LA_CITA] }, MARTES);
+comprobar('con una sola, la deja lista para anular', r.estado === 'anulable' && r.cita_id === 'cita-1', r.estado);
+comprobar('y pregunta si de verdad, diciendo cuál es',
+  /¿Seguro/.test(r.mensaje) && /miércoles 16-09-2026 a las 17:00 con Ana/.test(r.mensaje), r.mensaje);
+comprobar('sin decir que ya está anulada', r.anulada === false, String(r.anulada));
 
 var mensajeCambio = m.mensajeMovida({
   dia: 'jueves', fecha: '2026-09-17', hora: '10:00',

@@ -433,12 +433,43 @@ peor que pasarlos:
 | --- | --- |
 | No se le encuentra ninguna cita | Puede ser de otro teléfono, de otro negocio o ya pasada. El bot no puede saberlo. |
 | Tiene dos o más citas próximas | Adivinar cuál quiere cambiar es jugarse mover la que no era. |
-| La cita está también en Google Calendar | Cambiar solo la de Supabase dejaría el calendario del negocio con la hora vieja, y ese es el que miran ellos por la mañana. Mientras el evento no se mueva también, esto lo hace el panel. |
+| La cita está en Google Calendar **y** quieren cambiar de persona | Cambiarla de hora mueve el evento dentro del mismo calendario, y eso se hace. Cambiarla de persona lo haría saltar al calendario de otra, que es otra operación; mientras no esté, lo hace el panel. |
 | `agenda_editar` falla por algo que no sea «ocupado» | Una cita cancelada por medio, un trabajador que ya no está: no lo arregla la conversación. |
 
-**Anular por el chat sigue sin hacerse**, y es deliberado: cancelar es la
-operación que más cuesta deshacer, y un hueco liberado por error a las once de
-la noche no se recupera.
+Si la cita tiene evento en Google, después de moverla en la base se mueve
+también el evento (`PATCH` a su calendario). Si Google falla, la cita ya está
+movida en Supabase, que es la verdad, y la persona se entera igual: el mismo
+criterio que al crear el evento.
+
+### Anular por el chat
+
+Al principio se dejó fuera a propósito —cancelar es lo que más cuesta deshacer—,
+pero pasar cada «no voy a poder ir» a una persona tiene su propio coste: a las
+once de la noche no lo lee nadie, y el hueco se pierde igual. Así que se hace,
+con las mismas tres barreras que mover:
+
+1. **Dos pasos.** El motor contesta *«¿Seguro que quieres anular tu cita del
+   martes 29-09-2026 a las 11:00 con Elena?»* y solo con el sí se llama a
+   `agenda_cancelar`. Un «no» a esa pregunta la deja como estaba (lo para el
+   mismo filtro de negativas que protege las reservas).
+2. **Una sola cita.** Sin ninguna, o con dos, lo mira una persona.
+3. **Google también.** Si tenía evento, se borra.
+
+Y **el negocio se entera**: una cita cambiada o anulada genera un `aviso` que
+sale por los mismos canales que *«alguien quiere hablar contigo»* (móvil y
+correo, según lo que tenga activado cada cliente), pero **sin** marcar la
+conversación como «pide una persona»: nadie tiene que contestar nada. Un hueco
+que se libera es un hueco que alguien puede llenar hoy, y la recepcionista es la
+que tiene la lista de espera en la cabeza.
+
+### Una cita movida vuelve a necesitar su recordatorio (migración `0022`)
+
+Salió al construir lo anterior, y existía desde que el panel permite arrastrar
+citas: el cron de recordatorios marca `recordatorio_enviado_at` al avisar, y
+nadie lo volvía a poner a null al cambiar la cita de día. Una cita de mañana que
+ya había recibido su aviso y se pasaba al viernes se quedaba sin recordatorio
+para el viernes. `agenda_editar` lo reinicia ahora cuando cambia `inicio`; si
+solo cambia la persona o las notas, se respeta el aviso ya enviado.
 
 ### Lo que encontró el despliegue
 

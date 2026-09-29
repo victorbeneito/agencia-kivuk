@@ -474,7 +474,7 @@ Si llegas tarde, se hace lo que dé tiempo sin retrasar al siguiente paciente. C
 
 Si alguien falta dos veces sin avisar, para las siguientes citas largas se pide una señal que se descuenta del tratamiento.
 
-Los cambios y las anulaciones los gestiona recepción: escribe por aquí y te lo cambian.
+La cita se puede cambiar de día u hora, o anular, escribiendo por este mismo WhatsApp: se hace al momento y recepción se entera. Si tienes más de una cita pedida, te lo mira una compañera de recepción.
 ```
 
 ---

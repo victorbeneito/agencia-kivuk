@@ -224,6 +224,32 @@ r = ejecutar(nodo("Respuesta no movida"), {
 }, {});
 ok("cualquier otro motivo sí se escala", r[0].json.escalar === true, JSON.stringify(r[0].json.escalar));
 
+r = ejecutar(nodo("Respuesta movida"), {
+  Decidir: Object.assign({}, decidirMover, { cita: SU_CITA, nombrar: true }),
+}, {});
+ok("el negocio recibe un aviso del cambio, con el nombre y las dos horas",
+  r[0].json.aviso && r[0].json.aviso.titulo === "Cita cambiada" &&
+  /Marta/.test(r[0].json.aviso.cuerpo) && /16-09-2026 17:00/.test(r[0].json.aviso.cuerpo),
+  JSON.stringify(r[0].json.aviso));
+
+console.log("\n=== Anular una cita ===");
+const decidirAnular = ejecutar(nodo("Decidir"), {
+  "Leer petición": Object.assign({}, PET, { accion: "anular", confirmar: false }),
+  "Cargar contexto": contexto,
+  "Buscar su cita": SU_CITA,
+}, {})[0].json;
+ok("con una cita, la deja lista para anular", decidirAnular.estado === "anulable" && decidirAnular.anular === true, decidirAnular.estado);
+ok("y pregunta antes de hacerlo", /¿Seguro/.test(decidirAnular.mensaje), decidirAnular.mensaje);
+
+r = ejecutar(nodo("Respuesta del motor"), {}, decidirAnular);
+ok("la pregunta llega al bot marcada como anular", r[0].json.anular === true && r[0].json.estado === "anulable", JSON.stringify(r[0].json.estado));
+
+r = ejecutar(nodo("Respuesta anulada"), { Decidir: decidirAnular }, {});
+ok("anulada: se lo dice diciendo cual era", /he anulado tu cita del/.test(r[0].json.mensaje) && r[0].json.anulada === true, r[0].json.mensaje);
+ok("y avisa al negocio de que el hueco queda libre",
+  r[0].json.aviso && r[0].json.aviso.titulo === "Cita anulada" && /hueco queda libre/.test(r[0].json.aviso.cuerpo),
+  JSON.stringify(r[0].json.aviso));
+
 console.log("\n=== Nodo 'Respuesta del motor' (disponibilidad) ===");
 const disp = ejecutar(nodo("Decidir"), {
   "Leer petición": Object.assign({}, PET, { accion: "disponibilidad", fecha: null, hora: null, servicios: [] }),
@@ -421,6 +447,18 @@ ok("y un no tambien para el cambio", d.accion === "ninguna", d.accion);
 
 d = decidir(Object.assign({}, PIDE, { cambiar_cita: true }), "cambiamela al martes", false);
 ok("un cliente sin agenda tampoco mueve nada", d.accion === "ninguna", d.accion);
+
+d = decidir(Object.assign({}, PIDE, { anular_cita: true, confirmar: false, date: null, time: null }), "no voy a poder ir, anulamela");
+ok("anular pide anular, sin dia ni hora", d.accion === "anular" && d.confirmar === false, d.accion);
+
+d = decidir(Object.assign({}, PIDE, { anular_cita: true, confirmar: true }), "si, anulala");
+ok("y cuando confirma, se anula de verdad", d.accion === "anular" && d.confirmar === true, d.accion);
+
+d = decidir(Object.assign({}, PIDE, { anular_cita: true, confirmar: true }), "no");
+ok("a «¿seguro que quieres anularla?» un no la deja como estaba", d.accion === "ninguna", d.accion);
+
+d = decidir(Object.assign({}, PIDE, { anular_cita: true, cambiar_cita: true }), "anula la del martes y dame el jueves a las 5");
+ok("si pide las dos cosas, gana mover: es un cambio", d.accion === "mover", d.accion);
 
 console.log("\n=== El bot: Preparar contexto ===");
 // Por este nodo pasa CADA mensaje que recibe el bot, tenga agenda o no. Si

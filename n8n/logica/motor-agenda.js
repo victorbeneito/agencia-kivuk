@@ -536,19 +536,21 @@ function resolver(contexto, peticion, ahora) {
     ? String(peticion.email).trim()
     : '';
 
-  // --- 0 bis. Mover una cita ya dada ---------------------------------------
+  // --- 0 bis. Una cita ya dada: moverla o anularla -------------------------
   //
   // Mover no es reservar de nuevo, y tratarlo como tal es lo que dejaba dos
   // citas en pie (28/09/2026): lo que se hace ya está decidido, la persona
-  // también, y lo único que cambia es cuándo.
+  // también, y lo único que cambia es cuándo. Anular es lo mismo con el final
+  // distinto: se busca su cita, se le pregunta si de verdad, y se libera.
   //
   // `citas` son las citas futuras de quien escribe, que busca la API. Aquí se
-  // decide si se puede mover y adónde; el cambio en sí lo hace `agenda_editar`
+  // decide; el cambio en sí lo hacen `agenda_editar` y `agenda_cancelar`
   // después, igual que la reserva la hace `agenda_reservar`.
   var moviendo = accion === 'mover';
+  var anulando = accion === 'anular';
   var cita = null;
 
-  if (moviendo) {
+  if (moviendo || anulando) {
     var suyas = peticion.citas || (peticion.cita ? [peticion.cita] : []);
 
     if (!suyas.length) {
@@ -558,6 +560,7 @@ function resolver(contexto, peticion, ahora) {
         hay_hueco: false,
         reservada: false,
         movida: false,
+        anulada: false,
         // Puede ser de otro teléfono, de otro negocio o ya pasada. El bot no
         // puede saberlo, así que no lo adivina: lo pasa a una persona.
         escalar: true,
@@ -567,36 +570,44 @@ function resolver(contexto, peticion, ahora) {
 
     if (suyas.length > 1) {
       // Con dos citas por delante, adivinar cuál quiere cambiar es jugársela a
-      // moverle la que no era. Eso lo hace una persona mirando la agenda.
+      // tocarle la que no era. Eso lo hace una persona mirando la agenda.
       return {
         ok: true,
         estado: 'varias_citas',
         hay_hueco: false,
         reservada: false,
         movida: false,
+        anulada: false,
         escalar: true,
         citas: suyas,
-        mensaje: 'Veo que tienes más de una cita pedida. Te atiende una compañera del equipo para cambiarte la que necesites.',
+        mensaje: 'Veo que tienes más de una cita pedida. Te atiende una compañera del equipo para ' +
+          (anulando ? 'anularte la que necesites.' : 'cambiarte la que necesites.'),
       };
     }
 
     cita = suyas[0];
 
-    // Una cita que además vive en Google Calendar no se mueve por aquí. Cambiar
-    // solo la de Supabase dejaría el calendario del negocio diciendo la hora
-    // vieja —y ese es el que miran ellos por la mañana—, que es la misma clase
-    // de mentira que las dos citas en pie. Mientras el evento no se mueva
-    // también, esto lo hace una persona desde el panel.
-    if (cita.google_event_id) {
+    if (anulando) {
+      var p = partesEnZona(Date.parse(cita.inicio), zona);
+      var suDia = NOMBRE_DIA[p.diaSemana] + ' ' + fechaLegible(p.fecha) + ' a las ' + p.hora;
+      var suQuien = nombrar && cita.staff_nombre ? ' con ' + cita.staff_nombre : '';
+
+      // Anular se hace en dos pasos, igual que reservar y mover: la API solo la
+      // cancela si la persona ya ha dicho que sí. Aquí no se sabe si lo ha
+      // dicho, así que se deja todo listo y se escribe la pregunta; si ya había
+      // confirmado, la API ni la envía.
       return {
         ok: true,
-        estado: 'cita_en_google',
+        estado: 'anulable',
         hay_hueco: false,
         reservada: false,
         movida: false,
-        escalar: true,
+        anulada: false,
+        anular: true,
         cita_id: cita.id,
-        mensaje: 'Te cambio la cita ahora mismo: te atiende una compañera del equipo por aquí.',
+        cita: cita,
+        cuando: suDia + suQuien,
+        mensaje: '¿Seguro que quieres anular tu cita del ' + suDia + suQuien + '?',
       };
     }
 
@@ -708,6 +719,24 @@ function resolver(contexto, peticion, ahora) {
   // lo único que no cambia si en el equipo hay dos Anas.
   if (moviendo && !pedido) {
     pedido = trabajadores.filter(function (t) { return t.id === cita.staff_id; })[0] || null;
+  }
+
+  // Con la cita también en Google, cambiarla de hora es mover el evento dentro
+  // del mismo calendario, y eso la API ya lo hace. Cambiarla de PERSONA haría
+  // saltar el evento al calendario de otra, que es otra operación; mientras no
+  // esté, lo hace alguien desde el panel en vez de dejar el evento en el sitio
+  // equivocado.
+  if (moviendo && cita.google_event_id && pedido && pedido.id !== cita.staff_id) {
+    return {
+      ok: true,
+      estado: 'cita_en_google',
+      hay_hueco: false,
+      reservada: false,
+      movida: false,
+      escalar: true,
+      cita_id: cita.id,
+      mensaje: 'Para cambiarte también de profesional te atiende una compañera del equipo por aquí mismo.',
+    };
   }
 
   if (peticion.trabajador && !pedido) {

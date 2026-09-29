@@ -291,7 +291,7 @@ Si se llega tarde, se hace lo que dé tiempo hasta la hora de la siguiente cita.
 
 Cuando alguien falta dos veces seguidas sin avisar, para la siguiente cita se pide una señal. No es una multa: es que un hueco de tres horas de mechas vacío no se recupera.
 
-Los cambios y las anulaciones se hacen hablando con el salón; no se pueden hacer solas por chat.
+La cita se puede cambiar de día u hora, o anular, escribiendo por este mismo WhatsApp: se hace al momento y el salón se entera. Si tienes más de una cita pedida, te lo mira una de las chicas.
 ```
 
 ---
