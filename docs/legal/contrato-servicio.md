@@ -78,23 +78,29 @@ señalado ningún fallo que impida usarlo.
 
 ### 3. El número de WhatsApp y las cuentas del Cliente
 
-3.1. El número de teléfono que use el asistente, la cuenta de WhatsApp Business
-asociada y las cuentas de redes sociales **son del Cliente** y están a su
-nombre. Kivuk accede a ellas solo para prestar el servicio.
+3.1. El número de teléfono que use el asistente y las cuentas de redes sociales
+**son del Cliente** y están a su nombre. Kivuk accede a ellas solo para prestar
+el servicio.
 
-3.2. Un número que se conecta a la API de WhatsApp Business deja de poder usarse
+3.2. Para conectar el número, Kivuk crea una cuenta de WhatsApp Business con el
+nombre del negocio del Cliente, que gestiona desde su portfolio empresarial de
+Meta mientras dure el contrato. Esa cuenta se usa solo para el Cliente, y las
+conversaciones que pasan por ella son del Cliente.
+
+3.3. Un número que se conecta a la API de WhatsApp Business deja de poder usarse
 en la aplicación de WhatsApp del móvil, y el historial que tuviera en esa
 aplicación no pasa a la plataforma. El Cliente declara conocerlo antes de
 decidir qué número usa. Mientras el servicio esté activo, las conversaciones se
 atienden desde el panel.
 
-3.3. El Cliente acepta directamente las condiciones de Meta para WhatsApp
-Business, Instagram y Facebook, y es responsable de cumplir sus políticas de uso
-(en particular, no enviar mensajes no solicitados).
+3.4. El Cliente acepta las condiciones de Meta para WhatsApp Business, Instagram
+y Facebook, y es responsable de cumplir sus políticas de uso (en particular, no
+enviar mensajes no solicitados).
 
-3.4. Al terminar el contrato, Kivuk retirará sus accesos y ayudará al Cliente a
-dejar el número y las cuentas bajo su control exclusivo, o a trasladarlos a
-otro proveedor.
+3.5. Al terminar el contrato, Kivuk trasladará el número a la cuenta de WhatsApp
+Business que el Cliente indique, propia o de otro proveedor, retirará sus
+accesos a las cuentas del Cliente y le ayudará a dejarlas bajo su control
+exclusivo.
 
 ### 4. Qué hace el asistente, y qué no
 
@@ -494,6 +500,7 @@ Anexo II.
 | **Google** | Calendario de las citas, solo si el Cliente lo usa | UE / EE. UU. | Marco de Privacidad UE-EE. UU. / cláusulas contractuales tipo |
 
 **Meta Platforms** (WhatsApp Business, Instagram y Facebook) presta sus servicios
-directamente al Cliente, que acepta sus condiciones como titular de las cuentas
-(cláusula 3.3 del contrato). Kivuk actúa sobre esas cuentas con la autorización
-del Cliente.
+al Cliente, que acepta sus condiciones (cláusula 3.4 del contrato). La cuenta
+de WhatsApp Business del Cliente la gestiona Kivuk desde su portfolio de Meta
+(cláusula 3.2), con la autorización del Cliente y solo para prestarle el
+servicio.

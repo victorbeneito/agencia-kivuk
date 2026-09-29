@@ -8,7 +8,13 @@
  *   node scripts/activar-numero-demo.js "Peluqueria Mechas" <phone_number_id> <pin> --aplicar  # lo hace
  *
  * Las líneas de las demos van todas en la WABA de Agencia Kivuk, así que el
- * token y la WABA se copian de la ficha de Kivuk Agencia. No se usa
+ * token y la WABA se copian de la ficha de Kivuk Agencia.
+ *
+ * Un cliente real lleva su propia WABA (a nombre de su negocio, dentro del
+ * portfolio de Kivuk), y se le pasa con `--waba`. El token sigue siendo el de
+ * Kivuk, así que esa WABA tiene que estar asignada a su usuario del sistema:
+ *
+ *   node scripts/activar-numero-demo.js "Peluqueria Rosi" <phone_number_id> <pin> --waba <id> --aplicar No se usa
  * `registrar-numero-whatsapp.js` porque ese coge el primer token que encuentra,
  * y el de Cestería es de otro usuario del sistema: registraría con la llave
  * equivocada.
@@ -32,11 +38,21 @@ async function meta(ruta, token, cuerpo) {
 }
 
 async function main() {
-  const aplicar = process.argv.includes('--aplicar');
-  const [nombre, numeroId, pin] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+  const args = process.argv.slice(2);
+  const aplicar = args.includes('--aplicar');
+
+  // Con --waba el número vive en la WABA propia de un cliente (así va un
+  // cliente real, ver docs/alta-cliente-peluqueria.md) y no en la de Kivuk. El
+  // token es igualmente el de Kivuk: esa WABA tiene que estar asignada a su
+  // usuario del sistema, y si no lo está, la primera consulta de abajo lo dice.
+  const iWaba = args.indexOf('--waba');
+  const waba = iWaba >= 0 ? args[iWaba + 1] : WABA_KIVUK;
+  if (!/^\d+$/.test(waba || '')) throw new Error('--waba necesita el id numérico de la cuenta de WhatsApp');
+
+  const [nombre, numeroId, pin] = args.filter((a, i) => !a.startsWith('--') && (iWaba < 0 || i !== iWaba + 1));
 
   if (!nombre || !numeroId || !pin) {
-    throw new Error('Uso: node scripts/activar-numero-demo.js "<cliente>" <phone_number_id> <pin> [--aplicar]');
+    throw new Error('Uso: node scripts/activar-numero-demo.js "<cliente>" <phone_number_id> <pin> [--waba <id>] [--aplicar]');
   }
   if (!/^\d{6}$/.test(pin)) throw new Error('el PIN son exactamente 6 dígitos');
 
@@ -51,14 +67,19 @@ async function main() {
   if (!kivuk) throw new Error('no encuentro la ficha de Kivuk Agencia con su token');
   const token = kivuk.config.access_token;
 
-  // Que el número esté de verdad en la WABA de Kivuk: si se añadió en otra, el
-  // token no llegaría a él y el fallo saldría más tarde y peor explicado.
-  const enWaba = await meta(`/${WABA_KIVUK}/phone_numbers?fields=id,display_phone_number,verified_name,status,name_status`, token);
-  if (!enWaba.ok) throw new Error(`Meta: ${enWaba.error.message}`);
+  // Que el número esté de verdad en esa WABA: si se añadió en otra, el token no
+  // llegaría a él y el fallo saldría más tarde y peor explicado.
+  const enWaba = await meta(`/${waba}/phone_numbers?fields=id,display_phone_number,verified_name,status,name_status`, token);
+  if (!enWaba.ok) {
+    throw new Error(waba === WABA_KIVUK
+      ? `Meta: ${enWaba.error.message}`
+      : `Meta no deja ver la WABA ${waba} con el token de Kivuk (${enWaba.error.message}). ` +
+        'Asígnala al usuario del sistema con control total: Configuración del negocio → Usuarios del sistema → Asignar activos.');
+  }
   const numero = (enWaba.json.data || []).find((n) => n.id === numeroId);
   if (!numero) {
     const hay = (enWaba.json.data || []).map((n) => `${n.id} (${n.display_phone_number})`).join(', ');
-    throw new Error(`el ${numeroId} no está en la WABA de Kivuk. Están: ${hay}`);
+    throw new Error(`el ${numeroId} no está en la WABA ${waba}. Están: ${hay || 'ninguno'}`);
   }
 
   console.log(`Cliente   ${destino.name}`);
@@ -91,10 +112,11 @@ async function main() {
     throw new Error(`no se pudo registrar: ${reg.error.message}${reg.error.error_user_msg ? ` — ${reg.error.error_user_msg}` : ''}`);
   }
 
-  // La app ya está suscrita a esta WABA por el número de Kivuk; repetirlo no
-  // cuesta nada y cubre el día que alguien la quite.
+  // En la WABA de Kivuk la app ya está suscrita; repetirlo no cuesta nada y
+  // cubre el día que alguien la quite. En una WABA nueva es imprescindible: sin
+  // esto el número queda registrado y verde y Meta no entrega ni un mensaje.
   console.log('2. Suscripción de la app a la WABA…');
-  const sub = await meta(`/${WABA_KIVUK}/subscribed_apps`, token, {});
+  const sub = await meta(`/${waba}/subscribed_apps`, token, {});
   if (!sub.ok) throw new Error(`no se pudo suscribir: ${sub.error.message}`);
   console.log('   ✓ suscrita');
 
@@ -109,7 +131,7 @@ async function main() {
       config: {
         ...(modulo?.config ?? {}),
         phone_number_id: numeroId,
-        whatsapp_business_account_id: WABA_KIVUK,
+        whatsapp_business_account_id: waba,
         access_token: token,
       },
     }),

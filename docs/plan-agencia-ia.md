@@ -242,6 +242,9 @@ Estado a 29 de septiembre de 2026, de más urgente a menos.
 - [x] Que el asistente diga que es automático en el primer mensaje de cada
       conversación nueva. Lo promete el contrato (4.3) y lo pide el art. 50 del
       Reglamento europeo de IA. Hecho el 29/09/2026 en `whatsapp-bot.json`.
+- [x] Procedimiento de alta de una peluquería, del «sí» a funcionando en una
+      semana (`docs/alta-cliente-peluqueria.md`), con la ficha que rellena el
+      salón (`docs/material-venta/ficha-alta-peluqueria.md`).
 - [ ] Confirmar la región de Supabase y la ubicación del VPS de Contabo, y
       cuáles son las copias de seguridad reales. Van en el Anexo III y en la
       política de privacidad.

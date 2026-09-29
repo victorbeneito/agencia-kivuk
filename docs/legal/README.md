@@ -36,7 +36,7 @@ contrato no puede decir otra cosa, así que se ha escrito a partir de ahí:
 | Primera cuota por transferencia o Bizum, luego domiciliada | 5.3 |
 | La cuota incluye la IA y la mensajería | 5.4, con un límite de «uso incluido» |
 | No hay permanencia, sin plazos ni penalizaciones | 7.1 y 7.2 |
-| El número se da de alta a tu nombre y es tuyo | 3.1 y 3.4 |
+| El número se da de alta a tu nombre y es tuyo | 3.1, 3.2 y 3.5 |
 | Tus datos son tuyos y te los llevas | 9.1 y 10.1 |
 | No se inventa lo que no sabe; tú entras y se calla | 4.1 y 4.2 |
 | Dominio a nombre del cliente | Anexo I y 9.3 |
@@ -72,7 +72,16 @@ sostendría.
 **5. Tribunales de València (16).** Válido entre empresas. Se ha dejado entre
 corchetes por si se prefiere Ontinyent u otro partido.
 
-**6. La domiciliación (5.3).** Cobrar por domiciliación SEPA necesita un
+**6. La cuenta de WhatsApp vive en el portfolio de Kivuk (3.2).** Corregido el
+29/09/2026: el borrador decía que la cuenta de WhatsApp Business era del
+cliente y estaba a su nombre, y no es así como se da de alta. Se hace como con
+Cestería: una cuenta con el nombre del negocio dentro del portfolio de Kivuk
+(`docs/alta-cliente-peluqueria.md`), porque el modelo «de socio» obliga a la
+peluquería a crear su propio portfolio y verificar su negocio ante Meta. Lo que
+sí es suyo es el número, y al irse se le traslada (3.5). Si algún cliente
+prefiere tener su propio portfolio, se hace así y la 3.2 no aplica.
+
+**7. La domiciliación (5.3).** Cobrar por domiciliación SEPA necesita un
 identificador de acreedor que da el banco y una orden firmada por cada cliente.
 La alternativa sin trámites es Stripe con SEPA, que está en el plan como
 «cobro automático». Mientras tanto, se puede cobrar por transferencia.
