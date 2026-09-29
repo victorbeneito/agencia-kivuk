@@ -46,7 +46,7 @@ export function FormularioContacto() {
           <Input
             name="negocio"
             autoComplete="organization"
-            placeholder="Cestería Aparici"
+            placeholder="Cestería Artesanal"
           />
         </label>
       </div>
