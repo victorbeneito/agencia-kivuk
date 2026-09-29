@@ -11,7 +11,7 @@ Plataforma multi-cliente para una agencia digital: cada cliente final puede tene
 - **`/app`** — Next.js (App Router, TypeScript, Tailwind). **Dos paneles y la web pública sobre la misma base de código**, repartidos por el rol de `user_profiles`: `/dashboard` es el de la agencia (alta de clientes, módulos, credenciales, prompt, conocimiento, contenido) y `/panel` el del cliente final (solo sus módulos contratados: bandeja de WhatsApp y contenido). Detalle en `docs/panel-cliente-siguientes-pasos.md`. La raíz `/` es la web corporativa (grupo de rutas `(web)`, `docs/web-corporativa.md`); el reparto por rol al iniciar sesión vive en `/entrar`, no en `/`.
 - **`/n8n`** — n8n self-hosted vía Docker. Es el motor de ejecución: workflows/plantillas reutilizables (WhatsApp, Calendar+Email, Voz, Instagram) que se activan por cliente. Next.js y n8n se comunican por webhooks HTTP. **En producción vive en el VPS**, no en local: `https://n8n.agenciakivuk.com`.
 - **`/supabase`** — Esquema de base de datos (Postgres) y migraciones. Supabase también da Auth y Row Level Security (RLS) para aislar datos entre clientes.
-- **`/docs`** — Plan completo del proyecto por fases (`plan-agencia-ia.md`) y decisiones de arquitectura (`architecture.md`). Consulta estos archivos antes de proponer cambios de stack.
+- **`/docs`** — Plan completo del proyecto por fases (`plan-agencia-ia.md`) y decisiones de arquitectura (`architecture.md`). Consulta estos archivos antes de proponer cambios de stack. En `docs/legal/` está el contrato con los clientes.
 
 ## Stack y decisiones (no cambiar sin motivo)
 
@@ -99,15 +99,29 @@ PDF con `pdf-lib` y envío por correo con el adjunto. El cliente ve las suyas en
 `/panel/facturas`. Detalle y decisiones: `docs/facturacion.md`. Falta el cobro
 automático con Stripe.
 
-**Web corporativa** (`docs/web-corporativa.md`): la landing de `agenciakivuk.com`
-vive en la misma aplicación, en el grupo de rutas `(web)`. Una sola página con
-una sola acción —abrir conversación—, más aviso legal y privacidad. El botón
-principal abrirá el WhatsApp de la agencia en cuanto exista
-(`NEXT_PUBLIC_KIVUK_WHATSAPP`); mientras tanto cae al formulario de contacto, que
-manda un correo por Resend. Antes de publicarla faltan los datos fiscales del
-titular en `app/src/lib/web/kivuk.ts` y el DNS del dominio.
+**Web corporativa** (`docs/web-corporativa.md`): **publicada** en
+`agenciakivuk.com`, en la misma aplicación, grupo de rutas `(web)`. Una sola
+página con una sola acción —abrir conversación—, más aviso legal y privacidad
+con los datos fiscales del titular. El botón principal abre el **bot de la
+propia Kivuk** (+34 623 96 27 33, `NEXT_PUBLIC_KIVUK_WHATSAPP`), y la sección
+«Pruébalo tú mismo» enlaza **tres demos sectoriales** (peluquería, dental y
+fisioterapia), cada una con su línea.
 
-Lo siguiente es el marketing —campañas, captación y un CRM de leads— y está
-razonado en `docs/marketing-y-captacion.md`.
+**Agenda con varios profesionales** (migraciones `0014`–`0022`,
+`docs/agenda-multiple.md`): las citas viven en Supabase y Google Calendar es un
+espejo opcional. El bot da, cambia y anula citas por el chat; el panel tiene
+calendario, citas a mano y bloqueos; el recordatorio de la víspera va por
+WhatsApp con plantilla aprobada (`docs/recordatorios-whatsapp.md`).
+
+**Contrato** (`docs/legal/`): borrador del contrato de servicio, con el de
+encargado del tratamiento (art. 28 RGPD) y los subencargados, **pendiente de
+revisión**. `docs/legal/README.md` recoge lo que el contrato promete y la
+plataforma aún no cumple (el asistente todavía no dice que es automático sin que
+se lo pregunten). Si cambian las condiciones que cuenta el bot de Kivuk
+(`docs/conocimiento-kivuk-agencia.md`), hay que cambiar también el contrato.
+
+Lo siguiente es **conseguir clientes**: captación directa por sectores, y el CRM
+de leads cuando haya leads que meter. Razonado en
+`docs/marketing-y-captacion.md`.
 
 Ver tareas y progreso general en `docs/plan-agencia-ia.md`.

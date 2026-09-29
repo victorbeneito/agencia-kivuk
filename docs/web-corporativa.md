@@ -5,8 +5,9 @@ los demás. La prospección manda un enlace, la ficha de Google manda un enlace,
 firma del correo lleva un enlace y un anuncio necesita una página de destino. Sin
 web, todo eso apuntaba a ninguna parte.
 
-Está construida y desplegable. Lo que falta antes de enseñarla a nadie es
-configuración, no código: está al final, en «Qué queda por rellenar».
+**Publicada** en `https://agenciakivuk.com`, con los datos fiscales del titular,
+el bot de Kivuk detrás de los botones de WhatsApp y las tres demos. Lo poco que
+queda está al final, en «Qué queda por rellenar».
 
 ---
 
@@ -49,25 +50,26 @@ ha metido en el panel.
 
 ### El botón principal abre WhatsApp, y el número está en el entorno
 
-El bot propio de Kivuk es el punto 1 del plan de marketing y todavía no existe.
-Para no bloquear la web con eso, el número vive en
+El bot propio de Kivuk era el punto 1 del plan de marketing y no existía cuando
+se hizo la web. Para no bloquear la web con eso, el número vive en
 `NEXT_PUBLIC_KIVUK_WHATSAPP`:
 
-- **Vacío** (hoy): todos los botones de WhatsApp llevan al formulario de
-  contacto, el texto del botón cambia a «Cuéntanos tu caso» y desaparecen las
-  frases que prometen una respuesta del asistente. La web funciona entera, solo
-  que sin la demostración.
-- **Relleno**: los mismos botones abren `wa.me` con un mensaje precargado
-  distinto según desde dónde se pulse, y aparecen las frases que explican que al
-  otro lado contesta el mismo asistente que se vende.
+- **Vacío**: todos los botones de WhatsApp llevan al formulario de contacto, el
+  texto del botón cambia a «Cuéntanos tu caso» y desaparecen las frases que
+  prometen una respuesta del asistente. La web funciona entera, solo que sin la
+  demostración.
+- **Relleno** (hoy, con `34623962733`): los mismos botones abren `wa.me` con un
+  mensaje precargado distinto según desde dónde se pulse, y aparecen las frases
+  que explican que al otro lado contesta el mismo asistente que se vende.
 
-Rellenar la variable y redesplegar es todo lo que hace falta el día que el bot
-exista. No hay que tocar una línea de código.
+Se pasó de un modo a otro rellenando la variable en el `.env` del servidor y
+reconstruyendo el panel, sin tocar código. Si algún día el bot de Kivuk deja de
+funcionar, vaciarla devuelve la web al formulario.
 
 ### El formulario manda un correo y no toca la base de datos
 
 Va por Resend, igual que las facturas, reusando `RESEND_API_KEY`. No escribe en
-Supabase porque el sitio donde deben caer los leads es el CRM del punto 2, que no
+Supabase porque el sitio donde deben caer los leads es el CRM de captación, que no
 existe todavía; cuando exista, `(web)/acciones.ts` escribirá el lead **y** seguirá
 mandando el correo.
 
@@ -235,27 +237,24 @@ más vende.
 
 ## Qué queda por rellenar
 
-Nada de esto es código. Sin lo primero, la web no se puede publicar.
+Comprobado contra la web publicada el 29/09/2026.
 
-1. **Datos fiscales del titular** en `app/src/lib/web/kivuk.ts` (`fiscal.titular`,
-   `fiscal.nif`, `fiscal.domicilio`). Los obliga el art. 10 de la LSSI y hoy
-   están vacíos: el aviso legal y la política de privacidad marcan el hueco en
-   rojo a propósito, para que no se publique así sin darse cuenta.
+1. ~~Datos fiscales del titular~~ — **hechos.** Están en
+   `app/src/lib/web/kivuk.ts` y el aviso legal y la privacidad los enseñan.
 2. ~~DNS y Caddy~~ — **hecho el 3/9/2026.** La zona se movió a Cloudflare y el
    `Caddyfile` ya sirve el apex y el `www`. El porqué, en «Publicar el dominio».
-3. **Variables de entorno** del panel (`app/.env.local.example` las documenta):
-   - `CONTACTO_DESTINATARIO` y `CONTACTO_REMITENTE` — si se dejan vacías se usan
-     `info@agenciakivuk.com` y el remitente de facturación. Lo imprescindible es
-     que el dominio esté verificado en Resend, y ya lo está.
-   - `NEXT_PUBLIC_KIVUK_WHATSAPP` — el día que exista el bot de la agencia.
-4. **Instagram de la agencia**: `KIVUK.instagram` está vacío y por eso el enlace
-   no se pinta en el pie. Se rellena con el handle sin arroba.
-5. **Revisar los textos legales con quien lleve la gestoría.** Están escritos con
-   los tratamientos y los proveedores reales de la plataforma (Supabase, Contabo,
-   Resend, Meta, Google, OpenRouter y OpenAI), pero un repaso de alguien que
-   responda de ello no sobra. Falta además confirmar en qué país está el centro
-   de datos del VPS: si no es la UE, es una transferencia internacional y hay que
-   decirlo en la política de privacidad.
+3. ~~`NEXT_PUBLIC_KIVUK_WHATSAPP`~~ — **hecho**: los botones abren el bot de Kivuk.
+   `CONTACTO_DESTINATARIO` y `CONTACTO_REMITENTE` pueden seguir vacías: se usan
+   `info@agenciakivuk.com` y el remitente de facturación.
+4. ~~Instagram de la agencia~~ — **hecho** (`agenciakivuk`).
+5. **Revisar los textos legales con quien lleve la gestoría**, a la vez que el
+   contrato de `docs/legal/`. Dos cosas concretas:
+   - Confirmar la región de Supabase y el país del VPS. Si alguno no es la UE,
+     es una transferencia internacional y la política de privacidad tiene que
+     decirlo.
+   - La política nombra a **OpenRouter**, que hoy no usa ningún flujo (todo va a
+     OpenAI directamente). No es un error grave, pero el contrato solo lista lo
+     que se usa, y conviene que los dos textos digan lo mismo.
 
 ---
 
@@ -380,8 +379,10 @@ Hecho eso, `https://agenciakivuk.com` sirve la landing y `www` redirige a ella.
 
 Por orden, y siguiendo `docs/marketing-y-captacion.md`:
 
-- **El bot propio de Kivuk** (punto 1). Es lo que convierte esta web de folleto
-  en demostración, y es darse de alta a uno mismo como cliente en el panel.
+- ~~El bot propio de Kivuk~~ — hecho, y las tres demos también.
+- **El caso con números.** La sección Casos solo tiene a Cestería en genérico.
+  Conversaciones atendidas, cuántas fuera de horario y cuántas citas: es la
+  sección que más vendería y hoy es la más floja.
 - **El CRM de captación** (punto 2). En cuanto el formulario empiece a traer
   consultas, un correo suelto en la bandeja deja de ser sitio donde guardarlas.
 - **Páginas de servicio para SEO local.** Hoy la web es una sola página, que es

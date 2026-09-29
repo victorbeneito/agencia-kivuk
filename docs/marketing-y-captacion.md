@@ -211,7 +211,8 @@ justifica la cuota que ahora ya le estás facturando.
 | # | Qué | Para quién | Por qué ahí |
 | --- | --- | --- | --- |
 | 0 | **Web corporativa en `agenciakivuk.com`** ✅ construida (`docs/web-corporativa.md`) | Agencia | Decidido el 2/9/2026: va antes que todo lo demás porque todo lo demás la necesita como destino — la prospección, la ficha de Google, los anuncios y la firma del correo. Landing corta orientada a una sola acción, no sitio corporativo. Y con el bot dentro: el botón principal abre el WhatsApp de la agencia, de modo que la web **es** la demostración |
-| 1 | Kivuk como cliente de sí misma (bot propio + caso con números) | Agencia | Coste cero, es la demostración que vende. Va pegado al punto 0: sin el bot, la web es un folleto |
+| 1 | Kivuk como cliente de sí misma (bot propio + caso con números) — ✅ bot propio y tres demos sectoriales en la web; falta el caso con números | Agencia | Coste cero, es la demostración que vende. Va pegado al punto 0: sin el bot, la web es un folleto |
+| 1b | **Contrato de servicio y de encargado del tratamiento** — borrador en `docs/legal/` | Agencia | Añadido el 29/09/2026: sin él se puede enseñar, pero no firmar |
 | 2 | CRM de captación | Agencia | Sin dónde guardar leads, la prospección se pierde |
 | 3 | Panel de resultados | Cliente | Protege los ingresos que ya tienes |
 | 4 | Campañas de WhatsApp con plantillas | Los dos | El activo desaprovechado, mismo motor |

@@ -201,6 +201,16 @@ en `agenciakivuk.com`, dentro de la misma aplicación que el panel, con el chat 
 ejemplo, el formulario de contacto por Resend y los textos legales. Era el punto 0
 porque todo lo demás la necesita como destino.
 
+**Hecho — Kivuk como cliente de sí misma y las demos.** El bot de la agencia
+atiende en su propio WhatsApp y los botones de la web abren esa conversación, así
+que la web ya es la demostración. Además hay tres demos sectoriales (peluquería,
+clínica dental y fisioterapia) con su propia línea, enlazadas desde la sección
+«Pruébalo tú mismo» y con QR y tarjeta impresa en `docs/material-venta/demos/`.
+
+**Hecho — el contrato**, en borrador (`docs/legal/`): condiciones del servicio,
+hoja de servicios, contrato de encargado del tratamiento y subencargados.
+Pendiente de revisión por la gestoría.
+
 El plan entero, con el orden propuesto y el porqué de cada paso, está en
 **`docs/marketing-y-captacion.md`**.
 
@@ -222,31 +232,48 @@ Gratis o casi gratis para empezar: Supabase, Vercel, Docker/n8n self-hosted, ngr
 
 ## Repaso: qué falta para tener la agencia completa
 
-Estado a 2 de septiembre de 2026, de más urgente a menos.
+Estado a 29 de septiembre de 2026, de más urgente a menos.
+
+**Para poder firmar al primer cliente (ver `docs/legal/README.md`)**
+
+- [x] Borrador del contrato de servicio, con el de encargado del tratamiento
+      (art. 28 RGPD) y la lista de subencargados: `docs/legal/contrato-servicio.md`.
+- [ ] Revisión del contrato por la gestoría.
+- [ ] Que el asistente diga que es automático en el primer mensaje de cada
+      conversación nueva. Lo promete el contrato (4.3) y lo pide el art. 50 del
+      Reglamento europeo de IA; hoy solo lo dice si se lo preguntan.
+- [ ] Confirmar la región de Supabase y la ubicación del VPS de Contabo, y
+      cuáles son las copias de seguridad reales. Van en el Anexo III y en la
+      política de privacidad.
 
 **Para cobrar y operar (Fase 5)**
 
-- [ ] Aplicar la migración `0013_facturacion.sql` en Supabase y rellenar los
-      datos fiscales de Kivuk en `/dashboard/configuracion`.
+- [x] Migración `0013_facturacion.sql` aplicada y datos fiscales de Kivuk en
+      `/dashboard/configuracion`.
+- [ ] **IBAN de Kivuk** en `/dashboard/configuracion`: está vacío, y sale en
+      cada factura y en el correo que la acompaña.
+- [ ] **Cargar el catálogo de servicios** en `/dashboard/facturacion/servicios`
+      con los precios de partida (los del documento 15 del conocimiento de
+      Kivuk). Comprobado el 29/09/2026: está vacío, y no hay ningún servicio
+      asignado a ningún cliente.
 - [ ] `RESEND_API_KEY` y `FACTURAS_REMITENTE` en el entorno del panel, para
-      poder enviar las facturas.
-- [ ] Cargar el catálogo de servicios con los precios reales y asignárselos a
-      los clientes que ya hay.
+      poder enviar las facturas (comprobar).
 - [ ] Cron mensual de la generación de facturas + aviso de vencidas.
-- [ ] Stripe, cuando haya suficientes cuotas que perseguir a mano.
+- [ ] Stripe, cuando haya suficientes cuotas que perseguir a mano. También es
+      la forma más sencilla de domiciliar sin pedir al banco un identificador
+      de acreedor SEPA.
 
 **Para vender (Fase 6, ver `docs/marketing-y-captacion.md`)**
 
-- [x] **Web corporativa en `agenciakivuk.com`** — landing de una página con el
-      chat de ejemplo, formulario de contacto por Resend, aviso legal y
-      privacidad. Construida dentro del propio panel (`docs/web-corporativa.md`).
-- [ ] Publicarla: datos fiscales del titular en `lib/web/kivuk.ts` (hoy vacíos y
-      obligatorios por LSSI) y el DNS del dominio apuntando al despliegue.
-- [ ] Kivuk dada de alta como cliente de sí misma: bot propio en un WhatsApp de
-      la agencia, con sus servicios y precios, que agende llamadas. Es lo que
-      convierte la web de folleto en demostración: se rellena
-      `NEXT_PUBLIC_KIVUK_WHATSAPP` y los botones pasan a abrir el bot.
+- [x] **Web corporativa en `agenciakivuk.com`**, publicada con datos fiscales,
+      DNS en Cloudflare y certificado (`docs/web-corporativa.md`).
+- [x] Kivuk como cliente de sí misma: su bot atiende en +34 623 96 27 33 y los
+      botones de la web ya abren esa conversación.
+- [x] Tres demos sectoriales (peluquería, dental y fisioterapia), cada una con
+      su línea, en la web con QR y en tarjetas A6 (`docs/material-venta/demos/`).
 - [ ] Caso con números de Cestería Aparici y de la tienda propia.
+- [ ] Captación: lista de negocios de un sector y primeros contactos. No espera
+      al CRM; los primeros 20-30 caben en una hoja de cálculo.
 - [ ] CRM de captación (`leads`) con embudo corto y conversión a cliente.
 - [ ] Panel de resultados por cliente (lo que justifica la cuota).
 - [ ] Campañas de WhatsApp con plantillas aprobadas y opt-out.
@@ -260,6 +287,7 @@ Estado a 2 de septiembre de 2026, de más urgente a menos.
 ## Cómo seguir
 
 Dime en qué punto de la lista quieres entrar y lo construimos. El orden que
-recomiendo es: terminar de poner en marcha la facturación (es una tarde de
-configuración, no de código), y después el CRM de captación — porque sin dónde
-guardar a quien todavía no es cliente, todo el esfuerzo de marketing se evapora.
+recomiendo a 29/09/2026: cerrar lo que hace falta para firmar (revisión del
+contrato, el aviso de asistente automático, IBAN y catálogo en facturación),
+empezar a captar ya con una hoja de cálculo, y construir el CRM cuando haya
+leads reales que meter en él.
