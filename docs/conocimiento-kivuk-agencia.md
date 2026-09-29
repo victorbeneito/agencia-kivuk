@@ -37,9 +37,9 @@ Lo que hacemos se agrupa en estas cosas:
 
 - Un agente de WhatsApp que responde dudas de tus clientes (productos, precios, envíos, horarios) sin que tengas que estar tú.
 - Un agente de WhatsApp que gestiona citas contra tu calendario, dando las horas que de verdad tienes libres.
-- Un agente de voz en tu página web, con el que se habla en lugar de escribir.
 - Gestión de redes sociales: te preparamos las publicaciones con tus productos, tú las apruebas y se suben solas.
 - Páginas web corporativas para negocios que no tienen o que necesitan renovarla.
+- Un agente de voz en tu página web, con el que se habla en lugar de escribir (en desarrollo).
 - Campañas de marketing para conseguir más clientes (en desarrollo).
 - Gestión del correo: resúmenes de lo importante y respuestas sugeridas (en desarrollo).
 
@@ -141,15 +141,17 @@ Precio base: desde 500 € de puesta en marcha y 60 € al mes.
 ```
 ¿El bot puede dar citas? ¿Cómo funciona lo de las citas? ¿Agenda citas solo? ¿Me llena la agenda?
 
-Sí. El agente de citas mira tu calendario de Google, ve los huecos que tienes libres de verdad y se los ofrece a quien escribe.
+Sí. El agente de citas conoce tus horarios, tus servicios y cuánto dura cada uno, ve los huecos que tienes libres de verdad y se los ofrece a quien escribe.
 
-Si te piden una hora que está ocupada, propone alternativas libres hasta que cuadre, y cuando hay acuerdo la cita queda puesta en tu calendario y se manda la confirmación.
+Si trabajáis varios, sabe quién hace qué y el horario de cada uno: si las mechas solo las hacen dos personas, solo ofrece huecos de esas dos. Y si alguien pide varios servicios seguidos, suma lo que duran.
 
-Lo importante es que las horas que ofrece son las reales: si un día no trabajas, se configura y no se agenda nada ese día. No hay forma de que te meta una cita cuando estás cerrado, porque no inventa horarios, los lee de tu calendario.
+Si le piden una hora ocupada, propone alternativas libres hasta que cuadre. La cita queda confirmada en el mismo chat de WhatsApp, y la víspera la persona recibe un recordatorio por WhatsApp, que es donde de verdad lo lee. Si quiere cambiarla de día o anularla, también lo puede hacer escribiendo al mismo número, y a ti te llega el aviso.
 
-Hoy la confirmación se envía por correo electrónico. Mandarla también por WhatsApp es algo que estamos estudiando, porque el WhatsApp la gente lo mira siempre y el correo no.
+Tú ves todas las citas en un calendario dentro de tu panel. Desde ahí también puedes dar citas a mano, moverlas o bloquear un rato (el médico del jueves, una semana de vacaciones), y el agente lo respeta. Si usáis Google Calendar, cada persona puede ver sus citas en el móvil.
 
-Funciona contra Google Calendar. Si usas otro sistema de agenda, hay que estudiarlo antes de decirte que sí.
+Lo importante es que las horas que ofrece son las reales: no inventa horarios y no te mete una cita cuando estás cerrado.
+
+Si ya usas otro programa de citas y quieres seguir con él, hay que estudiarlo antes de decirte que sí.
 
 Precio base: desde 500 € de puesta en marcha y 60 € al mes.
 ```
@@ -204,17 +206,13 @@ Precio base: desde 300 € de puesta en marcha y 60 € al mes.
 ```
 ¿Tenéis algo de voz? ¿Un asistente que hable? ¿Se puede hablar en vez de escribir? ¿Un bot para mi web?
 
-Sí. Es un asistente de voz que se pone en tu página web: quien entra pulsa y habla con él en voz alta, en lugar de escribir.
+Es un servicio que estamos desarrollando y que todavía no se puede contratar.
 
-Hace lo mismo que el de WhatsApp, pero hablando: resuelve las dudas sobre tu negocio con la información que le hayamos dado, y si tu negocio trabaja con citas, también puede agendarla en ese mismo momento.
+La idea es un asistente de voz en tu página web: quien entra pulsa y habla con él en voz alta, en lugar de escribir. Haría lo mismo que el de WhatsApp, pero hablando: resolver las dudas sobre tu negocio con la información que le hayamos dado y, si trabajas con citas, agendarla en ese mismo momento.
 
-Va bien para quien entra en tu web desde el móvil y no tiene ganas de escribir, y para gente mayor o poco acostumbrada a los formularios, que se maneja mucho mejor hablando.
+Va pensado para quien entra en tu web desde el móvil y no tiene ganas de escribir, y para gente mayor o poco acostumbrada a los formularios, que se maneja mucho mejor hablando. Que además atienda las llamadas de tu teléfono vendría después.
 
-Es el mismo criterio que en los demás: responde con lo que sabe y, si algo se le escapa, lo reconoce y avisa en lugar de inventárselo.
-
-Hoy lo montamos en la página web. Que además atienda las llamadas de tu teléfono es algo que estamos preparando, pero todavía no lo ofrecemos. Si es justo lo que necesitas, dínoslo y lo hablamos con una persona.
-
-Precio base: desde 500 € de puesta en marcha y 60 € al mes, que incluyen 100 minutos de conversación. Hablar cuesta bastante más que escribir, así que a partir de ahí la tarifa se ajusta según el uso que le des.
+Todavía no tenemos fecha. Lo que hoy funciona es el agente de WhatsApp, que entiende también las notas de voz que te mandan. Si la voz es justo lo que necesitas, dínoslo y lo hablamos con una persona.
 ```
 
 ---
@@ -233,7 +231,7 @@ Es la página que explica quién eres, qué haces y cómo contactarte, pensada p
 
 La cuota mensual cubre el alojamiento en el servidor y el mantenimiento, así que no tienes que preocuparte tú de que aquello siga en pie ni de contratar nada por tu cuenta.
 
-Y encaja bien con lo demás: si tienes también el agente de WhatsApp o el de voz, la web lleva el botón para abrir la conversación directamente, y quien entra pasa de mirar a preguntar sin buscar tu teléfono.
+Y encaja bien con lo demás: si tienes también el agente de WhatsApp, la web lleva el botón para abrir la conversación directamente, y quien entra pasa de mirar a preguntar sin buscar tu teléfono.
 
 Precio base: desde 500 € la página y 60 € al mes de mantenimiento y servidor. Es para una página corporativa sencilla, del estilo de la nuestra: quién eres, qué haces y cómo contactarte. Si el proyecto requiere una web más elaborada, la estudiamos y te pasamos un presupuesto de la construcción.
 
@@ -329,13 +327,13 @@ Todos los servicios tienen un pago inicial de puesta en marcha y una cuota mensu
 - Agente de WhatsApp para dudas y atención: desde 500 € y 60 €/mes.
 - Agente de WhatsApp para citas: desde 500 € y 60 €/mes.
 - Los dos juntos (atención + citas): desde 800 € y 80 €/mes.
-- Agente de voz para tu página web: desde 500 € y 60 €/mes, con 100 minutos de conversación incluidos.
 - Gestión de redes sociales: desde 300 € y 60 €/mes.
 - Página web corporativa: desde 500 € y 60 €/mes de mantenimiento y servidor.
+- Agente de voz para tu página web: servicio en desarrollo, todavía sin precio.
 - Campañas de marketing: desde 500 € y 60 €/mes (servicio en desarrollo).
 - Gestión del correo: desde 500 € y 60 €/mes (servicio en desarrollo).
 
-Son precios base, para un montaje que no se complique. El precio final depende de lo que necesite tu negocio: cuánta información hay que preparar, si hace falta conectar con algo que ya usas, o si tu caso tiene alguna particularidad.
+Son precios de partida: por debajo de eso no se monta ninguno, y son los de un negocio pequeño y un montaje que no se complica. El precio final depende del tamaño y de lo que necesite tu negocio: no es lo mismo una clínica con dos profesionales que una con ocho, ni un catálogo de veinte productos que uno de dos mil. También cuenta si hace falta conectar con algo que ya usas o si tu caso tiene alguna particularidad.
 
 Todos estos precios son sin IVA.
 
@@ -570,9 +568,22 @@ está escrito el modelo acabará improvisándolo.
 
 - **El agente de voz se ofrece en la web, no al teléfono.** La versión que
   atiende llamadas queda aparcada hasta tener rodaje: el coste por minuto la
-  hace más delicada de tarifar. El documento 9 lo dice sin prometer fecha.
+  hace más delicada de tarifar.
 - **100 minutos incluidos en el agente de voz.** Aplica también a la versión web:
   se quita la telefonía, pero transcripción, modelo y voz cuestan igual.
+
+## Cambiado el 29/09/2026
+
+- **El agente de voz pasa a «en desarrollo», sin precio.** No está construido
+  (la Fase 3 sigue en pausa) y el bot lo estaba ofreciendo como contratable
+  («hoy lo montamos en la página web»). Queda como los documentos 13 y 14.
+  El título del documento 9 **no** lleva «(en desarrollo)» a propósito: el
+  script de carga actualiza por título, y cambiarlo dejaría el viejo cargado.
+  Los dos puntos de arriba (web y no teléfono, 100 minutos) siguen valiendo
+  para cuando se retome.
+- **Los precios son de partida, de verdad.** 500 € + 60 €/mes es el mínimo; el
+  final sube con el tamaño del negocio (una clínica con dos profesionales no es
+  una con ocho). Documento 15.
 - **El dominio va incluido en la web**, un `.es` de precio normal (10-15 €/año) y
   sujeto a disponibilidad. Los dominios caros los paga el cliente. Se registra a
   nombre del cliente.
