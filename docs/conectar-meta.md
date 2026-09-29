@@ -59,6 +59,11 @@ es realmente nuestro** (Kivuk Agencia, El Hogar de tus Sueños). La pega honesta
 del modelo de socio es que el cliente tiene que crear su portfolio y verificar
 su negocio, y eso son papeles con gente que no es técnica. Es una vez.
 
+> Al añadir una cuenta de Instagram, Meta la mete además como **administradora
+> con control total del portfolio**, sin avisar. Revísalo después de cada alta:
+> «Las cuentas de Instagram son administradores del portfolio», al final de este
+> archivo.
+
 ---
 
 ## Antes de empezar: los dos requisitos que más fallan
@@ -382,6 +387,143 @@ La diferencia real está en la caducidad:
 Cuando se guarda un token de usuario, su caducidad va en `token_expires_at`.
 Con uno de página ese campo queda a `null`.
 
+---
+
+## ⚠️ Las cuentas de Instagram son administradores del portfolio
+
+> Descubierto el 18/09/2026 revisando la seguridad del portfolio. Nadie las puso
+> ahí a mano: salen solas. **Revísalo después de cada alta.**
+
+En **Ajustes → Usuarios → Personas** no solo hay personas. Las cuentas de
+Instagram del portfolio aparecen ahí como usuarios de pleno derecho, y nacen con
+**control total**:
+
+> «El Hogar de tus Sueños tiene acceso total al portfolio empresarial y puede
+> administrarlo todo, incluida la configuración, las personas, las herramientas
+> y los activos comerciales. **El Hogar de tus Sueños puede eliminar el porfolio
+> empresarial cuando quiera.**»
+
+Traducido: la contraseña de un Instagram es una llave del portfolio entero. Y
+como el portfolio administra las WABAs de los clientes, un Instagram phisheado
+—que es lo que más se phishea— llega hasta el WhatsApp de un cliente que paga.
+Es el «un cliente salpica a los demás» de más arriba, por una puerta que no
+estaba contada.
+
+Se ve en la ficha, en «Activos asignados». En su día `@hogardetusuenos` tenía
+asignadas las dos cuentas de WhatsApp de **Cestería Aparici**.
+
+### «Suprimir» no funciona, y la salida que ofrece es una trampa
+
+El botón **Suprimir** de esa ficha no quita un acceso: **quita la cuenta de
+Instagram del portfolio**. Y si está vinculada a una página, Meta se planta:
+
+> «Esta cuenta de Instagram no se puede suprimir porque actualmente está
+> vinculada a una página. Desvincula la página antes de volver a intentarlo.»
+
+**No desvincules la página.** Ese vínculo es el requisito para publicar en
+Instagram por API (ver la tabla del principio de este archivo). Desvincular
+arregla el diálogo y rompe la publicación.
+
+### Lo que sí se hace
+
+Bajarle el acceso, que no toca la vinculación:
+
+> Personas → la cuenta → **Detalles** → **Administrar** en «Acceso total: Todo» →
+> apagar **«Todo»** → en Opciones avanzadas, apagar **Finanzas · Ver** → Guardar
+
+Y quitarle de sus activos asignados todo lo que no sea suyo, con la papelera de
+cada fila — sobre todo las cuentas de WhatsApp de otros clientes. Al apagar el
+control total, **esa lista de activos pasa a ser el límite real** de lo que puede
+hacer, así que limpiarla importa más que antes, no menos.
+
+Queda en «Acceso parcial · Básico». El interruptor «Básico» sale atenuado y no se
+puede apagar: es el suelo de cualquiera que esté en el portfolio, y por sí solo
+no da nada.
+
+Dos avisos por el camino:
+
+- El aviso naranja —«sin control total, quien inicie sesión con este perfil de
+  Instagram no podrá vincularlo a Facebook o WhatsApp, crear cuentas
+  publicitarias, gestionar tiendas ni suscribirse a Meta Verified»— habla de
+  acciones hechas **iniciando sesión con esa cuenta de Instagram**. Si
+  administras desde Facebook, no te afecta. Y el interruptor es reversible.
+- **La lista tarda en refrescarse.** Guardas, vuelves a entrar, el diálogo sale
+  bien y la lista sigue diciendo «Acceso total». Es caché de la interfaz: F5.
+
+### El aviso rojo que NO hay que arreglar
+
+Esas fichas llevan en rojo un **«Passkey required — This person needs to turn on
+passkeys before they can access and manage this business portfolio»**.
+
+Parece un pendiente y es la cerradura: **es lo único que impide entrar al
+portfolio con la contraseña de ese Instagram**. No les actives la passkey.
+
+El 2FA sí: protege la cuenta y no desbloquea nada, porque sigue faltándole la
+passkey. Y en Centro de seguridad, dejar `Passkey Management` en «Everyone»
+convierte el bloqueo en política en vez de accidente.
+
+Como estas cuentas no se pueden sacar del portfolio, **sus contraseñas de
+Instagram son llaves del negocio** y merecen contraseña única y 2FA con app.
+
+## El portfolio por dentro: qué hay y qué está vivo
+
+> Mapa del 18/09/2026.
+
+Cinco cuentas de WhatsApp en el portfolio y solo dos importan:
+
+| WABA | Identificador | Número |
+|---|---|---|
+| Cesteria Aparici | `1064721476544964` | +34 623 82 39 38 — **viva** |
+| Cesteria Aparici | `2283693199083614` | sin número — duplicado vacío |
+| Agencia Kivuk | `1786850185674194` | +34 623 96 27 33 — **viva** |
+| Agencia Kivuk | `1754149562399099` | sin número — duplicado vacío |
+| Test WhatsApp Business Account | `2411764119331458` | la `+1 555…` de Meta |
+
+Los nombres se repiten, así que **la pestaña «Números de teléfono» es la que
+distingue**: sin número, cascarón. Los duplicados vacíos se dejan a propósito —
+uno servirá para el próximo alta, y borrarlos ahora es trabajo que rehacer.
+
+La verdad está en la base de datos, no en el panel de Meta:
+
+```sql
+select c.nombre,
+       cm.config->>'whatsapp_business_account_id' as waba_id,
+       cm.config->>'phone_number_id'              as phone_id
+from client_modules cm
+join clients c on c.id = cm.client_id
+where cm.module = 'whatsapp' and cm.active;
+```
+
+### Llave = usuario del sistema. No se borra.
+
+En la pestaña **Personas** de una WABA, la fila con **icono de llave**
+(`n8n-agencia-kivuk`) es el **usuario del sistema**: el dueño del token
+permanente que hace funcionar los bots. Borrarla deja sin WhatsApp a todos los
+clientes a la vez.
+
+Regla para no equivocarse: **llave se queda siempre; cámara de Instagram, fuera.**
+
+Y una asimetría que parece un fallo y no lo es: el usuario del sistema está
+asignado a la WABA de Kivuk pero **no** a la de Cestería, y el bot de Cestería
+envía igual (comprobado con un mensaje real). No lo «arregles» asignándolo:
+funciona, y su token es otro.
+
+### Dónde NO borrar
+
+Dos pantallas se parecen mucho y una es peligrosa:
+
+| Si ves… | Estás en | La papelera borra |
+|---|---|---|
+| «Propiedad de: Agencia KivuK», pestañas Resumen / Números de teléfono | el **activo** | la WABA del portfolio ❌ |
+| El nombre de la persona arriba y cada fila con su nivel de acceso debajo | la **persona** | solo su acceso ✅ |
+
+La vía menos ambigua para quitar accesos es desde el activo: la WABA → pestaña
+**Personas** → papelera. Ahí no hay forma de confundir una cosa con la otra.
+
+Después de cada cambio, la prueba que vale es **mandar un WhatsApp real al número
+del cliente** y ver si el bot contesta. Para la parte de Instagram,
+`node scripts/conectar-meta.js` sin `--guardar`.
+
 ## Si algo falla
 
 | Lo que ves | Lo que pasa |
@@ -392,3 +534,6 @@ Con uno de página ese campo queda a `null`.
 | `code 190` | El token caducó — genera otro, tienes una hora |
 | `code 200` | Falta un permiso; el script te dice cuál |
 | `code 10` / «requires app review» | Estás actuando sobre una cuenta sin rol en tu app |
+| «No se puede suprimir la cuenta de Instagram» | Está vinculada a una página. **No desvincules**: bájale el acceso en vez de borrarla |
+| Guardas el acceso y la lista sigue diciendo «Acceso total» | Caché de la interfaz de Meta. F5 |
+| «Passkey required» en rojo sobre una cuenta de Instagram | No es un pendiente, es la cerradura. Déjalo |
