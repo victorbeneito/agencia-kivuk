@@ -513,6 +513,39 @@ var CTXOCUPADO = contexto(
 r = m.resolver(CTXOCUPADO, { accion: 'mover', citas: [LA_CITA], trabajador: 'Bea', fecha: '2026-09-17', hora: '10:00' }, MARTES);
 comprobar('la cita de otra persona sigue ocupando', r.estado === 'ocupado', r.estado + ' ' + r.mensaje);
 
+// Lo que pasó en la demo dental (29/09/2026): la cita había caído con alguien
+// que NO trabaja el día al que se quiere mover. Aquí Ana libra los jueves.
+var CTXANALIBRA = contexto(
+  [
+    trabajador('t1', 'Ana', {
+      horario: horario([1, 2, 3, 5], [['09:00', '14:00'], ['16:00', '20:00']]),
+      citas: [{ id: 'cita-1', inicio: LA_CITA.inicio, fin: LA_CITA.fin }],
+    }),
+    trabajador('t2', 'Bea', { orden: 1 }),
+  ],
+  [CORTE, MECHAS]
+);
+
+r = m.resolver(CTXANALIBRA, { accion: 'mover', citas: [LA_CITA], fecha: '2026-09-17', hora: '17:00' }, MARTES);
+comprobar('si quien la tenía no está ese día, la hace otra que sepa hacerlo',
+  r.estado === 'libre' && r.trabajador.nombre === 'Bea', r.estado + ' ' + r.mensaje);
+comprobar('y lo dice, para que no llegue preguntando por Ana',
+  /está libre con Bea \(Ana no tiene hueco a esa hora\)\./.test(r.mensaje), r.mensaje);
+
+r = m.resolver(CTXANALIBRA, { accion: 'mover', citas: [LA_CITA], trabajador: 'Ana', fecha: '2026-09-17', hora: '17:00' }, MARTES);
+comprobar('pero si pide a Ana por su nombre, se respeta: no está', r.estado === 'ocupado', r.estado);
+
+r = m.resolver(CTXANALIBRA, {
+  accion: 'mover', citas: [Object.assign({}, LA_CITA, { google_event_id: 'g1' })], fecha: '2026-09-17', hora: '17:00',
+}, MARTES);
+comprobar('una cita en Google no cambia de manos: ofrece otras horas con Ana', r.estado === 'ocupado', r.estado);
+
+r = m.resolver(CTXANALIBRA, {
+  accion: 'mover', citas: [Object.assign({}, LA_CITA, { servicios: [{ nombre: 'Algo raro', duracion_min: 30 }] })],
+  fecha: '2026-09-17', hora: '17:00',
+}, MARTES);
+comprobar('sin saber qué servicio es, tampoco: nadie sabe si Bea lo hace', r.estado === 'ocupado', r.estado);
+
 // Cambiar de persona al mover: se comprueba que esa persona haga el servicio.
 var MECHAS_CITA = Object.assign({}, LA_CITA, {
   servicios: [{ id: 'sv-mechas', nombre: 'Mechas', duracion_min: 120 }],

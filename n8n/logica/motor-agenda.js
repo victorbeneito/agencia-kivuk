@@ -714,11 +714,29 @@ function resolver(contexto, peticion, ahora) {
     ? emparejarTrabajador(peticion.trabajador, trabajadores)
     : null;
 
-  // Una cita se mueve de hora, no de manos: sigue con quien la tenía, salvo que
-  // pidan expresamente a otra persona. Se busca por id y no por nombre, que es
-  // lo único que no cambia si en el equipo hay dos Anas.
+  // Quién la tenía es una PREFERENCIA al moverla, no una condición.
+  //
+  // La primera versión la trataba como condición, y falló en la demo dental
+  // (29/09/2026): la cita del miércoles a las 17:00 había caído con Javier
+  // porque esa tarde no había nadie más —el paciente no lo había elegido—, y al
+  // pedir el jueves le dijo «no disponible» con los huecos de Javier, que no
+  // trabaja los jueves, mientras Elena estaba libre a esa misma hora. Así que:
+  // se mantiene a la misma persona si está libre, y si no, la hace otra que
+  // sepa hacer ese servicio.
+  //
+  // Solo es condición en tres casos: cuando la piden por su nombre (eso ya es
+  // `pedido`), cuando no se sabe qué servicios lleva la cita (sin eso no se
+  // puede saber quién más sabría hacerla) y cuando la cita vive en Google, que
+  // al cambiar de persona tendría que saltar de calendario.
+  //
+  // Se busca por id y no por nombre, que es lo único que no cambia si en el
+  // equipo hay dos Anas.
+  var preferido = null;
+
   if (moviendo && !pedido) {
-    pedido = trabajadores.filter(function (t) { return t.id === cita.staff_id; })[0] || null;
+    var suyo = trabajadores.filter(function (t) { return t.id === cita.staff_id; })[0] || null;
+    if (!elegidos.length || cita.google_event_id) pedido = suyo;
+    else preferido = suyo;
   }
 
   // Con la cita también en Google, cambiarla de hora es mover el evento dentro
@@ -939,9 +957,19 @@ function resolver(contexto, peticion, ahora) {
 
   var elegido = pedido && quien.indexOf(pedido.id) !== -1
     ? pedido
-    : elegirTrabajador(quien, trabajadores, fecha, zona);
+    : preferido && quien.indexOf(preferido.id) !== -1
+      ? preferido
+      : elegirTrabajador(quien, trabajadores, fecha, zona);
 
   var conQuien = nombrar ? ' con ' + elegido.nombre : '';
+  var cuandoEs = 'El ' + dia.dia + ' ' + fechaLegible(fecha) + ' a las ' + hora;
+
+  // Si al moverla cambia de manos, se dice. Quien la tenía con Javier y la
+  // encuentra con Elena sin que nadie se lo haya dicho, llega a la consulta
+  // preguntando por Javier.
+  var mensajeLibre = preferido && elegido.id !== preferido.id
+    ? cuandoEs + ' está libre con ' + elegido.nombre + ' (' + preferido.nombre + ' no tiene hueco a esa hora).'
+    : cuandoEs + conQuien + ' está libre.';
 
   // --- 4. Libre. ¿Se reserva o solo se comprueba? --------------------------
   var resultado = Object.assign(base, {
@@ -955,7 +983,7 @@ function resolver(contexto, peticion, ahora) {
     trabajador: { id: elegido.id, nombre: elegido.nombre, calendar_id: elegido.calendar_id || null },
     inicio: new Date(instante(fecha, hora, zona)).toISOString(),
     fin: new Date(instante(fecha, hora, zona) + duracion * 60000).toISOString(),
-    mensaje: 'El ' + dia.dia + ' ' + fechaLegible(fecha) + ' a las ' + hora + conQuien + ' está libre.',
+    mensaje: mensajeLibre,
   });
 
   // El correo ya no hace falta para reservar, y esto era lo que lo exigía.

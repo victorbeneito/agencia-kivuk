@@ -421,8 +421,19 @@ panel— sino **encontrar la cita y reconocerla**:
 
 En el motor, `accion: 'mover'` decide igual que una reserva pero con tres cosas
 ya resueltas, que son las que **no** se vuelven a preguntar: qué se hace (lo que
-ponga la cita), con quién (la misma persona, salvo que pidan otra) y cuánto dura
-(lo que ya duraba, aunque el catálogo haya cambiado desde entonces). Y se hace
+ponga la cita), con quién y cuánto dura (lo que ya duraba, aunque el catálogo
+haya cambiado desde entonces).
+
+«Con quién» es una **preferencia, no una condición**. La primera versión la
+trataba como condición y falló en la demo dental el 29/09/2026: la cita del
+miércoles a las 17:00 había caído con Javier porque esa tarde no había nadie
+más, y al pedir el jueves contestó «no disponible» con los huecos de Javier,
+que no trabaja los jueves, mientras Elena estaba libre a esa misma hora. Ahora
+se mantiene a la misma persona si está libre; si no, la hace otra que sepa hacer
+ese servicio, y se dice: *«El jueves 01-10-2026 a las 17:00 está libre con Elena
+(Javier no tiene hueco a esa hora).»* Solo es condición si la piden por su
+nombre, si no se sabe qué servicios lleva la cita, o si la cita vive en Google
+(cambiar de persona la haría saltar de calendario). Y se hace
 en dos pasos, igual que reservar: *«el jueves a las 17:00 con Elena está libre.
 ¿Te la cambio?»* — preguntar no es pedir, tampoco para un cambio.
 
