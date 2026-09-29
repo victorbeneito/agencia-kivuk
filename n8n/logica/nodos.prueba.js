@@ -364,12 +364,18 @@ function nodoBot(nombre) {
   return n.parameters.jsCode;
 }
 
-function decidir(ia, mensaje, tieneAgenda) {
-  return ejecutar(nodoBot("Decidir acción"), {
+// `ultimaDelBot` es lo último que contestó el bot en esa conversación. Sin
+// ella, el nodo 'Cargar historial' no existe y el código tiene que sobrevivir.
+function decidir(ia, mensaje, tieneAgenda, ultimaDelBot) {
+  const entradas = {
     "Preparar búsqueda": { tiene_agenda: tieneAgenda !== false },
     "Extraer mensaje": { message_text: mensaje },
-  }, ia)[0].json;
+  };
+  if (ultimaDelBot) entradas["Cargar historial"] = { role: "assistant", content: ultimaDelBot };
+  return ejecutar(nodoBot("Decidir acción"), entradas, ia)[0].json;
 }
+
+const PREGUNTA_ANULAR = "¿Seguro que quieres anular tu cita del miércoles 30-09-2026 a las 17:00 con Javier?";
 
 const PIDE = {
   reply: "", date: "2026-09-18", time: "17:00",
@@ -451,8 +457,23 @@ ok("un cliente sin agenda tampoco mueve nada", d.accion === "ninguna", d.accion)
 d = decidir(Object.assign({}, PIDE, { anular_cita: true, confirmar: false, date: null, time: null }), "no voy a poder ir, anulamela");
 ok("anular pide anular, sin dia ni hora", d.accion === "anular" && d.confirmar === false, d.accion);
 
-d = decidir(Object.assign({}, PIDE, { anular_cita: true, confirmar: true }), "si, anulala");
-ok("y cuando confirma, se anula de verdad", d.accion === "anular" && d.confirmar === true, d.accion);
+d = decidir(Object.assign({}, PIDE, { anular_cita: true, confirmar: true }), "si, anulala", true, PREGUNTA_ANULAR);
+ok("y cuando confirma a la pregunta, se anula de verdad", d.accion === "anular" && d.confirmar === true, d.accion);
+
+// Lo que pasó en la demo (29/09/2026): la IA marcó confirmar=true a la primera
+// y la cita se anuló sin preguntar.
+d = decidir(Object.assign({}, PIDE, { anular_cita: true, confirmar: true, date: null, time: null }),
+  "no voy a poder ir", true, "¡Listo! Tu cita queda confirmada para el miércoles 30-09-2026 a las 17:00 con Javier.");
+ok("«no voy a poder ir» a la primera NO anula: pregunta antes, diga lo que diga la IA",
+  d.accion === "anular" && d.confirmar === false, JSON.stringify([d.accion, d.confirmar]));
+
+d = decidir(Object.assign({}, PIDE, { anular_cita: true, confirmar: true }), "anulala");
+ok("ni sin historial, que es una conversacion nueva", d.confirmar === false, JSON.stringify(d.confirmar));
+
+// Y mover no se toca: «cámbiamela al jueves a las 11» es una orden, como
+// «resérvame el jueves», y una cita movida se puede volver a mover.
+d = decidir(Object.assign({}, PIDE, { cambiar_cita: true, confirmar: true }), "cambiamela al jueves a las 11");
+ok("mover sigue sin necesitar la pregunta si la orden es clara", d.accion === "mover" && d.confirmar === true, JSON.stringify(d.confirmar));
 
 d = decidir(Object.assign({}, PIDE, { anular_cita: true, confirmar: true }), "no");
 ok("a «¿seguro que quieres anularla?» un no la deja como estaba", d.accion === "ninguna", d.accion);

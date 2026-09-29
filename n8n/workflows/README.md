@@ -366,6 +366,14 @@ Dos detalles que costaron un par de vueltas:
   cambio y la anulación mandan un `aviso` al negocio por los canales de
   siempre (`¿Hay que avisar?`), sin marcar la conversación como «pide una
   persona». Detalle en `docs/agenda-multiple.md`.
+- **Anular siempre pregunta, lo diga o no la IA.** En la primera prueba real
+  (29/09/2026) *«no voy a poder ir»* anuló la cita a la primera: la IA marcó
+  `confirmar: true` pese a que el prompt pedía lo contrario. `Decidir acción`
+  solo da por confirmada una anulación si **lo último que dijo el bot** (según
+  `Cargar historial`) fue *«¿Seguro que quieres anular…?»*. Mover no lleva esa
+  regla a propósito: *«cámbiamela al jueves a las 11»* es una orden clara, como
+  *«resérvame el jueves»*, y una cita movida se puede volver a mover; una
+  anulada, por el chat, no.
 
 Los huecos salen de cruzar tres cosas: el **horario de atención** del cliente
 (configurado en el panel), las franjas **ocupadas** que devuelve la API freeBusy
