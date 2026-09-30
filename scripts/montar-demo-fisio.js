@@ -33,6 +33,9 @@ lanzar({
     tarde_fin: '21:00',
     duracion_min: '45',
     paso_min: '15',
+    // Lo que lee el paciente en el recordatorio (el nombre del cliente va sin
+    // tildes y no sirve para enseñarlo).
+    recordatorio_negocio: 'Clínica Fisioterapia Masajes',
   },
 
   /**

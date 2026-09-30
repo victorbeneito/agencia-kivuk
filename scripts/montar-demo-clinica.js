@@ -32,6 +32,9 @@ lanzar({
     tarde_fin: '20:00',
     duracion_min: '30',
     paso_min: '15',
+    // Lo que lee el paciente en el recordatorio (el nombre del cliente va sin
+    // tildes y no sirve para enseñarlo).
+    recordatorio_negocio: 'Clínica Dental Muelas',
   },
 
   /**

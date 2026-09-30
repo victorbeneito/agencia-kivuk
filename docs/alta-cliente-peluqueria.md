@@ -167,7 +167,9 @@ Todo es relanzable: se corrige el archivo y se vuelve a cargar.
 - **La app en su móvil**: abrir `panel.agenciakivuk.com`, «Añadir a pantalla de
   inicio», entrar y **activar las notificaciones**. Probar que suena.
 - **Correo de avisos**, si lo quiere.
-- **Recordatorio** activado en la agenda, cuando la plantilla esté aprobada.
+- **Recordatorio** activado en la agenda, cuando la plantilla esté aprobada, con
+  el **nombre del negocio en el mensaje** escrito como en su cartel. Si se deja
+  vacío, las clientas leen el nombre interno, sin tildes.
 - **Facturación**: ficha fiscal y servicios contratados en
   `/dashboard/facturacion`, tal cual el Anexo I. Antes, el catálogo de servicios
   y el IBAN de Kivuk (hoy vacíos, ver `docs/plan-agencia-ia.md`).

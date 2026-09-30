@@ -136,12 +136,19 @@ Panel → cliente → Configuración → **Recordatorio de la cita por WhatsApp*
 | Campo | Qué es |
 | --- | --- |
 | Mandar el recordatorio | Apagado de serie. |
+| Nombre del negocio en el mensaje | Como lo escribe el negocio, con tildes (`recordatorio_negocio`). Vacío = el nombre interno del cliente |
 | Cuánto antes | 4, 24 (por defecto), 48 o 72 horas. |
 | Plantilla en Meta | `recordatorio_cita`. |
 | Idioma | `es`. |
 
 Apagado de serie a propósito: esto no le escribe al negocio, le escribe **a sus
 clientas**. Eso se enciende mirando, no se hereda de un valor por defecto.
+
+**El nombre, siempre relleno.** Hasta el 30/09/2026 el recordatorio usaba
+`clients.name`, que es el nombre interno y va sin tildes para que lo encuentren
+los scripts. El primer recordatorio real de la demo salió como «Te recordamos tu
+cita en Peluqueria Mechas». Ahora ese nombre queda solo de respaldo, y las tres
+demos llevan el suyo en `scripts/montar-demo-*.js`.
 
 ## Cuando contestan
 

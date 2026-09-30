@@ -283,13 +283,10 @@ Estado a 29 de septiembre de 2026, de más urgente a menos.
 
 **Pendientes menores que siguen abiertos**
 
-- [ ] **El recordatorio usa el nombre interno del cliente**: sale «Te recordamos
-      tu cita en Peluqueria Mechas», sin tilde, porque lee `clients.name`, que va
-      sin tildes para que lo encuentren los scripts. Visto el 29/09/2026 en el
-      recordatorio real de la demo. Con una peluquería de verdad pasaría igual.
-      Hace falta un nombre público por cliente (en la config del módulo
-      `calendar`, con `clients.name` de respaldo). Arreglarlo antes del primer
-      cliente de peluquería.
+- [x] **El recordatorio usaba el nombre interno del cliente** («tu cita en
+      Peluqueria Mechas», sin tilde). Arreglado el 30/09/2026: campo «Nombre del
+      negocio en el mensaje» en la configuración del recordatorio
+      (`recordatorio_negocio`), con `clients.name` de respaldo.
 
 - [ ] Cestería Aparici: falta lo de Meta (ver la nota del cliente).
 - [ ] Reapuntar el webhook de Vapi si se retoma el agente de voz.

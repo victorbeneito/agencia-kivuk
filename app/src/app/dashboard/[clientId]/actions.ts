@@ -225,12 +225,15 @@ export async function updateCalendarReminder(formData: FormData) {
   const horas = String(formData.get("recordatorio_horas") || "").trim();
   const plantilla = String(formData.get("recordatorio_plantilla") || "").trim();
   const idioma = String(formData.get("recordatorio_idioma") || "").trim();
+  // Vacío vale: el workflow cae entonces al nombre interno del cliente.
+  const negocio = String(formData.get("recordatorio_negocio") || "").trim();
 
   const error = await mergeModuleConfig(clientId, "calendar", {
     recordatorio_activo: formData.get("recordatorio_activo") ? "true" : "false",
     recordatorio_horas: horas || RECORDATORIO_POR_DEFECTO.horas,
     recordatorio_plantilla: plantilla || RECORDATORIO_POR_DEFECTO.plantilla,
     recordatorio_idioma: idioma || RECORDATORIO_POR_DEFECTO.idioma,
+    recordatorio_negocio: negocio,
   });
 
   if (error) {

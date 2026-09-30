@@ -38,6 +38,9 @@ lanzar({
     tarde_fin: '20:00',
     duracion_min: '60',
     paso_min: '15',
+    // Lo que lee la clienta en el recordatorio. El nombre del cliente va sin
+    // tilde (así lo buscan los scripts) y no sirve para enseñarlo.
+    recordatorio_negocio: 'Peluquería Mechas',
   },
 
   /**

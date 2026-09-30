@@ -140,6 +140,7 @@ export default async function ClientConfigPage({
       calendarConfig.recordatorio_plantilla || RECORDATORIO_POR_DEFECTO.plantilla,
     recordatorio_idioma:
       calendarConfig.recordatorio_idioma || RECORDATORIO_POR_DEFECTO.idioma,
+    recordatorio_negocio: calendarConfig.recordatorio_negocio || "",
   };
 
   const diasActivos = new Set(horario.dias_laborables.split(",").filter(Boolean));
@@ -705,6 +706,23 @@ export default async function ClientConfigPage({
               />
               Mandar el recordatorio
             </label>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="recordatorio_negocio">
+                Nombre del negocio en el mensaje
+              </Label>
+              <Input
+                id="recordatorio_negocio"
+                name="recordatorio_negocio"
+                defaultValue={recordatorio.recordatorio_negocio}
+                placeholder="Peluquería Rosi"
+              />
+              <p className="text-sm text-muted-foreground">
+                Tal como lo escribe el negocio, con sus tildes: «Te recordamos
+                tu cita en…». Si se deja vacío sale el nombre interno del
+                cliente, que va sin tildes para que lo encuentren los scripts.
+              </p>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="flex flex-col gap-2">
