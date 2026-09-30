@@ -45,6 +45,10 @@ function Tarjeta({ demo }: { demo: Demo }) {
       <h3 className="mt-4 text-lg font-semibold text-kivuk-pizarra">
         {demo.sector}
       </h3>
+      <p className="mt-1 text-xs text-kivuk-gris">
+        En WhatsApp:{" "}
+        <span className="font-medium text-kivuk-pizarra">{demo.whatsapp}</span>
+      </p>
       <p className="mt-2 text-sm leading-relaxed text-kivuk-gris">{demo.sabe}</p>
 
       <p className="mt-4 rounded-xl bg-secondary/60 px-4 py-3 text-sm text-kivuk-pizarra italic">

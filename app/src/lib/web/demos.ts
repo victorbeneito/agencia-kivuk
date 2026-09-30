@@ -19,6 +19,12 @@ export type Demo = {
   slug: string;
   sector: string;
   negocio: string;
+  /**
+   * El nombre visible de la línea en WhatsApp, letra por letra como se pidió a
+   * Meta. Tiene que salir en la web: Meta rechaza el nombre si no lo encuentra
+   * en la web del negocio (así se rechazaron los «Kivuk Demo <sector>»).
+   */
+  whatsapp: string;
   /** Lo que el visitante va a preguntar, ya escrito en el enlace. */
   pregunta: string;
   /** Lo que el bot sabe hacer, para que se pruebe eso y no otra cosa. */
@@ -33,6 +39,7 @@ export const DEMOS: Demo[] = [
     slug: "peluqueria",
     sector: "Peluquería",
     negocio: "Peluquería Mechas",
+    whatsapp: "Agencia Kivuk Demo Peluquería",
     pregunta: "Hola, ¿cuánto cuestan unas mechas?",
     sabe: "Precios, duraciones, quién hace qué y cita con hueco real.",
     numero: "34623790343",
@@ -43,6 +50,7 @@ export const DEMOS: Demo[] = [
     slug: "dental",
     sector: "Clínica dental",
     negocio: "Clínica Dental Muelas",
+    whatsapp: "Agencia Kivuk Demo Dental",
     pregunta: "Hola, me duele una muela, ¿me podéis ver?",
     sabe: "Tratamientos, urgencias del día y cita con el dentista que toca.",
     numero: "34613013979",
@@ -53,6 +61,7 @@ export const DEMOS: Demo[] = [
     slug: "fisio",
     sector: "Fisioterapia",
     negocio: "Clínica Fisioterapia Masajes",
+    whatsapp: "Agencia Kivuk Demo Fisioterapia",
     pregunta: "Hola, tengo una contractura, ¿tenéis hueco esta semana?",
     sabe: "Sesiones, bonos y cita con quien lleva cada especialidad.",
     numero: "34623814787",
