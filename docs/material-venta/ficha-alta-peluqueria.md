@@ -128,8 +128,12 @@ avisamos.
 | ¿También por correo? ¿A qué dirección? | |
 | Quién más del salón usará el panel (nombre y correo) | |
 
-Recordatorio por WhatsApp a tus clientas el día antes de su cita:
-[ ] Sí [ ] No
+Recordatorio por WhatsApp a tus clientas antes de su cita:
+[ ] No  [ ] 3 horas antes  [ ] 6 horas antes  [ ] 12 horas antes
+[ ] El día antes  [ ] Dos días antes
+
+(Nunca se manda de noche: lo que caería entre las 21:00 y las 9:00 sale la
+tarde anterior o a primera hora.)
 
 ## 10. Una cosa más
 

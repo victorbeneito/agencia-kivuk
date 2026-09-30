@@ -733,7 +733,9 @@ export default async function ClientConfigPage({
                   defaultValue={recordatorio.recordatorio_horas}
                   className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
                 >
-                  <option value="4">4 horas antes</option>
+                  <option value="3">3 horas antes</option>
+                  <option value="6">6 horas antes</option>
+                  <option value="12">12 horas antes</option>
                   <option value="24">El día antes (24 horas)</option>
                   <option value="48">Dos días antes (48 horas)</option>
                   <option value="72">Tres días antes (72 horas)</option>
@@ -769,6 +771,13 @@ export default async function ClientConfigPage({
               No se manda dos veces, y tampoco se manda si la cita se dio para
               dentro de un rato: a menos de dos horas ya no hay nada que
               recordar.
+            </p>
+            <p className="-mt-2 text-sm text-muted-foreground">
+              <strong>De 21:00 a 9:00 no se manda nada.</strong> Si el aviso
+              cayera de noche, sale a las 20:00 de la tarde anterior; si cae de
+              madrugada y todavía quedan tres horas para la cita, a las 9:00.
+              Una cita a las 9:00 con aviso de 3 horas se recuerda a las 20:00
+              del día antes.
             </p>
           </CardContent>
           <CardFooter>

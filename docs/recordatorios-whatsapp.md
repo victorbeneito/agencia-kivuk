@@ -79,7 +79,7 @@ que vuelve a pasar revisión. Por eso el alta pide `--aplicar`.
 
 ```
 Cada hora
-  -> Citas próximas            (appointments confirmadas, sin avisar, < 73 h)
+  -> Citas próximas            (appointments confirmadas, sin avisar, < 86 h)
   -> Configuración de agenda   (quién lo tiene encendido, y cuánto antes)
   -> Credenciales de WhatsApp  (el token de cada negocio)
   -> Preparar avisos           (a quién toca ahora, y con qué texto exacto)
@@ -104,6 +104,40 @@ dos**— y esa decisión resuelve tres problemas de golpe:
 
 Que no se mande dos veces lo garantiza `recordatorio_enviado_at`, que existe en
 `appointments` desde la migración `0014` con su índice parcial.
+
+### De noche no se escribe a nadie
+
+Añadido el 30/09/2026, al poder elegir avisos de pocas horas. Con la ventana
+rodante sola, «3 horas antes» recordaba una cita de las 9:00 a las 6:00 de la
+mañana, y ya pasaba con la antigua opción de 4 horas. **Entre las 21:00 y las
+9:00 no sale nada**, y el momento de avisar se mueve así:
+
+| Si el aviso cae… | Sale… |
+| --- | --- |
+| por la noche (21:00-24:00) | a las 20:00 de esa tarde |
+| de madrugada, y a las 9:00 aún quedan 3 horas para la cita | a las 9:00 |
+| de madrugada, y a las 9:00 ya no quedan 3 horas | a las 20:00 de la tarde anterior |
+
+| Cita | Aviso | Sale |
+| --- | --- | --- |
+| 9:00 | 3 h | 20:00 del día antes |
+| 10:00 | 4 h | 20:00 del día antes |
+| 12:00 | 6 h | 9:00 del mismo día |
+| 18:00 | 12 h | 9:00 del mismo día |
+| 11:00 | 12 h | 20:00 del día antes |
+| 8:30 | 24 h | 9:00 del día antes |
+
+Se adelanta en vez de retrasar porque retrasarlo lo dejaría pegado a la cita,
+sin margen para anularla. Si el aviso sale el mismo día de la cita, dice «hoy»
+en vez de «mañana».
+
+Por el adelanto, un aviso de 72 horas puede tocar hasta 13 horas antes: por eso
+`Citas próximas` carga las de las próximas 86 horas y no 73.
+
+Y si la pasada misma cae de noche —n8n estuvo parado, o la cita se dio a las
+23:00 para las 10:00 del día siguiente— se espera a la mañana; si para entonces
+faltan menos de dos horas, ese recordatorio no sale. Comprobado con el código
+real del nodo, simulando las pasadas de hora en hora.
 
 ### Solo se marca si Meta lo acepta
 
@@ -137,7 +171,7 @@ Panel → cliente → Configuración → **Recordatorio de la cita por WhatsApp*
 | --- | --- |
 | Mandar el recordatorio | Apagado de serie. |
 | Nombre del negocio en el mensaje | Como lo escribe el negocio, con tildes (`recordatorio_negocio`). Vacío = el nombre interno del cliente |
-| Cuánto antes | 4, 24 (por defecto), 48 o 72 horas. |
+| Cuánto antes | 3, 6, 12, 24 (por defecto), 48 o 72 horas. Nunca de noche: ver «De noche no se escribe a nadie». |
 | Plantilla en Meta | `recordatorio_cita`. |
 | Idioma | `es`. |
 
