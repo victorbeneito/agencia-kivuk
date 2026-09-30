@@ -64,14 +64,20 @@ La segunda imagen es `1-quien-soy-2.png`.
 
 **Pie de foto:**
 
+La presentación ya va en la imagen, así que el pie se centra en qué hacer:
+
 ```
-Soy Víctor, de Ontinyent 👋
+Si tienes un negocio en la Vall d'Albaida y se te escapan mensajes de WhatsApp mientras trabajas, esto es para ti 👋
 
-Monto asistentes de WhatsApp para peluquerías, clínicas y comercios de la Vall d'Albaida.
+¿Quieres ver cómo contesta un asistente? Escríbele a una de estas demos como si fueras un cliente:
 
-Contestan a tus clientes y les dan cita mientras tú estás trabajando, a las once de la noche o un domingo. Con tus precios y con los huecos reales de tu agenda. Y cuando hace falta una persona, te avisan a ti.
+💇 Peluquería: 623 79 03 43
+🦷 Clínica dental: 613 01 39 79
+💆 Fisioterapia: 623 81 47 87
 
-Estos días me vas a ver por los comercios de Ontinyent. Si te paso por delante, pregúntame 😊
+Los negocios son inventados; el asistente es el de verdad.
+
+Y si prefieres hablarlo en persona, escríbeme. Estos días estoy pasando por los comercios de Ontinyent ☕
 
 #Ontinyent #ValldAlbaida #ComercioLocal #WhatsApp
 ```
@@ -91,7 +97,7 @@ Tu salón está cerrado. El asistente, no: le dice los precios, le ofrece los hu
 
 A la mañana siguiente tienes una cita más y no has tocado el móvil.
 
-Pruébalo tú: el enlace está en la bio. Es una peluquería inventada, pero el asistente es el de verdad.
+Pruébalo tú: escríbele al 623 79 03 43 o entra en agenciakivuk.com/#probar. Es una peluquería inventada, pero el asistente es el de verdad.
 
 #Peluquería #Ontinyent #ValldAlbaida #CitasOnline #WhatsApp
 ```
@@ -151,7 +157,7 @@ Todas las conversaciones están ahí: las que ha llevado él y las que has lleva
 
 Los negocios son inventados. El asistente es el mismo que monto para un negocio de verdad: pregúntale precios, pide cita o dile que quieres hablar con alguien.
 
-Desde el móvil, en el enlace de la bio se abren directamente.
+Desde el móvil, en agenciakivuk.com/#probar se abren directamente.
 
 #Ontinyent #ValldAlbaida #ComercioLocal #WhatsApp
 ```

@@ -3,7 +3,8 @@
  * Genera las imágenes de las primeras publicaciones de @agenciakivuk en
  * docs/material-venta/instagram/, a 1080×1350 (el 4:5 del feed).
  *
- *   node scripts/generar-posts-instagram.js
+ *   node scripts/generar-posts-instagram.js                 (todas)
+ *   node scripts/generar-posts-instagram.js 1-quien-soy-2   (solo esa)
  *
  * Cada diapositiva es una página HTML que se fotografía con Edge (o Chrome) en
  * modo headless. Se hace así y no con SVG, como las tarjetas de las demos,
@@ -140,13 +141,17 @@ const MECHAS = 'Peluquería Mechas';
 const DIAPOSITIVAS = {
   // 1. Quién soy. La primera diapositiva es una foto de Víctor, que no sale de
   //    aquí; esta es la segunda.
+  //    El texto es de Víctor. Abajo, la web y no «enlace en la bio»: la bio no
+  //    siempre lleva a las demos, y la imagen no puede prometer lo que no hay.
   '1-quien-soy-2': pagina({
     eyebrow: 'Hola',
     titulo: 'Soy Víctor,<br>de <em>Ontinyent</em>.',
     texto:
-      'Monto asistentes de WhatsApp para <b>peluquerías, clínicas y comercios</b> de la Vall d’Albaida.<br><br>' +
-      'Contestan a tus clientes y les dan cita <b>mientras tú trabajas</b>, a cualquier hora. ' +
-      'Y cuando hace falta una persona, te avisan a ti.',
+      'Ayudo a <b>peluquerías, clínicas y comercios</b> de la Vall d’Albaida a atender a sus clientes por WhatsApp ' +
+      'sin tener que estar pendientes del móvil todo el día.<br><br>' +
+      'Creo asistentes que responden preguntas, gestionan citas y atienden a tus clientes automáticamente, ' +
+      '<b>incluso fuera de horario</b>. Y si en algún momento hace falta que intervengas tú, <b>el asistente te avisa</b>.<br><br>' +
+      'Así puedes <b>seguir trabajando</b> mientras WhatsApp se encarga de atender a tus clientes.',
     contenido: '',
   }),
 
@@ -206,7 +211,7 @@ const DIAPOSITIVAS = {
     titulo: 'Tienes una cita más en la agenda, y <em>no has tocado el móvil</em>.',
     texto:
       'Con tus precios.<br>Con los huecos reales de cada una.<br>Sin inventarse nada.<br><br>' +
-      '<b>Pruébalo tú: enlace en la bio.</b>',
+      '<b>Pruébalo tú en agenciakivuk.com/#probar</b>',
     paso: '4 / 4',
   }),
 
@@ -284,7 +289,7 @@ const DIAPOSITIVAS = {
         .map(([s, n, p]) => `<div class="tarjeta"><div class="sector">${s}</div><div class="num">${n}</div><div class="preg">${p}</div></div>`)
         .join('') +
       '</div>' +
-      '<div class="texto" style="margin-top:34px">Los negocios son inventados. <b>El asistente es el de verdad.</b> Enlace en la bio.</div>',
+      '<div class="texto" style="margin-top:34px">Los negocios son inventados. <b>El asistente es el de verdad.</b> También en agenciakivuk.com/#probar</div>',
   }),
 };
 
@@ -303,7 +308,12 @@ function main() {
   const esperar = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
   const fallidas = [];
 
-  for (const [nombre, html] of Object.entries(DIAPOSITIVAS)) {
+  // Con nombres detrás (`node ... 1-quien-soy-2`), solo esas; sin nada, todas.
+  const pedidas = process.argv.slice(2);
+  const lista = Object.entries(DIAPOSITIVAS).filter(([n]) => !pedidas.length || pedidas.includes(n));
+  if (!lista.length) throw new Error(`no hay ninguna diapositiva llamada ${pedidas.join(', ')}`);
+
+  for (const [nombre, html] of lista) {
     const htmlRuta = path.join(tmp, `${nombre}.html`);
     const png = path.join(SALIDA, `${nombre}.png`);
     fs.writeFileSync(htmlRuta, html);
