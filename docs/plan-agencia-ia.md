@@ -167,9 +167,10 @@ forma de escribir.
 - **Avisar de un cambio de cita**, cuando se mueve o se cancela desde el panel.
   Es otra plantilla —Meta las revisa por separado— sobre el camino que ya dejó
   abierto el recordatorio.
-- **Cobro automático con Stripe.** Hoy se pega a mano un enlace de pago en la
-  factura. Falta crear el `Customer` y la suscripción desde la ficha del
-  cliente, y el webhook que marque la factura como pagada.
+- ~~**Cobro automático con Stripe.**~~ **Código hecho** (migración `0023`,
+  `docs/cobro-stripe.md`): domiciliación SEPA, firma del cliente en Stripe,
+  cargo por factura y webhook que la marca pagada. Probado en modo de prueba
+  (firma, cargo y factura pagada sola). Falta la cuenta real y desplegar.
 - **Cron de la facturación mensual**: un workflow de n8n que llame a la
   generación el día 1 y avise de lo que quede sin borrador.
 - **Recordatorio de facturas vencidas**, al cliente y a la agencia.
@@ -262,9 +263,10 @@ Estado a 29 de septiembre de 2026, de más urgente a menos.
 - [ ] `RESEND_API_KEY` y `FACTURAS_REMITENTE` en el entorno del panel, para
       poder enviar las facturas (comprobar).
 - [ ] Cron mensual de la generación de facturas + aviso de vencidas.
-- [ ] Stripe, cuando haya suficientes cuotas que perseguir a mano. También es
-      la forma más sencilla de domiciliar sin pedir al banco un identificador
-      de acreedor SEPA.
+- [ ] **Stripe para la domiciliación** (código hecho, `docs/cobro-stripe.md`):
+      migración `0023` aplicada y probado en modo de prueba. Falta activar la
+      cuenta real (datos fiscales, IBAN de N26, adeudo SEPA), crear el webhook
+      real y poner las dos claves en el `.env` del servidor.
 
 **Para vender (Fase 6, ver `docs/marketing-y-captacion.md`)**
 

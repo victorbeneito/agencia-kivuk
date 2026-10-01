@@ -96,8 +96,16 @@ WhatsApp. Cómo funciona cada pieza y por qué está decidida así:
 cliente, catálogo de servicios y tarifas, servicios contratados, generación de
 las facturas del periodo, numeración correlativa que reparte la base de datos,
 PDF con `pdf-lib` y envío por correo con el adjunto. El cliente ve las suyas en
-`/panel/facturas`. Detalle y decisiones: `docs/facturacion.md`. Falta el cobro
-automático con Stripe.
+`/panel/facturas`. Detalle y decisiones: `docs/facturacion.md`.
+
+**Cobro por domiciliación** (migración `0023`, `docs/cobro-stripe.md`): Stripe
+como pasarela SEPA, **no** como facturador — cobra el total de una factura ya
+emitida aquí, sin generar facturas propias. El cliente firma la orden en Stripe
+(enlace desde su ficha o botón en `/panel/facturas`), la agencia pulsa «Cobrar»
+dos días después de enviar la factura, y el webhook `/api/stripe/webhook` la
+marca pagada, fallida o devuelta. Stripe transfiere a la cuenta de N26. Probado
+de punta a punta en modo de prueba (1/10/2026); **pendiente de activar la
+cuenta real de Stripe y desplegar**.
 
 **Web corporativa** (`docs/web-corporativa.md`): **publicada** en
 `agenciakivuk.com`, en la misma aplicación, grupo de rutas `(web)`. Una sola

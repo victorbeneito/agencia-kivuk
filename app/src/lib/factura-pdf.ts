@@ -316,7 +316,22 @@ export async function generarPdfFactura({
   y -= 14;
   texto(ctx, formaPago, MARGEN, y, { size: 9.5 });
   y -= 13;
-  if (emisor.iban) {
+
+  // Domiciliada, el IBAN de la agencia no pinta nada: invitaría a transferir
+  // lo que ya se va a cargar. Se dice en qué cuenta se carga, si se sabe.
+  const domiciliada = factura.forma_pago === "domiciliacion";
+  if (domiciliada) {
+    texto(
+      ctx,
+      receptor.cuenta_cargo
+        ? `Se cargará en la cuenta ${receptor.cuenta_cargo} del cliente, según la orden de domiciliación firmada.`
+        : "Se cargará en la cuenta del cliente, según la orden de domiciliación firmada.",
+      MARGEN,
+      y,
+      { size: 9, color: SUAVE }
+    );
+    y -= 13;
+  } else if (emisor.iban) {
     texto(ctx, `IBAN: ${emisor.iban}`, MARGEN, y, { size: 9.5 });
     y -= 13;
   }
@@ -327,7 +342,7 @@ export async function generarPdfFactura({
     });
     y -= 13;
   }
-  if (factura.numero) {
+  if (factura.numero && !domiciliada) {
     texto(ctx, `Indica la referencia ${factura.numero} en el concepto.`, MARGEN, y, {
       size: 9,
       color: SUAVE,

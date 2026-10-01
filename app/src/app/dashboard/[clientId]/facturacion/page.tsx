@@ -22,6 +22,8 @@ import {
 import { FichaFiscal, type PerfilFiscal } from "./ficha-fiscal";
 import { ServiciosContratados, type Contratado } from "./contratados";
 import { NuevaFactura } from "./nueva-factura";
+import { Domiciliacion } from "./domiciliacion";
+import { stripeConfigurado } from "@/lib/stripe";
 
 /**
  * La pestaña de dinero de un cliente: con qué datos se le factura, qué paga y
@@ -150,6 +152,13 @@ export default async function FacturacionClientePage({
         clientId={clientId}
         perfil={(fiscal as PerfilFiscal | null) ?? null}
         nombreCliente={cliente?.name ?? ""}
+      />
+
+      <Domiciliacion
+        clientId={clientId}
+        ultimos4={fiscal?.sepa_ultimos4 ?? null}
+        firmadoAt={fiscal?.sepa_firmado_at ?? null}
+        configurado={stripeConfigurado() && Boolean(process.env.STRIPE_WEBHOOK_SECRET)}
       />
 
       <Card>

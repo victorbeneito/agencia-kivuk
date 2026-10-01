@@ -70,6 +70,13 @@ services:
       # remitente de facturación.
       CONTACTO_DESTINATARIO: ${CONTACTO_DESTINATARIO:-}
       CONTACTO_REMITENTE: ${CONTACTO_REMITENTE:-}
+      # Cobro por domiciliación SEPA (docs/cobro-stripe.md). Sin ellas, la
+      # ficha del cliente avisa de que falta configurar Stripe y no se puede
+      # pedir la domiciliación ni lanzar cargos.
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # A dónde vuelve el cliente desde la página de Stripe.
+      PANEL_URL: https://panel.agenciakivuk.com
     depends_on:
       - n8n
       - render

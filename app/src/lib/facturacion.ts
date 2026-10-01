@@ -60,7 +60,20 @@ export type DatosFiscales = {
   telefono: string;
   web?: string;
   iban?: string;
+  /** Solo en el receptor domiciliado: «···· 1234», la cuenta donde se carga. */
+  cuenta_cargo?: string;
 };
+
+export type EstadoCobro = "en_curso" | "cobrado" | "fallido" | "devuelto";
+
+/**
+ * Días entre el aviso del cargo (el correo con la factura) y el cargo.
+ *
+ * La norma SEPA pide avisar 14 días antes salvo que se pacte otra cosa, y la
+ * orden que firma el cliente en Stripe pacta «hasta 2 días antes». El panel no
+ * deja lanzar el cargo antes de que pasen.
+ */
+export const DIAS_AVISO_SEPA = 2;
 
 export type LineaFactura = {
   id?: string;
@@ -99,6 +112,11 @@ export type Factura = {
   enviada_at: string | null;
   pagada_at: string | null;
   referencia_pago: string | null;
+  // Cobro por domiciliación (0023). Null si nunca se ha cargado por Stripe.
+  cobro_estado: EstadoCobro | null;
+  stripe_payment_intent_id: string | null;
+  cobro_iniciado_at: string | null;
+  cobro_error: string | null;
 };
 
 /** Céntimos enteros: sumar decimales de coma flotante acaba en 0,30000000004. */

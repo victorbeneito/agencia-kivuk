@@ -122,6 +122,11 @@ export default function Privacidad() {
           facturas).
         </li>
         <li>
+          <strong>Stripe</strong> — cobro de las cuotas por domiciliación
+          bancaria. Guarda la cuenta y la orden de domiciliación que firma cada
+          cliente.
+        </li>
+        <li>
           <strong>Meta Platforms</strong> — WhatsApp Business, Instagram y
           Facebook, cuando la comunicación va por esos canales.
         </li>

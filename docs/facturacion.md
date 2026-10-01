@@ -113,7 +113,9 @@ RESEND_API_KEY=
 FACTURAS_REMITENTE="Kivuk Agencia <facturacion@agenciakivuk.com>"
 ```
 
-El correo lleva el importe, las fechas, el IBAN y el PDF adjunto; si la factura
+El correo lleva el importe, las fechas, el IBAN y el PDF adjunto (si la factura
+va domiciliada y el cliente ha firmado, en vez del IBAN dice en qué cuenta y
+desde qué día se carga: es el aviso previo del adeudo); si la factura
 tiene `enlace_pago` (un Payment Link de Stripe pegado a mano), añade un botón de
 pagar. Sin esas dos variables el botón avisa en pantalla en vez de fallar en
 silencio.
@@ -127,9 +129,10 @@ de alta no ve una pantalla vacía.
 
 ## Lo que falta
 
-- **Cobro automático.** Hoy el enlace de pago se pega a mano. Con Stripe
-  Billing: crear el `Customer` y la suscripción desde la ficha del cliente, y un
-  webhook que marque la factura como pagada al recibir el `invoice.paid`.
+- ~~**Cobro automático.**~~ **Hecho** (migración `0023`): domiciliación SEPA
+  con Stripe como pasarela. Stripe cobra el total de la factura emitida aquí,
+  sin generar facturas propias, y un webhook la marca como pagada. Todo en
+  `docs/cobro-stripe.md`. Queda pendiente lanzar los cargos sin botón.
 - **Cron de la generación mensual.** El botón está; falta un workflow de n8n que
   lo llame el día 1 y avise si un cliente se queda sin borrador.
 - **Aviso de vencidas.** Un recordatorio automático al cliente a los X días de

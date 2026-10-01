@@ -34,6 +34,11 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
 ENV NEXT_PUBLIC_KIVUK_WHATSAPP=$NEXT_PUBLIC_KIVUK_WHATSAPP
 ENV NEXT_TELEMETRY_DISABLED=1
+# Techo de memoria para la comprobación de tipos del build. Al entrar el SDK de
+# Stripe (sus tipos son enormes) el límite por defecto de Node se quedó corto en
+# local y el build moría en «Running TypeScript» sin más explicación.
+# Es un máximo, no una reserva: si no hace falta, no se usa.
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
 RUN npm run build
 

@@ -81,10 +81,15 @@ peluquería a crear su propio portfolio y verificar su negocio ante Meta. Lo que
 sí es suyo es el número, y al irse se le traslada (3.5). Si algún cliente
 prefiere tener su propio portfolio, se hace así y la 3.2 no aplica.
 
-**7. La domiciliación (5.3).** Cobrar por domiciliación SEPA necesita un
-identificador de acreedor que da el banco y una orden firmada por cada cliente.
-La alternativa sin trámites es Stripe con SEPA, que está en el plan como
-«cobro automático». Mientras tanto, se puede cobrar por transferencia.
+**7. La domiciliación (5.3).** Resuelta con Stripe (`docs/cobro-stripe.md`):
+la «orden de domiciliación que Kivuk le facilite» es la que el cliente firma en
+línea en la página de Stripe, con Stripe como acreedor, así que no hace falta
+identificador de acreedor propio ni papel. Dos cosas para quien revise el
+contrato: esa orden pacta que el aviso de cada cargo puede llegar **hasta 2 días
+antes** (en vez de los 14 de la norma SEPA), y el aviso es el correo con la
+factura; convendría que la 5.3 lo diga. Y el cliente puede devolver un recibo
+hasta 8 semanas después sin motivo: si se quiere un recargo por devolución, hay
+que ponerlo en el contrato.
 
 ## Lo que el contrato promete y la plataforma todavía no cumple
 

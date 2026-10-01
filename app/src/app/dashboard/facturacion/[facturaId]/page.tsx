@@ -46,6 +46,59 @@ function Parte({ titulo, datos }: { titulo: string; datos: DatosFiscales }) {
   );
 }
 
+/**
+ * En qué punto está el cargo por domiciliación, cuando la factura se paga así.
+ *
+ * Un adeudo SEPA tarda días en confirmarse y puede volver semanas después: sin
+ * esta línea, una factura con el cargo lanzado parecería igual de pendiente que
+ * una que nadie ha tocado.
+ */
+function EstadoDelCobro({ factura, tieneMandato }: { factura: Factura; tieneMandato: boolean }) {
+  if (factura.forma_pago !== "domiciliacion") return null;
+  if (["borrador", "pagada", "anulada"].includes(factura.estado)) return null;
+
+  const aviso = (clase: string, texto: string) => (
+    <p className={`rounded-lg border px-4 py-3 text-sm ${clase}`}>{texto}</p>
+  );
+  const rojo = "border-destructive/30 bg-destructive/5 text-destructive";
+
+  switch (factura.cobro_estado) {
+    case "cobrado":
+      return null;
+    case "en_curso":
+      return aviso(
+        "border-sky-200 bg-sky-50 text-sky-900",
+        `Cargo lanzado el ${fecha(factura.cobro_iniciado_at)}. El banco del cliente tarda unos días hábiles en confirmarlo; cuando lo haga, la factura se marcará como cobrada sola.`
+      );
+    case "fallido":
+      return aviso(
+        rojo,
+        `El cargo ha fallado: ${factura.cobro_error ?? "sin motivo."} Puedes volver a lanzarlo o pedirle otra forma de pago.`
+      );
+    case "devuelto":
+      return aviso(
+        rojo,
+        `${factura.cobro_error ?? "Recibo devuelto."} Habla con el cliente antes de volver a cargarlo.`
+      );
+  }
+
+  if (!tieneMandato) {
+    return aviso(
+      "border-amber-200 bg-amber-50 text-amber-900",
+      "Se paga por domiciliación, pero el cliente todavía no la ha firmado. El enlace está en su pestaña de Facturación."
+    );
+  }
+
+  if (factura.estado === "emitida") {
+    return aviso(
+      "border-border bg-muted/40 text-muted-foreground",
+      "Se paga por domiciliación. Primero envíala por correo: ese correo es el aviso del cargo, y dos días después ya se puede cobrar."
+    );
+  }
+
+  return null;
+}
+
 export default async function FacturaPage({
   params,
 }: {
@@ -156,7 +209,18 @@ export default async function FacturaPage({
         id={factura.id}
         estado={factura.estado}
         emailCliente={receptor.email ?? ""}
+        domiciliacion={
+          factura.forma_pago === "domiciliacion"
+            ? {
+                total: num(factura.total),
+                ultimos4: perfil?.sepa_ultimos4 ?? null,
+                cobroEstado: factura.cobro_estado,
+              }
+            : undefined
+        }
       />
+
+      <EstadoDelCobro factura={factura} tieneMandato={Boolean(perfil?.sepa_mandate_id)} />
 
       <div className="grid gap-6 rounded-xl border bg-card p-5 sm:grid-cols-2">
         <Parte titulo="De" datos={emisor} />

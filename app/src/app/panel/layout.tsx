@@ -88,16 +88,26 @@ export default async function PanelLayout({
 
   // Las facturas no dependen de ningún módulo: se le factura a todo el mundo.
   // Pero la sección solo aparece cuando ya hay alguna emitida, para no enseñar
-  // una pantalla vacía a un cliente recién dado de alta.
-  const { data: facturas } = await supabase
-    .from("invoices")
-    .select("estado")
-    .eq("client_id", contexto.clientId)
-    .neq("estado", "borrador");
+  // una pantalla vacía a un cliente recién dado de alta — salvo que tenga
+  // pendiente domiciliar los recibos, que es algo que tiene que hacer él.
+  const [{ data: facturas }, { data: ficha }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("estado")
+      .eq("client_id", contexto.clientId)
+      .neq("estado", "borrador"),
+    supabase
+      .from("client_billing_profiles")
+      .select("forma_pago, sepa_mandate_id")
+      .eq("client_id", contexto.clientId)
+      .maybeSingle(),
+  ]);
 
-  const facturasPendientes = (facturas ?? []).filter(
-    (f) => f.estado === "emitida" || f.estado === "enviada"
-  ).length;
+  const porDomiciliar = ficha?.forma_pago === "domiciliacion" && !ficha.sepa_mandate_id;
+
+  const facturasPendientes =
+    (facturas ?? []).filter((f) => f.estado === "emitida" || f.estado === "enviada")
+      .length + (porDomiciliar ? 1 : 0);
 
   const sinLeer = (conversaciones ?? []).reduce(
     (total, c) => total + (c.unread_count ?? 0),
@@ -148,7 +158,7 @@ export default async function PanelLayout({
           },
         ]
       : []),
-    ...(facturas?.length
+    ...(facturas?.length || porDomiciliar
       ? [
           {
             clave: "facturas",

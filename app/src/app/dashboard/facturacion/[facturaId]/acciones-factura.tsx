@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Ban, CheckCircle2, Download, Send, Stamp, Trash2, Undo2 } from "lucide-react";
+import { Ban, CheckCircle2, Download, Landmark, Send, Stamp, Trash2, Undo2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { EstadoFactura } from "@/lib/facturacion";
+import { euros, type EstadoCobro, type EstadoFactura } from "@/lib/facturacion";
 import {
   anularFactura,
   borrarBorrador,
@@ -15,6 +15,7 @@ import {
   marcarPendiente,
   type Resultado,
 } from "../acciones";
+import { cobrarPorDomiciliacion } from "../cobro";
 
 /**
  * Los botones que mueven la factura de un estado al siguiente.
@@ -27,10 +28,13 @@ export function AccionesFactura({
   id,
   estado,
   emailCliente,
+  domiciliacion,
 }: {
   id: string;
   estado: EstadoFactura;
   emailCliente: string;
+  /** Solo si la factura se paga por domiciliación. */
+  domiciliacion?: { total: number; ultimos4: string | null; cobroEstado: EstadoCobro | null };
 }) {
   const [pendiente, empezar] = useTransition();
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -40,6 +44,15 @@ export function AccionesFactura({
   const [cobrando, setCobrando] = useState(false);
 
   const emitida = estado === "emitida" || estado === "enviada";
+
+  // Cargar por domiciliación: la factura ya avisada (enviada) y sin un cargo
+  // vivo. Las demás condiciones —el plazo de aviso, que haya mandato— las
+  // comprueba la acción y lo explica si falta algo.
+  const puedeCargar =
+    domiciliacion &&
+    estado === "enviada" &&
+    domiciliacion.cobroEstado !== "en_curso" &&
+    domiciliacion.cobroEstado !== "cobrado";
 
   return (
     <div className="flex flex-col gap-3">
@@ -67,6 +80,22 @@ export function AccionesFactura({
           <Button disabled={pendiente} onClick={() => setEnviando(true)}>
             <Send className="size-4" />
             Enviar por correo
+          </Button>
+        )}
+
+        {puedeCargar && (
+          <Button
+            disabled={pendiente}
+            onClick={() => {
+              const cuenta = domiciliacion.ultimos4
+                ? ` en la cuenta terminada en ${domiciliacion.ultimos4}`
+                : "";
+              if (!confirm(`¿Cargar ${euros(domiciliacion.total)}${cuenta}?`)) return;
+              empezar(async () => setResultado(await cobrarPorDomiciliacion(id)));
+            }}
+          >
+            <Landmark className="size-4" />
+            {pendiente ? "Lanzando cargo…" : "Cobrar por domiciliación"}
           </Button>
         )}
 

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generarPdfFactura } from "@/lib/factura-pdf";
 import {
   calcularTotales,
+  DIAS_AVISO_SEPA,
   euros,
   fecha as formatoFecha,
   mesesDe,
@@ -488,7 +489,7 @@ export async function emitirFactura(id: string): Promise<Resultado> {
 
   const { data: factura } = await supabase
     .from("invoices")
-    .select("id, agency_id, client_id, estado, fecha_emision, fecha_vencimiento, total")
+    .select("id, agency_id, client_id, estado, fecha_emision, fecha_vencimiento, total, forma_pago")
     .eq("id", id)
     .single();
 
@@ -560,6 +561,11 @@ export async function emitirFactura(id: string): Promise<Resultado> {
     pais: perfil.pais,
     email: perfil.email,
     telefono: perfil.telefono,
+    // Con domiciliación firmada, la factura dice en qué cuenta se carga. Solo
+    // los cuatro últimos dígitos: el IBAN entero lo tiene Stripe, no el panel.
+    ...(factura.forma_pago === "domiciliacion" && perfil.sepa_ultimos4
+      ? { cuenta_cargo: `···· ${perfil.sepa_ultimos4}` }
+      : {}),
   };
 
   const { data: numero, error: errorNumero } = await supabase.rpc(
@@ -750,6 +756,37 @@ export async function enviarFactura(id: string, destinatario?: string): Promise<
 
   const asunto = `Factura ${factura.numero} — ${factura.emisor?.razon_social ?? ""}`.trim();
 
+  // Con domiciliación firmada, este correo es el aviso previo del cargo que
+  // exige la norma SEPA: tiene que decir cuánto, en qué cuenta y desde cuándo.
+  // Se mira la ficha de ahora y no la copia de la factura, porque el cliente
+  // puede haber firmado después de emitirla.
+  const supabase = await createClient();
+  const { data: domiciliada } =
+    factura.forma_pago === "domiciliacion"
+      ? await supabase
+          .from("client_billing_profiles")
+          .select("sepa_ultimos4, sepa_mandate_id")
+          .eq("client_id", factura.client_id)
+          .maybeSingle()
+      : { data: null };
+
+  const cargo = domiciliada?.sepa_mandate_id
+    ? {
+        cuenta: domiciliada.sepa_ultimos4 ?? "",
+        desde: formatoFecha(sumarDias(HOY(), DIAS_AVISO_SEPA)),
+      }
+    : null;
+
+  const filaPago = cargo
+    ? `<tr><td style="padding:4px 16px 4px 0;color:#666">Cargo</td><td style="padding:4px 0">Domiciliación en tu cuenta terminada en ${cargo.cuenta}, a partir del ${cargo.desde}</td></tr>`
+    : ajustes?.iban
+      ? `<tr><td style="padding:4px 16px 4px 0;color:#666">IBAN</td><td style="padding:4px 0">${ajustes.iban}</td></tr>`
+      : "";
+
+  const notaPago = cargo
+    ? "No tienes que hacer nada: el importe se cargará en esa cuenta según la orden de domiciliación que firmaste."
+    : `Indica la referencia ${factura.numero} en el concepto de la transferencia.`;
+
   const enlacePago = factura.enlace_pago
     ? `<p style="margin:0 0 16px"><a href="${factura.enlace_pago}" style="background:#B45831;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;display:inline-block">Pagar ahora</a></p>`
     : "";
@@ -770,14 +807,10 @@ export async function enviarFactura(id: string, destinatario?: string): Promise<
         <tr><td style="padding:4px 16px 4px 0;color:#666">Vencimiento</td><td style="padding:4px 0">${formatoFecha(
           factura.fecha_vencimiento
         )}</td></tr>
-        ${
-          ajustes?.iban
-            ? `<tr><td style="padding:4px 16px 4px 0;color:#666">IBAN</td><td style="padding:4px 0">${ajustes.iban}</td></tr>`
-            : ""
-        }
+        ${filaPago}
       </table>
       ${enlacePago}
-      <p style="color:#666;font-size:13px">Indica la referencia ${factura.numero} en el concepto de la transferencia.</p>
+      <p style="color:#666;font-size:13px">${notaPago}</p>
       <p style="color:#666;font-size:13px">Cualquier duda, respóndenos a este correo.</p>
     </div>`;
 
@@ -814,7 +847,6 @@ export async function enviarFactura(id: string, destinatario?: string): Promise<
     };
   }
 
-  const supabase = await createClient();
   await supabase
     .from("invoices")
     .update({
