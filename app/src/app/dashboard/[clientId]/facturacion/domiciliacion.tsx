@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Copy, Landmark } from "lucide-react";
+import { Copy, Landmark, Mail, MessageCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,13 @@ import {
 import { fecha } from "@/lib/facturacion";
 import {
   enlaceDomiciliacion,
+  enviarEnlaceDomiciliacion,
   type ResultadoEnlace,
 } from "@/app/dashboard/facturacion/cobro";
 
 /**
- * Si el cliente tiene firmada la domiciliación, y si no, el enlace para que la
- * firme.
+ * Si el cliente tiene firmada la domiciliación, y si no, cómo hacerle llegar
+ * el enlace para que la firme: por correo, por WhatsApp o copiándolo.
  *
  * El IBAN no lo escribe nadie en este panel: lo pone el cliente en la página de
  * Stripe, que es quien guarda la orden firmada. Aquí solo se ve el resultado.
@@ -37,10 +38,14 @@ export function Domiciliacion({
   configurado: boolean;
 }) {
   const [pendiente, empezar] = useTransition();
-  const [resultado, setResultado] = useState<ResultadoEnlace | null>(null);
+  const [enlace, setEnlace] = useState<ResultadoEnlace | null>(null);
+  const [aviso, setAviso] = useState<{ ok: boolean; mensaje: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
 
   const firmada = Boolean(ultimos4 && firmadoAt);
+
+  const textoWhatsapp = (url: string) =>
+    `Hola, para domiciliar las cuotas de Kivuk solo tienes que abrir este enlace, poner tu IBAN y aceptar. Es una página segura de Stripe, nuestra pasarela de cobro: ${url}`;
 
   return (
     <Card>
@@ -60,48 +65,78 @@ export function Domiciliacion({
           </p>
         ) : (
           <>
-            <Button
-              variant={firmada ? "outline" : "default"}
-              className="w-fit"
-              disabled={pendiente}
-              onClick={() =>
-                empezar(async () => {
-                  setCopiado(false);
-                  setResultado(await enlaceDomiciliacion(clientId));
-                })
-              }
-            >
-              <Landmark className="size-4" />
-              {pendiente
-                ? "Creando…"
-                : firmada
-                  ? "Enlace para cambiar de cuenta"
-                  : "Crear enlace para firmar"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={firmada ? "outline" : "default"}
+                disabled={pendiente}
+                onClick={() =>
+                  empezar(async () => {
+                    setAviso(null);
+                    setAviso(await enviarEnlaceDomiciliacion(clientId));
+                  })
+                }
+              >
+                <Mail className="size-4" />
+                {pendiente ? "Un momento…" : firmada ? "Enviar enlace para cambiar de cuenta" : "Enviar enlace por correo"}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={pendiente}
+                onClick={() =>
+                  empezar(async () => {
+                    setAviso(null);
+                    setCopiado(false);
+                    const r = await enlaceDomiciliacion(clientId);
+                    setEnlace(r);
+                    if (!r.ok) setAviso(r);
+                  })
+                }
+              >
+                <Landmark className="size-4" />
+                Ver enlace
+              </Button>
+            </div>
 
-            {resultado?.url && (
-              <div className="flex flex-wrap items-center gap-2">
-                <Input readOnly value={resultado.url} className="min-w-[260px] flex-1" />
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(resultado.url!);
-                    setCopiado(true);
-                  }}
-                >
-                  <Copy className="size-4" />
-                  {copiado ? "Copiado" : "Copiar"}
-                </Button>
+            {enlace?.url && (
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input readOnly value={enlace.url} className="min-w-[260px] flex-1" />
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(enlace.url!);
+                      setCopiado(true);
+                    }}
+                  >
+                    <Copy className="size-4" />
+                    {copiado ? "Copiado" : "Copiar"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={
+                      <a
+                        href={`https://wa.me/${enlace.whatsapp ?? ""}?text=${encodeURIComponent(textoWhatsapp(enlace.url))}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      />
+                    }
+                  >
+                    <MessageCircle className="size-4" />
+                    WhatsApp
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {enlace.mensaje} Puedes abrirlo con él delante o mandárselo.
+                  {!enlace.whatsapp &&
+                    " Sin teléfono en la ficha, WhatsApp te pedirá elegir a quién mandarlo."}
+                </p>
               </div>
             )}
 
-            {resultado && (
-              <p
-                className={`text-sm ${resultado.ok ? "text-muted-foreground" : "text-destructive"}`}
-              >
-                {resultado.mensaje}
-                {resultado.ok &&
-                  " Ábrelo con él delante o mándaselo hoy por WhatsApp. Si caduca, puede firmar desde su panel, en Facturas."}
+            {aviso && (
+              <p className={`text-sm ${aviso.ok ? "text-emerald-700" : "text-destructive"}`}>
+                {aviso.mensaje}
               </p>
             )}
           </>

@@ -24,12 +24,26 @@ export default async function Domiciliacion({
   const { domiciliacion } = await searchParams;
   const firmada = domiciliacion === "ok";
 
+  const titulo = firmada
+    ? "Recibos domiciliados"
+    : domiciliacion === "caducado"
+      ? "Enlace caducado"
+      : domiciliacion === "error"
+        ? "No se ha podido abrir"
+        : "Domiciliación sin terminar";
+
   return (
-    <PaginaLegal
-      titulo={firmada ? "Recibos domiciliados" : "Domiciliación sin terminar"}
-      actualizado="septiembre de 2026"
-    >
-      {firmada ? (
+    <PaginaLegal titulo={titulo} actualizado="octubre de 2026">
+      {domiciliacion === "caducado" || domiciliacion === "error" ? (
+        <p>
+          {domiciliacion === "caducado"
+            ? "Este enlace ya no es válido: caducan a los 30 días. "
+            : "Ha habido un problema al abrir la página de domiciliación. "}
+          Escríbenos por WhatsApp o a{" "}
+          <a href={`mailto:${KIVUK.email}`}>{KIVUK.email}</a> y te mandamos uno
+          nuevo.
+        </p>
+      ) : firmada ? (
         <>
           <p>
             Listo: la orden de domiciliación queda firmada. Las próximas cuotas se

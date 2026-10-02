@@ -48,7 +48,7 @@ export function stripeConfigurado(): boolean {
  * `PANEL_URL` si está; si no, la de la propia petición. Detrás de Caddy el
  * `host` es el público y el protocolo llega en `x-forwarded-proto`.
  */
-async function urlBase(): Promise<string> {
+export async function urlBase(): Promise<string> {
   if (process.env.PANEL_URL) return process.env.PANEL_URL.replace(/\/$/, "");
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";

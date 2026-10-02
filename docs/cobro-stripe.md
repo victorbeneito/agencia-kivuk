@@ -41,7 +41,7 @@ poder enseñar «cuenta terminada en 1234».
 
 ```
 alta del cliente
-  └─ «Crear enlace para firmar» (ficha → Facturación) ─► el cliente pone su IBAN en Stripe
+  └─ «Enviar enlace por correo» / WhatsApp (ficha → Facturación) ─► el cliente pone su IBAN en Stripe
        └─ webhook checkout.session.completed ─► ficha: mandato + ···· 1234, forma de pago = domiciliación
 
 cada mes
@@ -54,10 +54,17 @@ cada mes
 Stripe ─► transferencia automática a N26
 ```
 
-- **La firma.** Dos caminos: la agencia genera un enlace en la ficha del
-  cliente (caduca a las 24 horas, pensado para la visita de alta o para
-  mandarlo ese día por WhatsApp), o el cliente pulsa «Domiciliar mis recibos» en
-  `/panel/facturas`, que no caduca porque crea la sesión al pulsar. Quien
+- **La firma.** Dos caminos: desde la ficha del cliente, la agencia le manda el
+  enlace **por correo** (botón «Enviar enlace por correo», al correo de
+  facturación de la ficha) o lo saca con «Ver enlace» para copiarlo, mandarlo
+  por **WhatsApp** o abrirlo con él delante. O el cliente pulsa «Domiciliar mis
+  recibos» en `/panel/facturas`.
+  El enlace que se manda **vale 30 días** y no es la página de Stripe, que
+  caduca a las 24 horas: es `/domiciliar/<token>`, una dirección del panel que
+  crea la página de Stripe en el momento de abrirlo. El token lleva el cliente
+  y la caducidad, firmados con un HMAC de la clave de Stripe
+  (`lib/enlace-domiciliacion.ts`), así que no se puede fabricar el de otro
+  cliente. Si se cambia la clave de Stripe, los enlaces enviados dejan de valer. Quien
   vuelve del enlace aterriza en `/domiciliacion`, una página pública de la web
   (grupo `(web)`): abrirlo en un móvil sin sesión y acabar en el login parecería un
   error.
@@ -199,6 +206,11 @@ funciona igual pero no se mueve dinero. Se prueba ahí antes de tocar nada real.
   `dc exec panel printenv | grep STRIPE | cut -c1-30`.
 - **La página de Stripe tarda en cargar** la primera vez: se queda unos
   segundos en un esqueleto gris. Hay que esperar, no está colgada.
+- **El remitente no necesita buzón.** Los correos (facturas y enlace de
+  domiciliación) salen de `FACTURAS_REMITENTE`, que puede ser una dirección que
+  no existe como buzón: Resend solo necesita el dominio verificado. Las
+  respuestas van a `info@agenciakivuk.com` (o al correo de la agencia en
+  Configuración) gracias al `reply_to`, porque los correos dicen «respóndenos».
 
 ## Lo que cuesta
 

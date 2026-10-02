@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { generarPdfFactura } from "@/lib/factura-pdf";
+import { KIVUK } from "@/lib/web/kivuk";
 import {
   calcularTotales,
   DIAS_AVISO_SEPA,
@@ -823,6 +824,10 @@ export async function enviarFactura(id: string, destinatario?: string): Promise<
       },
       body: JSON.stringify({
         from: remitente,
+        // El remitente puede ser una dirección sin buzón (Resend solo necesita
+        // el dominio verificado). Las respuestas del cliente van al correo de
+        // la agencia, que es un buzón que alguien lee.
+        reply_to: factura.emisor?.email || ajustes?.email || KIVUK.email,
         to: [para],
         subject: asunto,
         html,

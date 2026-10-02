@@ -5,12 +5,9 @@ import { revalidatePath } from "next/cache";
 import { requireAgencia } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DIAS_AVISO_SEPA, euros, fecha, num, sumarDias } from "@/lib/facturacion";
-import {
-  cobrarFactura,
-  crearSesionDomiciliacion,
-  mensajeDeError,
-  stripeConfigurado,
-} from "@/lib/stripe";
+import { crearToken, DIAS_VALIDEZ_ENLACE } from "@/lib/enlace-domiciliacion";
+import { KIVUK } from "@/lib/web/kivuk";
+import { cobrarFactura, mensajeDeError, stripeConfigurado, urlBase } from "@/lib/stripe";
 
 /**
  * El cobro por domiciliación desde el panel de la agencia.
@@ -21,14 +18,40 @@ import {
  * la frontera.
  */
 
-export type ResultadoEnlace = { ok: boolean; mensaje: string; url?: string };
+export type ResultadoEnlace = {
+  ok: boolean;
+  mensaje: string;
+  url?: string;
+  /** Teléfono de la ficha en formato wa.me (34600112233), si lo hay. */
+  whatsapp?: string;
+  email?: string;
+};
+
+/** Los datos de la ficha que hacen falta para mandar el enlace. La RLS decide si es de esta agencia. */
+async function fichaParaEnlace(clientId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("client_billing_profiles")
+    .select("razon_social, email, telefono")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  return data;
+}
+
+/** 600 11 22 33 → 34600112233. Si no parece un móvil español, se deja tal cual (solo dígitos). */
+function telefonoWhatsapp(telefono: string): string | undefined {
+  const digitos = telefono.replace(/\D/g, "").replace(/^00/, "");
+  if (!digitos) return undefined;
+  return digitos.length === 9 ? `34${digitos}` : digitos;
+}
 
 /**
  * Enlace para que el cliente firme la domiciliación.
  *
- * Para abrirlo delante de él (en la visita de alta) o mandárselo por WhatsApp
- * ese mismo día: caduca a las 24 horas. Si no llega a tiempo, puede hacerlo él
- * desde su panel, en Facturas, sin caducidad.
+ * Vale 30 días (`lib/enlace-domiciliacion.ts`): sirve para abrirlo delante de
+ * él en la visita de alta, para copiarlo en WhatsApp o para mandarlo por
+ * correo con `enviarEnlaceDomiciliacion`. También puede firmar desde su panel,
+ * en Facturas.
  */
 export async function enlaceDomiciliacion(clientId: string): Promise<ResultadoEnlace> {
   await requireAgencia();
@@ -37,24 +60,85 @@ export async function enlaceDomiciliacion(clientId: string): Promise<ResultadoEn
     return { ok: false, mensaje: "Falta STRIPE_SECRET_KEY en el entorno del panel." };
   }
 
-  const supabase = await createClient();
+  const ficha = await fichaParaEnlace(clientId);
+  if (!ficha) return { ok: false, mensaje: "No se encuentra la ficha de este cliente." };
 
-  // La RLS decide: si el cliente no es de esta agencia, no hay ficha.
-  const { data: perfil } = await supabase
-    .from("client_billing_profiles")
-    .select("client_id")
-    .eq("client_id", clientId)
-    .maybeSingle();
+  const url = `${await urlBase()}/domiciliar/${crearToken(clientId)}`;
+  return {
+    ok: true,
+    mensaje: `Enlace listo. Vale ${DIAS_VALIDEZ_ENLACE} días.`,
+    url,
+    whatsapp: telefonoWhatsapp(ficha.telefono ?? ""),
+    email: ficha.email || undefined,
+  };
+}
 
-  if (!perfil) return { ok: false, mensaje: "No se encuentra la ficha de este cliente." };
+/**
+ * Manda el enlace por correo al correo de facturación del cliente.
+ *
+ * Por Resend y desde el remitente de facturas, igual que `enviarFactura`: quien
+ * escribe es la agencia con su dominio.
+ */
+export async function enviarEnlaceDomiciliacion(
+  clientId: string
+): Promise<{ ok: boolean; mensaje: string }> {
+  await requireAgencia();
+
+  const apiKey = process.env.RESEND_API_KEY;
+  const remitente = process.env.FACTURAS_REMITENTE;
+  if (!apiKey || !remitente) {
+    return {
+      ok: false,
+      mensaje: "Falta configurar el correo: RESEND_API_KEY y FACTURAS_REMITENTE en el entorno del panel.",
+    };
+  }
+
+  const enlace = await enlaceDomiciliacion(clientId);
+  if (!enlace.ok || !enlace.url) return enlace;
+  if (!enlace.email) {
+    return {
+      ok: false,
+      mensaje: "El cliente no tiene correo de facturación. Añádelo en Datos fiscales y guarda.",
+    };
+  }
+
+  const ficha = await fichaParaEnlace(clientId);
+  const nombre = ficha?.razon_social ? ` ${ficha.razon_social}` : "";
+
+  const html = `
+    <div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#222;max-width:560px">
+      <p>Hola${nombre},</p>
+      <p>Para que las cuotas mensuales se paguen solas, sin tener que hacer una transferencia cada mes, solo falta domiciliarlas.</p>
+      <p>Pulsa el botón, escribe tu IBAN y acepta la orden de domiciliación. Es una página segura de Stripe, la pasarela con la que cobramos. Te lleva un minuto.</p>
+      <p style="margin:24px 0"><a href="${enlace.url}" style="background:#B45831;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block">Domiciliar mis recibos</a></p>
+      <p style="color:#666;font-size:13px">Antes de cada cargo te llegará la factura por correo con el importe. El enlace vale ${DIAS_VALIDEZ_ENLACE} días; si caduca, pídenos otro.</p>
+      <p style="color:#666;font-size:13px">Cualquier duda, respóndenos a este correo.</p>
+    </div>`;
 
   try {
-    const url = await crearSesionDomiciliacion(supabase, clientId, "/domiciliacion");
-    revalidatePath(`/dashboard/${clientId}/facturacion`);
-    return { ok: true, mensaje: "Enlace creado. Caduca en 24 horas.", url };
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: remitente,
+        // El remitente puede ser una dirección sin buzón (Resend solo necesita
+        // el dominio verificado); las respuestas van al buzón que sí existe.
+        reply_to: KIVUK.email,
+        to: [enlace.email],
+        subject: "Domicilia tus recibos de Kivuk",
+        html,
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!r.ok) {
+      const detalle = await r.text().catch(() => "");
+      return { ok: false, mensaje: `Resend respondió ${r.status}. ${detalle.slice(0, 200)}` };
+    }
   } catch (e) {
-    return { ok: false, mensaje: `Stripe no ha podido crear el enlace: ${mensajeDeError(e)}` };
+    return { ok: false, mensaje: `No se pudo enviar: ${mensajeDeError(e)}` };
   }
+
+  return { ok: true, mensaje: `Enlace enviado a ${enlace.email}.` };
 }
 
 /**
