@@ -11,7 +11,11 @@ export type Avisos = {
   porEmail: boolean;
   email: string;
   push: boolean;
+  /** A dónde mandar las solicitudes de presupuesto que recoge el bot. Vacío: no se mandan. */
+  emailPresupuestos: string;
 };
+
+const CORREO = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
 
 /**
  * Preferencias de aviso del cliente.
@@ -24,14 +28,24 @@ export async function guardarAvisos(avisos: Avisos): Promise<Resultado> {
   const { clientId } = await clienteDelPanel();
 
   const email = avisos.email.trim();
+  const emailPresupuestos = avisos.emailPresupuestos.trim();
 
   // Pedir aviso por correo sin decir a dónde es pedir que no llegue. Vale más
   // negarse aquí que dejarlo guardado y que el fallo aparezca dentro de una
   // semana, cuando alguien esté esperando.
-  if (avisos.porEmail && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) {
+  if (avisos.porEmail && !CORREO.test(email)) {
     return {
       ok: false,
       mensaje: "Escribe un correo válido al que mandar los avisos.",
+    };
+  }
+
+  // Este no tiene casilla: vacío significa «no los mandes». Pero si hay algo
+  // escrito tiene que ser un correo, o las solicitudes se perderían en silencio.
+  if (emailPresupuestos && !CORREO.test(emailPresupuestos)) {
+    return {
+      ok: false,
+      mensaje: "El correo de presupuestos no es válido. Corrígelo o déjalo vacío.",
     };
   }
 
@@ -52,6 +66,7 @@ export async function guardarAvisos(avisos: Avisos): Promise<Resultado> {
       en_panel: avisos.enPanel,
       por_email: avisos.porEmail,
       email: email || null,
+      email_presupuestos: emailPresupuestos || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "client_id" }

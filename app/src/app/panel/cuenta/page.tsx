@@ -27,7 +27,7 @@ export default async function CuentaPage() {
 
   const { data: avisos } = await supabase
     .from("client_notification_settings")
-    .select("en_panel, por_email, email, push")
+    .select("en_panel, por_email, email, push, email_presupuestos")
     .eq("client_id", contexto.clientId)
     .maybeSingle();
 
@@ -50,6 +50,7 @@ export default async function CuentaPage() {
               porEmail: avisos?.por_email ?? false,
               email: avisos?.email ?? "",
               push: avisos?.push ?? false,
+              emailPresupuestos: avisos?.email_presupuestos ?? "",
             }}
             // Pública por definición: viaja al navegador para poder suscribirse.
             // La privada nunca sale del servidor.

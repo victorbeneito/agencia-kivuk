@@ -132,6 +132,27 @@ export function AvisosForm({
         />
       )}
 
+      {/*
+        No es un aviso de «alguien espera»: es trabajo que entregar a quien hace
+        los presupuestos, que a menudo no es quien atiende el chat. Por eso va
+        aparte y con su propio correo, sin casilla: escrito, se mandan; vacío, no.
+      */}
+      <div className="flex flex-col gap-2 border-t pt-4">
+        <Label htmlFor="email_presupuestos">Solicitudes de presupuesto</Label>
+        <Input
+          id="email_presupuestos"
+          type="email"
+          placeholder="presupuestos@tunegocio.com"
+          value={avisos.emailPresupuestos}
+          onChange={(e) => cambiar({ emailPresupuestos: e.target.value })}
+        />
+        <p className="text-sm text-muted-foreground">
+          Cuando el asistente recoja los datos de un presupuesto (producto,
+          medidas, unidades, email y dirección), te los mandamos a este correo
+          en una tabla. Déjalo vacío si no lo usas.
+        </p>
+      </div>
+
       <div className="flex flex-wrap items-center gap-3">
         <Button
           disabled={pendiente}

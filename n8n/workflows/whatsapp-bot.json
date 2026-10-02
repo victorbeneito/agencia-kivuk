@@ -289,7 +289,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Historial: Supabase nos lo devuelve del más nuevo al más viejo,\n// así que lo invertimos para dárselo a la IA en orden cronológico.\nconst previos = $input.all()\n  .map((i) => i.json)\n  .filter((m) => m.role && m.content)\n  .reverse()\n  .map((m) => ({ role: m.role, content: m.content }));\n\n// Ojo: este nodo recibe varios items (uno por mensaje del historial), así que\n// hay que usar .first() y no .item, que aquí no existe.\nconst cfg = $('Buscar prompt del cliente').first().json;\n\n// === Presentarse como asistente ===\n// Quien escribe tiene que saber que le contesta un asistente automatico y no\n// una persona (lo promete el contrato y lo exige el art. 50 del Reglamento\n// europeo de IA). Toca presentarse cuando:\n//   - es una conversacion nueva: no hay ningun mensaje nuestro;\n//   - lo ultimo que se le escribio lo escribio una persona desde el panel: si\n//     ahora contesta el bot sin decir nada, creeria que sigue hablando con ella;\n//   - el bot no le escribe desde hace mas de 30 dias.\n// El historial llega del mas nuevo al mas viejo, asi que el primero que\n// encontramos de los nuestros es el ultimo que se le mando.\nconst TREINTA_DIAS = 30 * 24 * 60 * 60 * 1000;\nconst ultimoNuestro = $input.all()\n  .map((i) => i.json)\n  .find((m) => m.sender === 'bot' || m.sender === 'human');\nconst presentarse =\n  !ultimoNuestro ||\n  ultimoNuestro.sender === 'human' ||\n  new Date() - new Date(ultimoNuestro.created_at) > TREINTA_DIAS;\n\nconst busqueda = $('Preparar búsqueda').first().json || {};\nconst fragmentos = ($('Recoger conocimiento').first().json || {}).fragmentos || [];\nconst productos = ($('Recoger productos').first().json || {}).productos || [];\n\n// === Conocimiento del negocio (RAG) ===\n// Lo recuperado para ESTA pregunta, no la base entera. Va como bloque propio y\n// con reglas explícitas: sin ellas el modelo rellena los huecos por su cuenta,\n// que es justo lo que no se quiere en una tienda de verdad.\nconst conocimiento = [];\n\nif (fragmentos.length) {\n  conocimiento.push('=== INFORMACION DEL NEGOCIO ===');\n  // El texto del fragmento ya viene con su título delante desde el indexado.\n  conocimiento.push(\n    fragmentos\n      .map((f) => f.content + (f.source_url ? '\\nMas informacion: ' + f.source_url : ''))\n      .join('\\n\\n')\n  );\n}\n\n// El catálogo guarda el precio como número, y al pegarlo tal cual salía\n// «12.74 EUR» en el chat: punto decimal y el código de la moneda. En España\n// eso no lo escribe nadie, y en un mensaje de WhatsApp canta. Se formatea\n// aquí, y no pidiéndoselo al modelo, porque un modelo que reescribe cifras\n// alguna vez se equivoca de cifra.\nfunction enEuros(valor, moneda) {\n  const n = Number(valor);\n  if (!isFinite(n)) return String(valor);\n  const [enteros, decimales] = n.toFixed(2).split('.');\n  // Punto de millar: 1234.5 -> «1.234,50».\n  const conMiles = enteros.replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.');\n  const simbolo = !moneda || moneda === 'EUR' ? '€' : moneda;\n  return conMiles + ',' + decimales + ' ' + simbolo;\n}\n\nif (productos.length) {\n  conocimiento.push('=== PRODUCTOS DEL CATALOGO ===');\n  conocimiento.push(\n    productos\n      .map((p) => {\n        const precio = p.price === null || p.price === undefined ? 'consultar' : enEuros(p.price, p.currency);\n        return '- ' + p.name + ': ' + precio + (p.available === false ? ' (agotado)' : '') + ' -> ' + p.url;\n      })\n      .join('\\n')\n  );\n}\n\nif (conocimiento.length) {\n  conocimiento.push([\n    'Reglas sobre esta informacion:',\n    '- Para precios, plazos, politicas o caracteristicas del negocio, responde UNICAMENTE con lo de arriba.',\n    '- Si el dato no esta ahi, dilo con naturalidad y ofrece el contacto humano. NUNCA te inventes precios, plazos ni condiciones.',\n    '- Los precios de la lista de productos son los validos: no los redondees, no los estimes y no des rangos inventados.',\n    '- Copia los precios EXACTAMENTE como aparecen, con su coma decimal y su simbolo del euro. No los reescribas con punto ni cambies EUR por otra cosa.',\n    '- Si mencionas un producto concreto, incluye su enlace.',\n  ].join('\\n'));\n}\n\n// === Agenda ===\n// Solo para clientes con el modulo de agenda activo. Una tienda que no reserva\n// citas no debe recibir nada de esto: si le metes un calendario en el contexto,\n// el modelo acaba ofreciendo horas a quien preguntaba por un capazo.\nconst calendario = [];\n\nif (busqueda.tiene_agenda) {\n  // Los huecos los calcula la Agenda API, no este nodo: es la misma fuente que\n  // usa el agente de voz.\n  const agenda = $('Consultar agenda').first().json || {};\n  const libres = agenda.dias || [];\n  // Lo que se puede reservar, y lo que se ha entendido de ESTE mensaje. El\n  // motor deduce el servicio de la frase, asi que en cuanto alguien escribe\n  // \"unas mechas\" los huecos de abajo ya son de 150 minutos y no de 60.\n  const catalogo = agenda.catalogo || [];\n  const servicioDetectado = (agenda.servicios || [])[0] || null;\n  const duracion = agenda.duracion_min || 60;\n  const paso = agenda.paso_min || 15;\n\n  const aMin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };\n  const dosCifras = (n) => String(n).padStart(2, '0');\n  const aTexto = (m) => dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n\n  function rangos(horas) {\n    const out = [];\n    let ini = null;\n    let prev = null;\n    for (const h of horas) {\n      const m = aMin(h);\n      if (prev !== null && m === prev + paso) { prev = m; continue; }\n      if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n      ini = m;\n      prev = m;\n    }\n    if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n    return out.join(', ');\n  }\n\n  // La IA no sabe qué día de la semana cae cada fecha. Le damos los próximos\n  // 7 días: exactamente 7, para que cada nombre de día aparezca UNA sola vez.\n  const proximosDias = [];\n  for (let i = 0; i < 7; i++) {\n    const d = $now.plus({ days: i });\n    proximosDias.push(`${d.setLocale('es').toFormat('cccc')} = ${d.toFormat('yyyy-MM-dd')}`);\n  }\n\n  // Cada servicio dura lo suyo, asi que una hora no significa nada hasta saber\n  // cual es. Sin esta lista el modelo se inventa un catalogo plausible --y en\n  // una peluqueria acierta de lleno, que es lo peligroso: nombres que suenan\n  // bien y que el negocio no hace.\n  if (catalogo.length) {\n    calendario.push([\n      '=== SERVICIOS QUE SE PUEDEN RESERVAR (los unicos que existen) ===',\n      catalogo.map((s) => `- ${s.nombre} (${s.duracion_min} min)`).join('\\n'),\n      servicioDetectado\n        ? `De este mensaje se ha entendido: ${servicioDetectado.nombre}. Los huecos de abajo son para eso.`\n        : 'Todavia no se sabe que quiere hacerse. Los huecos de abajo son de una cita estandar y NO valen para un servicio largo: si quiere cita, preguntale primero que se va a hacer.',\n      '',\n    ].join('\\n'));\n  }\n\n  calendario.push([\n    '=== CALENDARIO REAL (esta es la unica fuente valida de fechas) ===',\n    `Hoy es ${$now.setLocale('es').toFormat('cccc')} ${$now.toFormat('yyyy-MM-dd')} (Europe/Madrid).`,\n    proximosDias.join('\\n'),\n    'Reglas de fechas:',\n    '- Si el usuario nombra un dia de la semana (\"el viernes\"), usa EXACTAMENTE la fecha de esta lista.',\n    '- Si nombra una fecha concreta (\"el 31 de julio\"), respetala tal cual y NO la corrijas.',\n    '- Los mensajes anteriores pueden contener fechas equivocadas: ignoralas y usa solo esta lista.',\n    // La lista va en AAAA-MM-DD porque de ahi sale el campo date, que es el que\n    // reserva. Pero el modelo copia el formato que ve, y al cliente le llegaba\n    // «el jueves 2026-09-24». Se separan las dos cosas con una regla.\n    '- En el texto de reply escribe las fechas como DD-MM-AAAA (\"el jueves 24-09-2026\"), NUNCA como AAAA-MM-DD. El campo date sigue siempre en AAAA-MM-DD.',\n    '',\n    servicioDetectado\n      ? `=== HUECOS LIBRES PARA ${servicioDetectado.nombre} (${duracion} min, pueden empezar cada ${paso} min) ===`\n      : `=== HUECOS LIBRES (cita estandar de ${duracion} min, pueden empezar cada ${paso} min) ===`,\n    libres.length\n      ? libres.map((d) => `${d.dia} ${d.fecha}: ${rangos(d.horas)}`).join('\\n')\n      : 'No queda ningun hueco libre en los proximos 7 dias.',\n    'Reglas de disponibilidad:',\n    `- Los rangos son horas de INICIO posibles: dentro de \"09:00-11:00\" vale cualquier hora en saltos de ${paso} minutos.`,\n    '- Si el usuario PREGUNTA que huecos hay, respondele usando esos rangos, sin inventarte ninguno.',\n    '- Si el usuario PIDE una hora concreta, NO juzgues si esta libre: limitate a rellenar date y time. De comprobarlo se encarga el sistema.',\n  ].join('\\n'));\n}\n\n// === Instrucciones ===\n// Dos juegos según el cliente reserve citas o solo atienda. El formato JSON de\n// salida es el mismo en los dos casos para no tener que tocar los nodos que\n// vienen después.\nconst instruccionesAgenda = [\n  'Tu tarea es EXTRAER datos y conversar. La disponibilidad la decide el sistema, nunca tu.',\n  '',\n  'Responde SIEMPRE en JSON con esta forma exacta:',\n  '{\"reply\": \"tu respuesta al usuario\", \"date\": \"YYYY-MM-DD\" o null, \"time\": \"HH:mm\" o null, \"servicio\": \"lo que se va a hacer\" o null, \"trabajador\": \"la persona que pide\" o null, \"confirmar\": true o false, \"cambiar_cita\": true o false, \"anular_cita\": true o false, \"email\": \"el email del usuario\" o null, \"motivo\": \"el servicio que pide\" o null, \"escalar\": true o false}',\n  '',\n  'Para dar una cita hacen falta TRES cosas: QUE se va a hacer, que DIA y a que HORA.',\n  '- servicio: ponlo con el nombre EXACTO de la lista de servicios reservables. Si lo dice con otras palabras (\"mechitas\", \"cortarme el pelo\"), traducelo al de la lista. Si no encaja en ninguno, dejalo en null.',\n  '- trabajador: solo si pide a alguien por su nombre. Si le da igual quien le atienda, null.',\n  '- confirmar: true cuando esta pidiendo la cita (\"dame cita\", \"reservamela\", \"el viernes a las 5 me va bien\"). false cuando solo pregunta (\"tienes hueco el viernes?\"). Ante la duda, false: es peor crearle una cita que no ha pedido que preguntarle una vez mas.',\n  '- Una negativa NUNCA es una confirmacion. Si el ultimo mensaje es \"no\", \"no hace falta\", \"dejalo\", \"mejor no\" o parecido, confirmar va en false y en reply no des ninguna cita por hecha: di que no reservas nada y ofrece ayudar en otra cosa.',\n  '- cambiar_cita: true SOLO cuando quiere mover a otro dia u hora una cita que YA tiene (\"no me va bien el martes, mejor el miercoles\", \"me la puedes cambiar a las 6?\"). Entonces date y time son los NUEVOS, y NO crees otra cita. Si pide algo de su cita que no sea cambiarla de hora ni anularla, cambiar_cita en false y escalar en true.',\n  '- anular_cita: true cuando quiere ANULAR una cita que ya tiene (\"no voy a poder ir, anulala\", \"quiero cancelar mi cita\"). Tambien cuando le has preguntado si de verdad quiere anularla y dice que si. confirmar va en true SOLO en ese segundo caso, cuando ya ha confirmado; mientras tanto, false.',\n  '- Con cambiar_cita, confirmar significa lo mismo que siempre: false mientras solo pregunta si hay hueco, true cuando ya ha dicho que si a una hora concreta.',\n  '- El email NO hace falta para reservar. Pidelo unicamente si tu prompt te lo pide.',\n  '- Todos estos datos son los que haya dicho en CUALQUIER momento de la conversacion. Pon null solo si de verdad no lo ha dicho nunca.',\n  '- Rellena SIEMPRE date y time si ha mencionado un dia y una hora, AUNQUE creas que esa hora podria estar ocupada.',\n  '- NUNCA digas que una hora no esta disponible, y NUNCA ofrezcas alternativas por tu cuenta: de eso se encarga el sistema despues de ti.',\n  '- En reply: si falta algo, pide UNICAMENTE lo que falte. Si ya lo tienes todo, escribe una confirmacion breve.',\n  '- No vuelvas a preguntar un dato que el usuario ya te dio antes.',\n].join('\\n');\n\nconst instruccionesTienda = [\n  'Atiendes a clientes de este negocio por WhatsApp. Tu trabajo es resolver dudas y',\n  'asesorar sobre los productos con informacion veraz.',\n  '',\n  'Responde SIEMPRE en JSON con esta forma exacta:',\n  '{\"reply\": \"tu respuesta al usuario\", \"date\": null, \"time\": null, \"email\": null, \"motivo\": null, \"escalar\": true o false}',\n  '',\n  '- Escribe como en un chat: breve, natural y directo. Nada de parrafadas ni de listas largas.',\n  '- Este negocio NO gestiona citas por aqui: no propongas ninguna ni pidas fecha, hora o email para reservar.',\n  '- Puedes recomendar y comparar productos, pero solo con los datos que tengas delante.',\n  '- Si te preguntan algo que no puedes resolver (un pedido concreto, una incidencia,',\n  '  un presupuesto a medida), dilo claramente y pasa el telefono o el correo del negocio.',\n  '- Ante la duda, es mejor decir \"eso te lo confirman mejor por telefono\" que arriesgar un dato.',\n].join('\\n');\n\nconst messages = [{ role: 'system', content: cfg.system_prompt || '' }];\n\n// Se mantiene por compatibilidad con los clientes que todavia usan el campo de\n// texto libre. Cuando su contenido este pasado a documentos, este bloque sobra.\nif (cfg.knowledge_base) {\n  messages.push({\n    role: 'system',\n    content: 'Base de conocimiento del negocio:\\n' + cfg.knowledge_base,\n  });\n}\n\nmessages.push({\n  role: 'system',\n  content: busqueda.tiene_agenda ? instruccionesAgenda : instruccionesTienda,\n});\n\n// === Cuándo avisar a una persona ===\n// El bot no deja de responder por su cuenta: contesta lo que diga su prompt y,\n// además, levanta la mano. Quien decide tomar el mando es la persona que mira\n// la bandeja, no el modelo.\nmessages.push({\n  role: 'system',\n  content: [\n    'Marca escalar: true cuando el usuario pida hablar con una persona, este enfadado o',\n    'insatisfecho, reclame algo, pregunte por un pedido o una incidencia concreta, o haga',\n    'una pregunta que no puedes responder con la informacion que tienes.',\n    'En el resto de casos, escalar: false. No lo menciones nunca en tu respuesta.',\n    'El campo escalar es OBLIGATORIO: tiene que aparecer siempre en el JSON, con true o con false.',\n  ].join('\\n'),\n});\n\nmessages.push(...previos);\n\n// El conocimiento y el calendario van DESPUES del historial, pegados al mensaje\n// actual. Si quedan enterrados al principio, el modelo se guia por lo que el\n// mismo dijo en mensajes anteriores en vez de por los datos buenos.\nif (conocimiento.length) {\n  messages.push({ role: 'system', content: conocimiento.join('\\n\\n') });\n}\nif (calendario.length) {\n  messages.push({ role: 'system', content: calendario.join('\\n') });\n}\n\n// === Adjuntos ===\n// Si lo que llego no era texto escrito, el modelo tiene que saberlo. Sin esto\n// trataria la transcripcion de un audio como si la persona la hubiera tecleado,\n// y ante una foto que no se ha podido abrir se inventaria que la ha visto.\nconst adjunto = $('Extraer mensaje').first().json.adjunto;\n\nif (adjunto) {\n  messages.push({\n    role: 'system',\n    content: adjunto.leido\n      ? 'El ultimo mensaje no es texto escrito: la persona ha enviado ' + adjunto.etiqueta +\n        ' y lo que sigue es lo que se ha podido leer de ahi. Respondele con naturalidad, sin ' +\n        'mencionar que lo has transcrito ni descrito.'\n      : 'La persona ha enviado ' + adjunto.etiqueta + '. No puedes acceder a su contenido: ' +\n        'dilo con naturalidad y pidele que te lo cuente por escrito. No te inventes que hay dentro.',\n  });\n}\n\n// La presentacion va en un campo aparte y no dentro de reply, porque reply no\n// siempre llega a enviarse: cuando se pide hora, lo que sale es el texto de la\n// agenda. Respuesta final la pone delante de lo que se vaya a mandar.\nif (presentarse) {\n  messages.push({\n    role: 'system',\n    content: [\n      'Es la primera vez que hablas con esta persona, o hace tiempo que no le escribes tu.',\n      'Anade al JSON el campo \"presentacion\": UNA frase corta que diga que eres el asistente virtual',\n      'del negocio, con el nombre que usa tu prompt. Por ejemplo: \"Hola, soy el asistente virtual de <negocio>.\"',\n      'Tiene que quedar claro que eres un asistente automatico y no una persona.',\n      'Escribela en el mismo idioma en que te escribe la persona.',\n      'NO repitas el saludo ni la presentacion dentro de reply: reply empieza directamente por la respuesta.',\n    ].join('\\n'),\n  });\n}\n\nmessages.push({ role: 'user', content: $('Extraer mensaje').first().json.message_text });\n\nreturn [{ json: { messages, presentarse } }];\n"
+        "jsCode": "// Historial: Supabase nos lo devuelve del más nuevo al más viejo,\n// así que lo invertimos para dárselo a la IA en orden cronológico.\nconst previos = $input.all()\n  .map((i) => i.json)\n  .filter((m) => m.role && m.content)\n  .reverse()\n  .map((m) => ({ role: m.role, content: m.content }));\n\n// Ojo: este nodo recibe varios items (uno por mensaje del historial), así que\n// hay que usar .first() y no .item, que aquí no existe.\nconst cfg = $('Buscar prompt del cliente').first().json;\n\n// === Presentarse como asistente ===\n// Quien escribe tiene que saber que le contesta un asistente automatico y no\n// una persona (lo promete el contrato y lo exige el art. 50 del Reglamento\n// europeo de IA). Toca presentarse cuando:\n//   - es una conversacion nueva: no hay ningun mensaje nuestro;\n//   - lo ultimo que se le escribio lo escribio una persona desde el panel: si\n//     ahora contesta el bot sin decir nada, creeria que sigue hablando con ella;\n//   - el bot no le escribe desde hace mas de 30 dias.\n// El historial llega del mas nuevo al mas viejo, asi que el primero que\n// encontramos de los nuestros es el ultimo que se le mando.\nconst TREINTA_DIAS = 30 * 24 * 60 * 60 * 1000;\nconst ultimoNuestro = $input.all()\n  .map((i) => i.json)\n  .find((m) => m.sender === 'bot' || m.sender === 'human');\nconst presentarse =\n  !ultimoNuestro ||\n  ultimoNuestro.sender === 'human' ||\n  new Date() - new Date(ultimoNuestro.created_at) > TREINTA_DIAS;\n\nconst busqueda = $('Preparar búsqueda').first().json || {};\nconst fragmentos = ($('Recoger conocimiento').first().json || {}).fragmentos || [];\nconst productos = ($('Recoger productos').first().json || {}).productos || [];\n\n// === Conocimiento del negocio (RAG) ===\n// Lo recuperado para ESTA pregunta, no la base entera. Va como bloque propio y\n// con reglas explícitas: sin ellas el modelo rellena los huecos por su cuenta,\n// que es justo lo que no se quiere en una tienda de verdad.\nconst conocimiento = [];\n\nif (fragmentos.length) {\n  conocimiento.push('=== INFORMACION DEL NEGOCIO ===');\n  // El texto del fragmento ya viene con su título delante desde el indexado.\n  conocimiento.push(\n    fragmentos\n      .map((f) => f.content + (f.source_url ? '\\nMas informacion: ' + f.source_url : ''))\n      .join('\\n\\n')\n  );\n}\n\n// El catálogo guarda el precio como número, y al pegarlo tal cual salía\n// «12.74 EUR» en el chat: punto decimal y el código de la moneda. En España\n// eso no lo escribe nadie, y en un mensaje de WhatsApp canta. Se formatea\n// aquí, y no pidiéndoselo al modelo, porque un modelo que reescribe cifras\n// alguna vez se equivoca de cifra.\nfunction enEuros(valor, moneda) {\n  const n = Number(valor);\n  if (!isFinite(n)) return String(valor);\n  const [enteros, decimales] = n.toFixed(2).split('.');\n  // Punto de millar: 1234.5 -> «1.234,50».\n  const conMiles = enteros.replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.');\n  const simbolo = !moneda || moneda === 'EUR' ? '€' : moneda;\n  return conMiles + ',' + decimales + ' ' + simbolo;\n}\n\nif (productos.length) {\n  conocimiento.push('=== PRODUCTOS DEL CATALOGO ===');\n  conocimiento.push(\n    productos\n      .map((p) => {\n        const precio = p.price === null || p.price === undefined ? 'consultar' : enEuros(p.price, p.currency);\n        return '- ' + p.name + ': ' + precio + (p.available === false ? ' (agotado)' : '') + ' -> ' + p.url;\n      })\n      .join('\\n')\n  );\n}\n\nif (conocimiento.length) {\n  conocimiento.push([\n    'Reglas sobre esta informacion:',\n    '- Para precios, plazos, politicas o caracteristicas del negocio, responde UNICAMENTE con lo de arriba.',\n    '- Si el dato no esta ahi, dilo con naturalidad y ofrece el contacto humano. NUNCA te inventes precios, plazos ni condiciones.',\n    '- Los precios de la lista de productos son los validos: no los redondees, no los estimes y no des rangos inventados.',\n    '- Copia los precios EXACTAMENTE como aparecen, con su coma decimal y su simbolo del euro. No los reescribas con punto ni cambies EUR por otra cosa.',\n    '- Si mencionas un producto concreto, incluye su enlace.',\n  ].join('\\n'));\n}\n\n// === Agenda ===\n// Solo para clientes con el modulo de agenda activo. Una tienda que no reserva\n// citas no debe recibir nada de esto: si le metes un calendario en el contexto,\n// el modelo acaba ofreciendo horas a quien preguntaba por un capazo.\nconst calendario = [];\n\nif (busqueda.tiene_agenda) {\n  // Los huecos los calcula la Agenda API, no este nodo: es la misma fuente que\n  // usa el agente de voz.\n  const agenda = $('Consultar agenda').first().json || {};\n  const libres = agenda.dias || [];\n  // Lo que se puede reservar, y lo que se ha entendido de ESTE mensaje. El\n  // motor deduce el servicio de la frase, asi que en cuanto alguien escribe\n  // \"unas mechas\" los huecos de abajo ya son de 150 minutos y no de 60.\n  const catalogo = agenda.catalogo || [];\n  const servicioDetectado = (agenda.servicios || [])[0] || null;\n  const duracion = agenda.duracion_min || 60;\n  const paso = agenda.paso_min || 15;\n\n  const aMin = (h) => { const [a, b] = h.split(':').map(Number); return a * 60 + b; };\n  const dosCifras = (n) => String(n).padStart(2, '0');\n  const aTexto = (m) => dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);\n\n  function rangos(horas) {\n    const out = [];\n    let ini = null;\n    let prev = null;\n    for (const h of horas) {\n      const m = aMin(h);\n      if (prev !== null && m === prev + paso) { prev = m; continue; }\n      if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n      ini = m;\n      prev = m;\n    }\n    if (ini !== null) out.push(ini === prev ? aTexto(ini) : aTexto(ini) + '-' + aTexto(prev));\n    return out.join(', ');\n  }\n\n  // La IA no sabe qué día de la semana cae cada fecha. Le damos los próximos\n  // 7 días: exactamente 7, para que cada nombre de día aparezca UNA sola vez.\n  const proximosDias = [];\n  for (let i = 0; i < 7; i++) {\n    const d = $now.plus({ days: i });\n    proximosDias.push(`${d.setLocale('es').toFormat('cccc')} = ${d.toFormat('yyyy-MM-dd')}`);\n  }\n\n  // Cada servicio dura lo suyo, asi que una hora no significa nada hasta saber\n  // cual es. Sin esta lista el modelo se inventa un catalogo plausible --y en\n  // una peluqueria acierta de lleno, que es lo peligroso: nombres que suenan\n  // bien y que el negocio no hace.\n  if (catalogo.length) {\n    calendario.push([\n      '=== SERVICIOS QUE SE PUEDEN RESERVAR (los unicos que existen) ===',\n      catalogo.map((s) => `- ${s.nombre} (${s.duracion_min} min)`).join('\\n'),\n      servicioDetectado\n        ? `De este mensaje se ha entendido: ${servicioDetectado.nombre}. Los huecos de abajo son para eso.`\n        : 'Todavia no se sabe que quiere hacerse. Los huecos de abajo son de una cita estandar y NO valen para un servicio largo: si quiere cita, preguntale primero que se va a hacer.',\n      '',\n    ].join('\\n'));\n  }\n\n  calendario.push([\n    '=== CALENDARIO REAL (esta es la unica fuente valida de fechas) ===',\n    `Hoy es ${$now.setLocale('es').toFormat('cccc')} ${$now.toFormat('yyyy-MM-dd')} (Europe/Madrid).`,\n    proximosDias.join('\\n'),\n    'Reglas de fechas:',\n    '- Si el usuario nombra un dia de la semana (\"el viernes\"), usa EXACTAMENTE la fecha de esta lista.',\n    '- Si nombra una fecha concreta (\"el 31 de julio\"), respetala tal cual y NO la corrijas.',\n    '- Los mensajes anteriores pueden contener fechas equivocadas: ignoralas y usa solo esta lista.',\n    // La lista va en AAAA-MM-DD porque de ahi sale el campo date, que es el que\n    // reserva. Pero el modelo copia el formato que ve, y al cliente le llegaba\n    // «el jueves 2026-09-24». Se separan las dos cosas con una regla.\n    '- En el texto de reply escribe las fechas como DD-MM-AAAA (\"el jueves 24-09-2026\"), NUNCA como AAAA-MM-DD. El campo date sigue siempre en AAAA-MM-DD.',\n    '',\n    servicioDetectado\n      ? `=== HUECOS LIBRES PARA ${servicioDetectado.nombre} (${duracion} min, pueden empezar cada ${paso} min) ===`\n      : `=== HUECOS LIBRES (cita estandar de ${duracion} min, pueden empezar cada ${paso} min) ===`,\n    libres.length\n      ? libres.map((d) => `${d.dia} ${d.fecha}: ${rangos(d.horas)}`).join('\\n')\n      : 'No queda ningun hueco libre en los proximos 7 dias.',\n    'Reglas de disponibilidad:',\n    `- Los rangos son horas de INICIO posibles: dentro de \"09:00-11:00\" vale cualquier hora en saltos de ${paso} minutos.`,\n    '- Si el usuario PREGUNTA que huecos hay, respondele usando esos rangos, sin inventarte ninguno.',\n    '- Si el usuario PIDE una hora concreta, NO juzgues si esta libre: limitate a rellenar date y time. De comprobarlo se encarga el sistema.',\n  ].join('\\n'));\n}\n\n// === Instrucciones ===\n// Dos juegos según el cliente reserve citas o solo atienda. El formato JSON de\n// salida es el mismo en los dos casos para no tener que tocar los nodos que\n// vienen después.\nconst instruccionesAgenda = [\n  'Tu tarea es EXTRAER datos y conversar. La disponibilidad la decide el sistema, nunca tu.',\n  '',\n  'Responde SIEMPRE en JSON con esta forma exacta:',\n  '{\"reply\": \"tu respuesta al usuario\", \"date\": \"YYYY-MM-DD\" o null, \"time\": \"HH:mm\" o null, \"servicio\": \"lo que se va a hacer\" o null, \"trabajador\": \"la persona que pide\" o null, \"confirmar\": true o false, \"cambiar_cita\": true o false, \"anular_cita\": true o false, \"email\": \"el email del usuario\" o null, \"motivo\": \"el servicio que pide\" o null, \"escalar\": true o false}',\n  '',\n  'Para dar una cita hacen falta TRES cosas: QUE se va a hacer, que DIA y a que HORA.',\n  '- servicio: ponlo con el nombre EXACTO de la lista de servicios reservables. Si lo dice con otras palabras (\"mechitas\", \"cortarme el pelo\"), traducelo al de la lista. Si no encaja en ninguno, dejalo en null.',\n  '- trabajador: solo si pide a alguien por su nombre. Si le da igual quien le atienda, null.',\n  '- confirmar: true cuando esta pidiendo la cita (\"dame cita\", \"reservamela\", \"el viernes a las 5 me va bien\"). false cuando solo pregunta (\"tienes hueco el viernes?\"). Ante la duda, false: es peor crearle una cita que no ha pedido que preguntarle una vez mas.',\n  '- Una negativa NUNCA es una confirmacion. Si el ultimo mensaje es \"no\", \"no hace falta\", \"dejalo\", \"mejor no\" o parecido, confirmar va en false y en reply no des ninguna cita por hecha: di que no reservas nada y ofrece ayudar en otra cosa.',\n  '- cambiar_cita: true SOLO cuando quiere mover a otro dia u hora una cita que YA tiene (\"no me va bien el martes, mejor el miercoles\", \"me la puedes cambiar a las 6?\"). Entonces date y time son los NUEVOS, y NO crees otra cita. Si pide algo de su cita que no sea cambiarla de hora ni anularla, cambiar_cita en false y escalar en true.',\n  '- anular_cita: true cuando quiere ANULAR una cita que ya tiene (\"no voy a poder ir, anulala\", \"quiero cancelar mi cita\"). Tambien cuando le has preguntado si de verdad quiere anularla y dice que si. confirmar va en true SOLO en ese segundo caso, cuando ya ha confirmado; mientras tanto, false.',\n  '- Con cambiar_cita, confirmar significa lo mismo que siempre: false mientras solo pregunta si hay hueco, true cuando ya ha dicho que si a una hora concreta.',\n  '- El email NO hace falta para reservar. Pidelo unicamente si tu prompt te lo pide.',\n  '- Todos estos datos son los que haya dicho en CUALQUIER momento de la conversacion. Pon null solo si de verdad no lo ha dicho nunca.',\n  '- Rellena SIEMPRE date y time si ha mencionado un dia y una hora, AUNQUE creas que esa hora podria estar ocupada.',\n  '- NUNCA digas que una hora no esta disponible, y NUNCA ofrezcas alternativas por tu cuenta: de eso se encarga el sistema despues de ti.',\n  '- En reply: si falta algo, pide UNICAMENTE lo que falte. Si ya lo tienes todo, escribe una confirmacion breve.',\n  '- No vuelvas a preguntar un dato que el usuario ya te dio antes.',\n].join('\\n');\n\nconst instruccionesTienda = [\n  'Atiendes a clientes de este negocio por WhatsApp. Tu trabajo es resolver dudas y',\n  'asesorar sobre los productos con informacion veraz.',\n  '',\n  'Responde SIEMPRE en JSON con esta forma exacta:',\n  '{\"reply\": \"tu respuesta al usuario\", \"date\": null, \"time\": null, \"email\": null, \"motivo\": null, \"escalar\": true o false, \"presupuesto\": null}',\n  '',\n  // Opcional por cliente: solo lo usa quien lo pide en su prompt (Cestería, para\n  // que las peticiones de precio lleguen a su buzón de presupuestos). Al resto\n  // les queda siempre en null y no cambia nada.\n  '- presupuesto: dejalo SIEMPRE en null, salvo que tu prompt te pida recoger los datos de un presupuesto.',\n  '  En ese caso, en el mensaje en que ya tienes los datos y se lo pasas al equipo, rellenalo asi:',\n  '  {\"nombre\": \"...\", \"tipo_cliente\": \"particular\" o \"profesional\", \"producto\": \"...\", \"medidas_unidades\": \"...\", \"email\": \"...\", \"direccion\": \"direccion de envio con codigo postal\"}',\n  '  Copia cada dato tal cual te lo dio; si alguno no lo tienes, ponlo en null. Antes de tener al menos el producto y el email, null.',\n  '',\n  '- Escribe como en un chat: breve, natural y directo. Nada de parrafadas ni de listas largas.',\n  '- Este negocio NO gestiona citas por aqui: no propongas ninguna ni pidas fecha, hora o email para reservar.',\n  '- Puedes recomendar y comparar productos, pero solo con los datos que tengas delante.',\n  '- Si te preguntan algo que no puedes resolver (un pedido concreto, una incidencia,',\n  '  un presupuesto a medida), dilo claramente y pasa el telefono o el correo del negocio.',\n  '- Ante la duda, es mejor decir \"eso te lo confirman mejor por telefono\" que arriesgar un dato.',\n].join('\\n');\n\nconst messages = [{ role: 'system', content: cfg.system_prompt || '' }];\n\n// Se mantiene por compatibilidad con los clientes que todavia usan el campo de\n// texto libre. Cuando su contenido este pasado a documentos, este bloque sobra.\nif (cfg.knowledge_base) {\n  messages.push({\n    role: 'system',\n    content: 'Base de conocimiento del negocio:\\n' + cfg.knowledge_base,\n  });\n}\n\nmessages.push({\n  role: 'system',\n  content: busqueda.tiene_agenda ? instruccionesAgenda : instruccionesTienda,\n});\n\n// === Cuándo avisar a una persona ===\n// El bot no deja de responder por su cuenta: contesta lo que diga su prompt y,\n// además, levanta la mano. Quien decide tomar el mando es la persona que mira\n// la bandeja, no el modelo.\nmessages.push({\n  role: 'system',\n  content: [\n    'Marca escalar: true cuando el usuario pida hablar con una persona, este enfadado o',\n    'insatisfecho, reclame algo, pregunte por un pedido o una incidencia concreta, o haga',\n    'una pregunta que no puedes responder con la informacion que tienes.',\n    'En el resto de casos, escalar: false. No lo menciones nunca en tu respuesta.',\n    'El campo escalar es OBLIGATORIO: tiene que aparecer siempre en el JSON, con true o con false.',\n  ].join('\\n'),\n});\n\nmessages.push(...previos);\n\n// El conocimiento y el calendario van DESPUES del historial, pegados al mensaje\n// actual. Si quedan enterrados al principio, el modelo se guia por lo que el\n// mismo dijo en mensajes anteriores en vez de por los datos buenos.\nif (conocimiento.length) {\n  messages.push({ role: 'system', content: conocimiento.join('\\n\\n') });\n}\nif (calendario.length) {\n  messages.push({ role: 'system', content: calendario.join('\\n') });\n}\n\n// === Adjuntos ===\n// Si lo que llego no era texto escrito, el modelo tiene que saberlo. Sin esto\n// trataria la transcripcion de un audio como si la persona la hubiera tecleado,\n// y ante una foto que no se ha podido abrir se inventaria que la ha visto.\nconst adjunto = $('Extraer mensaje').first().json.adjunto;\n\nif (adjunto) {\n  messages.push({\n    role: 'system',\n    content: adjunto.leido\n      ? 'El ultimo mensaje no es texto escrito: la persona ha enviado ' + adjunto.etiqueta +\n        ' y lo que sigue es lo que se ha podido leer de ahi. Respondele con naturalidad, sin ' +\n        'mencionar que lo has transcrito ni descrito.'\n      : 'La persona ha enviado ' + adjunto.etiqueta + '. No puedes acceder a su contenido: ' +\n        'dilo con naturalidad y pidele que te lo cuente por escrito. No te inventes que hay dentro.',\n  });\n}\n\n// La presentacion va en un campo aparte y no dentro de reply, porque reply no\n// siempre llega a enviarse: cuando se pide hora, lo que sale es el texto de la\n// agenda. Respuesta final la pone delante de lo que se vaya a mandar.\nif (presentarse) {\n  messages.push({\n    role: 'system',\n    content: [\n      'Es la primera vez que hablas con esta persona, o hace tiempo que no le escribes tu.',\n      'Anade al JSON el campo \"presentacion\": UNA frase corta que diga que eres el asistente virtual',\n      'del negocio, con el nombre que usa tu prompt. Por ejemplo: \"Hola, soy el asistente virtual de <negocio>.\"',\n      'Tiene que quedar claro que eres un asistente automatico y no una persona.',\n      'Escribela en el mismo idioma en que te escribe la persona.',\n      // Antes decía «reply empieza directamente por la respuesta», sin más, y el\n      // modelo lo leía como «nada de cortesías»: Cestería pide en su prompt\n      // agradecer el primer mensaje y preguntar el nombre, y con un «hola» a\n      // secas el bot contestaba «¿En qué puedo ayudarte?» y nada más. Lo que\n      // sobra es repetir el saludo y la presentación, no lo demás.\n      'NO repitas el saludo (\"hola\", \"buenas\") ni la presentacion dentro de reply. Pero lo que pida tu prompt para el primer mensaje (agradecer que escriba, preguntar su nombre, dar la bienvenida) SI va en reply, al principio.',\n    ].join('\\n'),\n  });\n}\n\nmessages.push({ role: 'user', content: $('Extraer mensaje').first().json.message_text });\n\nreturn [{ json: { messages, presentarse } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1344,6 +1344,290 @@
       ],
       "id": "wa000030-0030-4030-8030-000000000030",
       "name": "¿Lo entiende el bot?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "wa-cond-presupuesto",
+              "leftValue": "={{ Boolean($('Parsear respuesta IA').first().json.presupuesto?.producto && $('Parsear respuesta IA').first().json.presupuesto?.email) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4392,
+        708
+      ],
+      "id": "d1658abc-45fb-40c9-aa13-bc342f4ffea4",
+      "name": "¿Trae presupuesto?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lo que ha recogido el bot, limpio, y el correo ya montado. El HTML se hace\n// aquí y no en el nodo de Resend porque lleva texto escrito por el cliente, y\n// hay que escaparlo: un «<» en una dirección no puede romper el correo.\nconst p = $('Parsear respuesta IA').first().json.presupuesto || {};\nconst limpio = (v) => (v === null || v === undefined ? '' : String(v)).replace(/\\s+/g, ' ').trim();\nconst escapar = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\n\nconst telefono = '+' + String($('Extraer mensaje').first().json.from).replace(/^\\+/, '');\nconst datos = {\n  nombre: limpio(p.nombre) || limpio($('Extraer mensaje').first().json.contact_name),\n  tipo_cliente: limpio(p.tipo_cliente),\n  producto: limpio(p.producto),\n  medidas_unidades: limpio(p.medidas_unidades),\n  email: limpio(p.email),\n  direccion: limpio(p.direccion),\n};\nconst fecha = $now.setZone('Europe/Madrid').toFormat('dd/MM/yyyy');\n\nconst filas = [\n  ['Nombre del cliente', datos.nombre],\n  ['Teléfono (WhatsApp)', telefono],\n  ['Particular o profesional', datos.tipo_cliente],\n  ['Producto', datos.producto],\n  ['Medidas y unidades', datos.medidas_unidades],\n  ['Email', datos.email],\n  ['Dirección de envío y CP', datos.direccion],\n  ['Fecha de la petición', fecha],\n];\nconst html =\n  '<p>Nueva solicitud de presupuesto recogida por el asistente de WhatsApp.</p>' +\n  '<table style=\"border-collapse:collapse;font-family:sans-serif;font-size:14px\">' +\n  filas.map(([k, v]) =>\n    '<tr><td style=\"padding:6px 12px;border:1px solid #ddd;background:#f6f6f6;font-weight:600\">' + k +\n    '</td><td style=\"padding:6px 12px;border:1px solid #ddd\">' + (v ? escapar(v) : '<em style=\"color:#999\">no lo ha dado</em>') + '</td></tr>'\n  ).join('') +\n  '</table>' +\n  '<p>Puedes contestarle respondiendo a este correo, o seguir la conversación en el panel:</p>' +\n  '<p><a href=\"https://panel.agenciakivuk.com/panel/conversaciones\">Abrir la conversación</a></p>';\n\n// El asunto lo fijó Cestería en su guía, para encontrarlos fácil en el buzón.\nconst asunto = 'WhatsApp – Presupuesto – ' + (datos.nombre || telefono);\n\nreturn [{ json: {\n  fila: {\n    client_id: $('Buscar cliente Whatsapp').first().json.client_id,\n    conversation_id: $('Buscar o crear conversación').first().json.id,\n    telefono,\n    ...Object.fromEntries(Object.entries(datos).map(([k, v]) => [k, v || null])),\n  },\n  asunto,\n  html,\n  // Responder al correo le escribe directamente al cliente final.\n  responder_a: /^[^\\s@]+@[^\\s@]+\\.[a-z]{2,}$/i.test(datos.email) ? datos.email : null,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4612,
+        708
+      ],
+      "id": "a5713f11-eb04-4068-bbcc-f850e832fd44",
+      "name": "Preparar presupuesto",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/presupuestos_whatsapp?on_conflict=client_id,huella",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=ignore-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.fila) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4832,
+        708
+      ],
+      "id": "b2249646-662c-4ac5-95e2-685c3aee026f",
+      "name": "Registrar presupuesto",
+      "alwaysOutputData": true,
+      "notes": "Always Output Data: sin cuerpo en la respuesta, n8n podria quedarse sin items y cortar aqui el flujo, dejando sin ejecutar la parte del escalado.",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "wa-cond-presupuesto-nuevo",
+              "leftValue": "={{ Boolean($json.id) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5052,
+        708
+      ],
+      "id": "45fd3986-5257-41ef-9dbf-93f27de750e3",
+      "name": "¿Es nuevo?"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_notification_settings?client_id=eq.{{ $('Buscar cliente Whatsapp').first().json.client_id }}&select=email_presupuestos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5272,
+        708
+      ],
+      "id": "4d44d757-effa-44b8-9af4-5937b068372b",
+      "name": "Correo de presupuestos",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "notes": "Always Output Data: un cliente sin fila de preferencias devuelve cero items, y cero items cortan el flujo en n8n."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "wa-cond-presupuesto-correo",
+              "leftValue": "={{ Boolean($json.email_presupuestos) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5492,
+        708
+      ],
+      "id": "095a083a-aa30-4b4d-b099-33be27816d61",
+      "name": "¿Tiene correo de presupuestos?"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?client_id=eq.{{ $('Buscar cliente Whatsapp').first().json.client_id }}&module=eq.email&select=config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5712,
+        708
+      ],
+      "id": "5b8488b7-9b15-4bb4-8e13-005951537b91",
+      "name": "Credenciales para el presupuesto",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.config?.resend_api_key || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.assign(\n  {\n    from: $json.config?.from_email || 'onboarding@resend.dev',\n    to: [$('Correo de presupuestos').first().json.email_presupuestos],\n    subject: $('Preparar presupuesto').first().json.asunto,\n    html: $('Preparar presupuesto').first().json.html,\n  },\n  $('Preparar presupuesto').first().json.responder_a\n    ? { reply_to: $('Preparar presupuesto').first().json.responder_a }\n    : {}\n)) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5932,
+        708
+      ],
+      "id": "a612efc2-e34a-40d8-92c5-2bb471ab3e7f",
+      "name": "Enviar presupuesto",
+      "onError": "continueRegularOutput",
+      "notes": "onError a propósito: que Resend falle no puede tumbar la ejecución. El mensaje al cliente final ya se ha enviado y la conversación ya está marcada; perder el aviso es molesto, perder la ejecución entera lo es más."
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/presupuestos_whatsapp?id=eq.{{ $('Registrar presupuesto').first().json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ enviado_a: $('Correo de presupuestos').first().json.email_presupuestos }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6152,
+        708
+      ],
+      "id": "9d8f0f89-0681-4ae9-a1cd-95723e403dd5",
+      "name": "Anotar a dónde se mandó",
+      "notes": "Always Output Data: el PATCH responde 204 sin cuerpo y sin esto n8n corta aqui el flujo, dejando el aviso por correo sin ejecutar.",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -1672,6 +1956,11 @@
             "node": "¿Pide una persona?",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "¿Trae presupuesto?",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -1905,6 +2194,97 @@
         [
           {
             "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Trae presupuesto?": {
+      "main": [
+        [
+          {
+            "node": "Preparar presupuesto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Preparar presupuesto": {
+      "main": [
+        [
+          {
+            "node": "Registrar presupuesto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar presupuesto": {
+      "main": [
+        [
+          {
+            "node": "¿Es nuevo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es nuevo?": {
+      "main": [
+        [
+          {
+            "node": "Correo de presupuestos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Correo de presupuestos": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene correo de presupuestos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene correo de presupuestos?": {
+      "main": [
+        [
+          {
+            "node": "Credenciales para el presupuesto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Credenciales para el presupuesto": {
+      "main": [
+        [
+          {
+            "node": "Enviar presupuesto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar presupuesto": {
+      "main": [
+        [
+          {
+            "node": "Anotar a dónde se mandó",
             "type": "main",
             "index": 0
           }

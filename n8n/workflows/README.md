@@ -644,6 +644,52 @@ Se le pide en el idioma en que le escriben.
   tiene que decir «soy el asistente…»: que salga la palabra «bot» no cuenta,
   porque el bot de Kivuk habla de bots en cada respuesta.
 
+**Lo que sobra es el saludo, no las cortesías.** La instrucción decía «reply
+empieza directamente por la respuesta», y el modelo lo entendía como «nada de
+cortesías». Cestería pide en su prompt agradecer el primer mensaje y preguntar
+el nombre, y a un «hola» a secas el bot contestaba «¿En qué puedo ayudarte?» y
+nada más. Desde el 02/10/2026 la instrucción prohíbe repetir el saludo y la
+presentación, pero deja explícitamente en `reply` lo que el prompt pida para el
+primer mensaje.
+
+## Solicitudes de presupuesto por correo
+
+Un cliente puede querer que las peticiones de precio que recoge el bot le
+lleguen a un buzón concreto, con los datos ordenados. Lo pidió Cestería en su
+guía del bot: «toda petición de presupuesto que entre por WhatsApp tiene que
+acabar en info@; ahora mismo no quedan registradas en ningún sitio».
+
+**Es opcional por cliente, en dos sitios.** El prompt del cliente le pide al bot
+recoger los datos (producto, medidas, unidades, email, dirección, nombre), y el
+cliente pone en `/panel/cuenta` a qué correo los quiere
+(`client_notification_settings.email_presupuestos`, migración `0024`). A quien
+no tiene ninguna de las dos cosas no le cambia nada: el campo `presupuesto` del
+JSON se queda en `null`.
+
+**El recorrido.** El modelo rellena `presupuesto` en el mensaje en que completa
+los datos. Una rama nueva sale de `Guardar mensajes`, en paralelo al aviso de
+«pide una persona» (ninguno depende del otro):
+
+`¿Trae presupuesto?` → `Preparar presupuesto` → `Registrar presupuesto` →
+`¿Es nuevo?` → `Correo de presupuestos` → `¿Tiene correo de presupuestos?` →
+`Credenciales para el presupuesto` → `Enviar presupuesto` → `Anotar a dónde se
+mandó`.
+
+- Se registra **siempre** en `presupuestos_whatsapp`, tenga o no correo
+  configurado: así ninguna solicitud se pierde.
+- **No se manda dos veces.** El modelo puede volver a rellenar el presupuesto en
+  el mensaje siguiente («¡gracias!»), con los mismos datos aún a la vista. La
+  tabla tiene una `huella` (md5 de teléfono, producto, medidas, email y
+  dirección) única por cliente, y el insert va con `ignore-duplicates`: si ya
+  existía, vuelve vacío y la rama se para en `¿Es nuevo?`. Si la persona corrige
+  un dato, la huella cambia y sale otro correo, que es lo correcto.
+- El HTML se monta en `Preparar presupuesto` y no en el nodo de Resend porque
+  lleva texto escrito por el cliente final, y hay que escaparlo.
+- El correo lleva `reply_to` con el email del cliente final cuando es válido:
+  responder al correo es contestarle a él.
+- Toda la rama tolera errores (`continueRegularOutput`): si se despliega antes
+  de aplicar la migración, falla en silencio sin tocar la respuesta ni el aviso.
+
 ## Enviar desde el panel (`enviar-whatsapp.json`)
 
 ```
