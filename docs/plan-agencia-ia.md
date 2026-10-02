@@ -170,7 +170,8 @@ forma de escribir.
 - ~~**Cobro automático con Stripe.**~~ **Código hecho** (migración `0023`,
   `docs/cobro-stripe.md`): domiciliación SEPA, firma del cliente en Stripe,
   cargo por factura y webhook que la marca pagada. Probado en modo de prueba
-  (firma, cargo y factura pagada sola). Falta la cuenta real y desplegar.
+  (firma, cargo y factura pagada sola). **En producción desde el 2/10/2026**:
+  firma real verificada. Falta el primer cargo real, con la primera factura.
 - **Cron de la facturación mensual**: un workflow de n8n que llame a la
   generación el día 1 y avise de lo que quede sin borrador.
 - **Recordatorio de facturas vencidas**, al cliente y a la agencia.
@@ -263,10 +264,10 @@ Estado a 29 de septiembre de 2026, de más urgente a menos.
 - [ ] `RESEND_API_KEY` y `FACTURAS_REMITENTE` en el entorno del panel, para
       poder enviar las facturas (comprobar).
 - [ ] Cron mensual de la generación de facturas + aviso de vencidas.
-- [ ] **Stripe para la domiciliación** (código hecho, `docs/cobro-stripe.md`):
-      migración `0023` aplicada y probado en modo de prueba. Falta activar la
-      cuenta real (datos fiscales, IBAN de N26, adeudo SEPA), crear el webhook
-      real y poner las dos claves en el `.env` del servidor.
+- [x] **Stripe para la domiciliación** (`docs/cobro-stripe.md`): cuenta real
+      activa con adeudo SEPA, webhook real, claves en el `.env` del servidor y
+      una firma real verificada el 2/10/2026. Queda comprobar el primer cargo
+      real cuando salga la primera factura.
 
 **Para vender (Fase 6, ver `docs/marketing-y-captacion.md`)**
 

@@ -185,6 +185,21 @@ funciona igual pero no se mueve dinero. Se prueba ahí antes de tocar nada real.
    ya no dice «Falta configurar Stripe». Haz la primera firma real contigo
    mismo o con un cliente de confianza antes de mandársela a nadie.
 
+### Trampas que ya han salido
+
+- **El modo de prueba y el real son dos cuentas distintas a efectos de
+  configuración.** Activar el adeudo SEPA, crear el webhook o copiar su
+  secreto en modo de prueba no vale para el real. Si el panel dice «The
+  payment method type provided: sepa_debit is invalid», el SEPA no está activo
+  en el modo de la clave que usa el servidor. Si el webhook da 400 «Firma no
+  válida» con eventos reales, el `whsec_` es el del otro modo.
+- **Un nombre de variable mal escrito no da error, da vacío.** Con
+  `STRIP_WEBHOOK_SECRET` en el `.env`, el panel decía «Stripe sin configurar».
+  Para comprobarlo sin enseñar las claves:
+  `dc exec panel printenv | grep STRIPE | cut -c1-30`.
+- **La página de Stripe tarda en cargar** la primera vez: se queda unos
+  segundos en un esqueleto gris. Hay que esperar, no está colgada.
+
 ## Lo que cuesta
 
 Stripe no tiene cuota fija. Cobra una comisión fija por cada adeudo SEPA

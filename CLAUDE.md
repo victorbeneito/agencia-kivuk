@@ -104,8 +104,10 @@ emitida aquí, sin generar facturas propias. El cliente firma la orden en Stripe
 (enlace desde su ficha o botón en `/panel/facturas`), la agencia pulsa «Cobrar»
 dos días después de enviar la factura, y el webhook `/api/stripe/webhook` la
 marca pagada, fallida o devuelta. Stripe transfiere a la cuenta de N26. Probado
-de punta a punta en modo de prueba (1/10/2026); **pendiente de activar la
-cuenta real de Stripe y desplegar**.
+de punta a punta en modo de prueba (1/10/2026). **En producción desde el
+2/10/2026** con la cuenta real (clave restringida `rk_live`): la firma real de
+la domiciliación funciona y llega por el webhook. El primer cargo real se hará
+con la primera factura real, no con una de prueba (la serie está sin estrenar).
 
 **Web corporativa** (`docs/web-corporativa.md`): **publicada** en
 `agenciakivuk.com`, en la misma aplicación, grupo de rutas `(web)`. Una sola
