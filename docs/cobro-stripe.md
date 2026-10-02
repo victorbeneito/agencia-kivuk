@@ -206,6 +206,11 @@ funciona igual pero no se mueve dinero. Se prueba ahí antes de tocar nada real.
   `dc exec panel printenv | grep STRIPE | cut -c1-30`.
 - **La página de Stripe tarda en cargar** la primera vez: se queda unos
   segundos en un esqueleto gris. Hay que esperar, no está colgada.
+- **Nada de idempotency key fija al crear el cliente de Stripe.** Hubo una
+  (`customer-<client_id>`) y Stripe la recuerda 24 horas: tras borrar el
+  cliente de prueba en el Dashboard y cambiar la ficha, crear otro fallaba y el
+  enlace llevaba a «No se ha podido abrir». Ahora no hay clave, y si el cliente
+  guardado ya no existe en Stripe se crea uno nuevo.
 - **El remitente no necesita buzón.** Los correos (facturas y enlace de
   domiciliación) salen de `FACTURAS_REMITENTE`, que puede ser una dirección que
   no existe como buzón: Resend solo necesita el dominio verificado. Las

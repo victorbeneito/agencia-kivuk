@@ -86,22 +86,32 @@ async function asegurarCustomer(
     .eq("client_id", clientId)
     .maybeSingle();
 
-  if (perfil?.stripe_customer_id) return perfil.stripe_customer_id;
+  // El guardado puede haberse borrado en el Dashboard de Stripe (pasa al
+  // limpiar una prueba). Usarlo haría fallar la sesión con «No such customer»;
+  // se comprueba y, si ya no existe, se crea otro.
+  if (perfil?.stripe_customer_id) {
+    try {
+      const existente = await s.customers.retrieve(perfil.stripe_customer_id);
+      if (!existente.deleted) return existente.id;
+    } catch (e) {
+      if (!(e instanceof Stripe.errors.StripeInvalidRequestError)) throw e;
+    }
+  }
 
   const { data: c } = await db.from("clients").select("name").eq("id", clientId).single();
 
-  const customer = await s.customers.create(
-    {
-      name: perfil?.razon_social || c?.name || undefined,
-      email: perfil?.email || undefined,
-      phone: perfil?.telefono || undefined,
-      preferred_locales: ["es"],
-      metadata: { client_id: clientId },
-    },
-    // Dos clics seguidos no crean dos clientes en Stripe. La clave dura 24 h,
-    // de sobra para cubrir la carrera; después ya está guardado aquí.
-    { idempotencyKey: `customer-${clientId}` }
-  );
+  // Sin idempotency key a propósito. Con una fija por cliente, Stripe la
+  // recuerda 24 horas: si en ese tiempo cambian los datos de la ficha, o se
+  // borra el cliente en Stripe y hay que crear otro, rechaza la petición o
+  // devuelve el borrado. El riesgo que evitaba (dos clics, dos clientes en
+  // Stripe) deja como mucho un cliente vacío sin uso.
+  const customer = await s.customers.create({
+    name: perfil?.razon_social || c?.name || undefined,
+    email: perfil?.email || undefined,
+    phone: perfil?.telefono || undefined,
+    preferred_locales: ["es"],
+    metadata: { client_id: clientId },
+  });
 
   const { error } = await db
     .from("client_billing_profiles")
