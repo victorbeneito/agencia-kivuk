@@ -1,0 +1,40 @@
+ref,operacion,tipo,municipio,zona,precio,habitaciones,banos,m2,m2_parcela,estado,situacion,extras,descripcion
+101,venta,piso,Ontinyent,Sant Josep,98000,2,1,62,,buen estado,disponible,ascensor|calefacción,Piso pequeño y bien cuidado en zona de comercios con todo a mano
+102,venta,piso,Ontinyent,Sant Josep,118000,3,1,95,,para actualizar,disponible,ascensor|balcón,Tres habitaciones amplias y exterior; cocina y baño para poner al día
+103,venta,piso,Ontinyent,El Llombo,142000,2,1,88,,reformado,disponible,ascensor|aire acondicionado,Reformado entero hace dos años a cinco minutos andando del campus universitario
+104,venta,piso,Ontinyent,Centro,152000,3,2,112,,buen estado,disponible,ascensor|garaje|trastero,Plaza de garaje y trastero incluidos en pleno centro
+105,venta,piso,Ontinyent,Sant Rafel,129000,3,2,105,,buen estado,disponible,ascensor|terraza,Terraza de 15 m² muy soleada y dos baños completos
+106,venta,piso,Ontinyent,El Llombo,189000,4,2,130,,reformado,disponible,ascensor|garaje|trastero|piscina comunitaria,Cuatro habitaciones en urbanización cerrada con piscina comunitaria
+107,venta,piso,Ontinyent,Centro,205000,3,2,125,,obra nueva,disponible,ascensor|garaje|terraza|aerotermia,Obra nueva con entrega inmediata y alta eficiencia energética
+108,venta,piso,L'Olleria,Centro,112000,3,2,108,,reformado,disponible,planta baja|terraza,Planta baja sin escaleras con terraza amplia y reformada
+109,venta,piso,Albaida,Centro,95000,3,1,100,,buen estado,disponible,ascensor|balcón,Tres habitaciones a buen precio cerca de la plaza
+110,venta,ático,Ontinyent,El Llombo,158000,2,1,80,,buen estado,disponible,terraza|vistas,Ático con terraza y vistas a la sierra; el edificio no tiene ascensor
+111,venta,ático,Agullent,Centro,135000,3,2,150,,buen estado,disponible,terraza|vistas|ascensor,Ático muy grande con vistas abiertas al valle
+112,venta,casa de pueblo,Ontinyent,La Vila,72000,3,1,180,,a reformar,disponible,patio,Casa en el casco antiguo para reformar a su gusto; mucho espacio por poco dinero
+113,venta,casa de pueblo,Bocairent,Centro,145000,4,2,210,,reformado,disponible,terraza|vistas,Casa de piedra reformada en el casco histórico con terraza y vistas
+114,venta,casa de pueblo,Aielo de Malferit,Centro,165000,4,2,240,,buen estado,disponible,patio|garaje,Casa con patio y garaje para dos coches
+115,venta,chalet,Ontinyent,El Pilar,240000,4,2,210,900,buen estado,disponible,piscina|garaje|barbacoa|jardín,Chalet de dos plantas con piscina y barbacoa en urbanización tranquila
+116,venta,chalet,Ontinyent,Ombria,285000,4,3,260,1500,buen estado,reservado,piscina|vistas|jardín,Chalet amplio con vistas a la Ombria y parcela grande
+117,venta,chalet,Ontinyent,Les Aigües,265000,3,2,160,1200,buen estado,disponible,piscina|chimenea|jardín,Chalet de una planta con chimenea y piscina a diez minutos del centro
+118,venta,chalet,Ontinyent,Carretera de Valencia,435000,5,3,240,2500,buen estado,disponible,piscina|garaje|vistas|jardín,Chalet de cinco habitaciones con mucha privacidad y parcela de 2.500 m²
+119,venta,chalet,Ontinyent,El Pilar,560000,4,3,220,1100,obra nueva,disponible,piscina|garaje|domótica|jardín,Chalet de diseño a estrenar con domótica y piscina desbordante
+120,venta,casa de campo,Agullent,Afueras,195000,3,1,120,5000,buen estado,disponible,huerto|chimenea|vistas,Casa de campo con huerto y árboles frutales a cinco minutos del pueblo
+121,venta,adosado,Ontinyent,Sant Rafel,175000,3,2,150,,buen estado,disponible,garaje|patio|terraza,Adosado de tres alturas con garaje propio y patio trasero
+122,venta,local,Ontinyent,Sant Josep,85000,,1,120,,buen estado,disponible,escaparate,Local diáfano con escaparate en calle de paso
+123,venta,local,Xàtiva,Centro,145000,,2,210,,buen estado,disponible,escaparate|salida de humos,Local junto al mercado con salida de humos; apto para hostelería
+124,venta,nave,Ontinyent,Polígono El Pla,320000,,2,900,,buen estado,disponible,oficinas|muelle de carga,Nave de 900 m² con oficinas y muelle de carga en polígono consolidado
+125,venta,parcela,Ontinyent,El Pilar,68000,,,,800,,disponible,,Parcela urbana de 800 m² lista para construir con todos los servicios
+201,alquiler,piso,Ontinyent,Centro,690,2,1,60,,obra nueva,disponible,ascensor|amueblado,Piso a estrenar amueblado en edificio nuevo del centro
+202,alquiler,piso,Ontinyent,El Llombo,720,3,2,110,,buen estado,disponible,ascensor|amueblado,Amueblado y junto al campus; se admiten estudiantes
+203,alquiler,piso,Ontinyent,Sant Josep,550,2,1,70,,buen estado,disponible,balcón,Piso sencillo sin amueblar en segunda planta sin ascensor
+204,alquiler,piso,Ontinyent,Sant Josep,1050,3,2,135,,reformado,disponible,ascensor|garaje|amueblado|aire acondicionado,Piso grande totalmente equipado con plaza de garaje
+205,alquiler,piso,L'Olleria,Centro,500,3,1,95,,buen estado,disponible,balcón,Tres habitaciones a buen precio en el centro del pueblo
+206,alquiler,ático,Ontinyent,Centro,850,2,2,90,,reformado,disponible,terraza|ascensor|garaje,Ático con terraza de 30 m² y garaje en el centro
+207,alquiler,chalet,Ontinyent,El Pilar,1300,4,3,200,1000,buen estado,disponible,piscina|garaje|jardín,Chalet con piscina en alquiler de larga temporada
+208,alquiler,casa de pueblo,Aielo de Malferit,Centro,600,3,2,160,,buen estado,disponible,patio,Casa de pueblo con patio para alquiler de larga temporada
+209,alquiler,local,Ontinyent,Sant Josep,300,,1,80,,buen estado,disponible,escaparate,Local pequeño con escaparate para empezar un negocio
+210,alquiler,local,Ontinyent,Almaig,950,,2,210,,reformado,disponible,escaparate|salida de humos,Local en esquina con mucha visibilidad y salida de humos
+211,alquiler,local,Ontinyent,Centro,650,,1,120,,buen estado,disponible,escaparate,Local en calle comercial del centro con mucho paso
+212,alquiler,nave,Ontinyent,Polígono El Pla,1400,,1,600,,buen estado,disponible,oficinas|muelle de carga,Nave con oficina y muelle de carga y acceso fácil para camiones
+213,alquiler,nave,Aielo de Malferit,Polígono,1500,,1,700,,buen estado,disponible,oficinas,Nave diáfana de estructura metálica junto a la autovía
+214,alquiler,oficina,Ontinyent,Centro,450,,1,80,,reformado,disponible,ascensor|aire acondicionado,Oficina luminosa en avenida principal lista para entrar
