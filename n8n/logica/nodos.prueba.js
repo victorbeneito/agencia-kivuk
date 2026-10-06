@@ -258,6 +258,11 @@ const disp = ejecutar(nodo("Decidir"), {
 r = ejecutar(nodo("Respuesta del motor"), {}, disp);
 ok("devuelve dias con huecos", Array.isArray(r[0].json.dias) && r[0].json.dias.length > 0, String((r[0].json.dias || []).length));
 ok("con mensaje ya redactado", typeof r[0].json.mensaje === "string" && r[0].json.mensaje.length > 10, r[0].json.mensaje.slice(0, 120));
+// El bot pinta con esto la lista de lo que se puede reservar. Se perdia aqui,
+// en el nodo que copia campo a campo, y no llego al bot del 11/09 al 06/10.
+ok("deja pasar el catalogo de servicios hasta el bot",
+  Array.isArray(r[0].json.catalogo) && r[0].json.catalogo.length === (disp.catalogo || []).length && r[0].json.catalogo.length > 0,
+  JSON.stringify(r[0].json.catalogo));
 console.log("\n  --- lo que leeria el bot ---\n  " + r[0].json.mensaje.split("\n").join("\n  "));
 
 console.log("\n=== Compatibilidad con el bot que hay en produccion ===");
@@ -654,9 +659,19 @@ ok("referencia que no existe: lo dice", /No tengo ninguna referencia 999/.test(r
 ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Sí, en todos se admiten mascotas.");
 ok("lo que contesta la IA a otra cosa va delante", /^Sí, en todos se admiten mascotas\.\n\nTengo 2/.test(ri.reply), ri.reply.slice(0, 80));
 ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "¡Claro! Mira lo que tengo:");
-ok("una entradilla que acaba en dos puntos se quita", /^Tengo 2/.test(ri.reply), ri.reply.slice(0, 60));
+ok("una entradilla que acaba en dos puntos se quita (el «¡Claro!» se queda)", /^¡Claro!\n\nTengo 2/.test(ri.reply), ri.reply.slice(0, 60));
 ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Te recomiendo el de 129.000 €, que es una ganga.");
 ok("si la IA escribe precios por su cuenta, se quita", /^Tengo 2/.test(ri.reply) && !/ganga/.test(ri.reply), ri.reply.slice(0, 60));
+
+// Frases reales de gpt-4o en las pruebas del 06/10/2026, con reply vacio pedido.
+ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Gracias por escribirnos. Estoy buscando opciones para ti de inmediato.");
+ok("de la entradilla se queda el agradecimiento y se va el «estoy buscando»", /^Gracias por escribirnos\.\n\nTengo 2/.test(ri.reply), ri.reply.slice(0, 80));
+ri = respuestaInmuebles("local_sin_operacion", "¡Gracias por contactar! Necesito saber si tienes algún presupuesto en mente para poder mostrarte lo que mejor se adapte.");
+ok("y la pregunta se va: el cierre del sistema ya pide lo que falta", /^¡Gracias por contactar!\n\nTengo/.test(ri.reply), ri.reply.slice(0, 80));
+ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Ahora mismo te busco opciones de pisos en Ontinyent con esas características.");
+ok("si toda la entradilla es anunciar la busqueda, no queda nada", /^Tengo 2/.test(ri.reply), ri.reply.slice(0, 60));
+ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Ara mateix busque opcions per a tu a Ontinyent amb ascensor.");
+ok("tambien en valenciano", /^Tengo 2/.test(ri.reply), ri.reply.slice(0, 60));
 
 ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "", [{ error: "500 Internal Server Error" }]);
 ok("si la base falla, no improvisa: lo dice y avisa al equipo", /no puedo consultar la cartera/.test(ri.reply) && ri.escalar === true, ri.reply);

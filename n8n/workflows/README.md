@@ -729,8 +729,13 @@ Recoger productos → Cartera de inmuebles → Consultar agenda → …
   para poder decir que está reservado.
 - **La lista la escribe `Respuesta con inmuebles`, no la IA.** Por lo mismo que
   los precios del catálogo: un modelo que reescribe cifras alguna vez cambia
-  una. A la IA se le pide `reply` vacío. Si aun así escribe precios o
-  referencias, o una entradilla acabada en «:», se quita.
+  una. A la IA se le pide `reply` vacío, y en las pruebas con gpt-4o
+  (06/10/2026) no lo dejó vacío casi nunca: «Estoy buscando opciones para ti»,
+  «Necesito saber tu presupuesto…», «Un moment, si us plau», encima de una
+  lista que ya estaba. Así que el nodo lo filtra **frase a frase**: quita las
+  que anuncian la búsqueda, las preguntas (el cierre del sistema ya pide lo
+  que falta), las que traen cifras o referencias y las entradillas acabadas en
+  «:», y deja el resto («Gracias por escribirnos»).
 - Con muchos resultados enseña tres, dice cuántos hay y pide lo que falta para
   afinar (zona, presupuesto, habitaciones o metros). Sin resultados, ofrece
   aflojar algo o pasar la búsqueda a un comercial.
