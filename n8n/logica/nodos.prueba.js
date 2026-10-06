@@ -552,5 +552,127 @@ rb = ejecutar(nodoBot("Respuesta con agenda"), {}, {
 })[0].json;
 ok("una cita ya hecha no pregunta nada", !/reservo/.test(rb.reply), rb.reply);
 
+// === Inmuebles ===============================================================
+// La cartera de una inmobiliaria (migracion 0025). `inmuebles-ejemplo.json` es
+// la salida REAL de `inmuebles_cartera` y `buscar_inmuebles` con la cartera de
+// la demo: si cambia la funcion, esto tiene que fallar.
+
+console.log("\n=== El bot: inmuebles ===");
+
+const INM = JSON.parse(fs.readFileSync(path.join(__dirname, "inmuebles-ejemplo.json"), "utf8"));
+
+ok("Preparar busqueda marca el modulo de inmuebles",
+  ejecutar(nodoBot("Preparar búsqueda"), { "Extraer mensaje": { message_text: "hola" } }, { module: "inmuebles" })[0].json.tiene_inmuebles === true);
+ok("y no se lo marca a quien no lo tiene",
+  ejecutar(nodoBot("Preparar búsqueda"), { "Extraer mensaje": { message_text: "hola" } }, { module: "calendar" })[0].json.tiene_inmuebles === false);
+
+function contextoInmuebles(tieneInmuebles, cartera) {
+  return ejecutar(nodoBot("Preparar contexto"), {
+    "Buscar prompt del cliente": { system_prompt: "Eres la inmobiliaria.", knowledge_base: "" },
+    "Preparar búsqueda": { tiene_agenda: false, tiene_inmuebles: tieneInmuebles },
+    "Recoger conocimiento": { fragmentos: [] },
+    "Recoger productos": { productos: [] },
+    "Cartera de inmuebles": cartera,
+    "Extraer mensaje": { message_text: "busco piso", adjunto: null },
+  }, {})[0].json.messages.map((x) => x.content).join("\n");
+}
+
+texto = contextoInmuebles(true, INM.cartera);
+ok("le da a la IA la cartera que existe", /CARTERA DE INMUEBLES/.test(texto) && /Sant Josep/.test(texto) && /casa de pueblo/.test(texto));
+ok("con los precios en formato de aqui", /de 68\.000 a 560\.000 €/.test(texto) && /de 300 a 1\.500 €\/mes/.test(texto), (texto.match(/Disponibles ahora:.*$/m) || [""])[0]);
+ok("y le pide el campo inmuebles del JSON", /"inmuebles"/.test(texto) && /"precio_max"/.test(texto));
+ok("le prohibe escribir la lista ella", /NUNCA escribas tu inmuebles, precios ni referencias/.test(texto));
+ok("sin el modulo no ve nada de inmuebles", !/CARTERA DE INMUEBLES|"inmuebles"/.test(contextoInmuebles(false)));
+ok("con el modulo pero la cartera vacia, tampoco", !/CARTERA DE INMUEBLES/.test(contextoInmuebles(true, { total: 0 })));
+ok("y si la consulta de la cartera fallo, sigue sin reventar", !/CARTERA DE INMUEBLES/.test(contextoInmuebles(true, { error: "500" })));
+
+function decidirInmuebles(inmuebles, extra, tieneInmuebles) {
+  return ejecutar(nodoBot("Decidir acción"), {
+    "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: tieneInmuebles !== false },
+    "Extraer mensaje": { message_text: (extra && extra.mensaje) || "busco piso para comprar en ontinyent" },
+  }, Object.assign({ reply: "", date: null, time: null, confirmar: false, escalar: false, inmuebles }, extra || {}))[0].json;
+}
+
+d = decidirInmuebles({ operacion: "compra", tipos: "piso", precio_max: "150.000", habitaciones_min: 3 });
+ok("limpia los criterios: compra -> venta, cadena -> lista, «150.000» -> 150000",
+  d.inmuebles && d.inmuebles.operacion === "venta" && d.inmuebles.tipos[0] === "piso" && d.inmuebles.precio_max === 150000 && d.inmuebles.habitaciones_min === 3,
+  JSON.stringify(d.inmuebles));
+ok("«hasta 150» en una compra son 150.000", decidirInmuebles({ operacion: "venta", precio_max: 150 }).inmuebles.precio_max === 150000);
+ok("«150 mil» tambien", decidirInmuebles({ operacion: "venta", precio_max: "150 mil" }).inmuebles.precio_max === 150000);
+ok("un alquiler de 150.000 al mes se queda sin tope", decidirInmuebles({ operacion: "alquiler", precio_max: 150000 }).inmuebles.precio_max === null);
+ok("la IA sin busqueda no busca", decidirInmuebles(null).inmuebles === null);
+ok("quien no tiene el modulo no busca nunca", decidirInmuebles({ operacion: "venta" }, {}, false).inmuebles === null);
+d = decidirInmuebles({ operacion: "venta", refs: ["104"] }, { date: "2026-10-08", time: "17:00", confirmar: true, mensaje: "quiero ver el 104 el jueves a las 5" });
+ok("si pide visita, manda la agenda y no se busca", d.accion === "reservar" && d.inmuebles === null, JSON.stringify([d.accion, d.inmuebles]));
+
+function respuestaInmuebles(caso, reply, filasOverride) {
+  const b = INM.busquedas[caso] || { filtros: {}, filas: [] };
+  const filas = filasOverride || b.filas;
+  // Sin filas, `alwaysOutputData` deja pasar un item vacio: eso es lo que llega.
+  const items = (filas.length ? filas : [{}]).map((json) => ({ json }));
+  const $ = (nombre) => {
+    if (nombre !== "Decidir acción") throw new Error("Referenced node is unexecuted: " + nombre);
+    return { first: () => ({ json: { reply: reply || "", inmuebles: b.filtros } }) };
+  };
+  const fn = new Function("$", "$input", nodoBot("Respuesta con inmuebles"));
+  return fn($, { all: () => items, first: () => items[0] })[0].json;
+}
+
+let ri = respuestaInmuebles("piso_3hab_150k_ontinyent");
+console.log("\n  --- lo que leeria quien busca ---\n  " + ri.reply.split("\n").join("\n  ") + "\n");
+ok("dice cuantos encajan", /^Tengo 2 que encajan con lo que buscas:/.test(ri.reply), ri.reply.split("\n")[0]);
+ok("en el orden de la base: 105, 102 y luego el 104",
+  ri.reply.indexOf("*Ref. 105*") < ri.reply.indexOf("*Ref. 102*") && ri.reply.indexOf("*Ref. 102*") < ri.reply.indexOf("*Ref. 104*"));
+ok("cada precio sale tal cual de la base, con punto de millar",
+  INM.busquedas.piso_3hab_150k_ontinyent.filas.every((f) => ri.reply.includes(String(f.precio).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " €")));
+ok("el que se pasa lo dice, y cuanto", /Y este se acerca/.test(ri.reply) && /Se pasa 2\.000 € de lo que me dijiste/.test(ri.reply));
+ok("y cierra ofreciendo la visita", /te busco hueco para la visita/.test(ri.reply));
+ok("las referencias ensenadas viajan aparte", ri.inmuebles_mostrados.join(",") === "105,102,104", ri.inmuebles_mostrados.join(","));
+
+ri = respuestaInmuebles("piso_sant_josep_130k");
+ok("el de otra zona lo dice", /No está en Sant Josep, pero cumple todo lo demás/.test(ri.reply), ri.reply);
+
+ri = respuestaInmuebles("piso_venta_sin_mas");
+ok("con muchos, ensena 3 y dice cuantos hay", /^Tengo \d+ que encajan con lo que buscas; te pongo los 3 que más se ajustan:/.test(ri.reply), ri.reply.split("\n")[0]);
+ok("y pide lo que falta para afinar", /Si me dices la zona y hasta cuánto quieres gastar, te lo afino más/.test(ri.reply), ri.reply.split("\n\n").slice(-1)[0]);
+
+ri = respuestaInmuebles("local_sin_operacion");
+ok("sin decir compra o alquiler, cada ficha lo dice", /Local en alquiler/.test(ri.reply) && /€\/mes/.test(ri.reply));
+ok("y en un local no pregunta habitaciones sino metros", /comprar o alquilar y la zona/.test(ri.reply) && !/habitaciones necesitas/.test(ri.reply), ri.reply.split("\n\n").slice(-1)[0]);
+
+ri = respuestaInmuebles("chalet_alquiler_1000");
+ok("sin nada que encaje, lo dice y ofrece afinar o avisar", /no tengo nada que cumpla todo eso/.test(ri.reply) && /para que te avise/.test(ri.reply), ri.reply);
+ok("y no escala: sigue la conversacion", ri.escalar === false);
+
+ri = respuestaInmuebles("ref_116_reservado");
+ok("una referencia reservada: lo dice y no la ofrece", /El 116 .* está reservado/.test(ri.reply) && !/\*Ref\. 116\*/.test(ri.reply) && !/hueco para la visita/.test(ri.reply), ri.reply);
+
+ri = respuestaInmuebles("ref_104_y_999");
+ok("referencia que existe: su ficha, con la operacion", /\*Ref\. 104\* · Piso en venta en el centro de Ontinyent/.test(ri.reply), ri.reply.split("\n")[0]);
+ok("referencia que no existe: lo dice", /No tengo ninguna referencia 999/.test(ri.reply), ri.reply);
+
+ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Sí, en todos se admiten mascotas.");
+ok("lo que contesta la IA a otra cosa va delante", /^Sí, en todos se admiten mascotas\.\n\nTengo 2/.test(ri.reply), ri.reply.slice(0, 80));
+ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "¡Claro! Mira lo que tengo:");
+ok("una entradilla que acaba en dos puntos se quita", /^Tengo 2/.test(ri.reply), ri.reply.slice(0, 60));
+ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Te recomiendo el de 129.000 €, que es una ganga.");
+ok("si la IA escribe precios por su cuenta, se quita", /^Tengo 2/.test(ri.reply) && !/ganga/.test(ri.reply), ri.reply.slice(0, 60));
+
+ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "", [{ error: "500 Internal Server Error" }]);
+ok("si la base falla, no improvisa: lo dice y avisa al equipo", /no puedo consultar la cartera/.test(ri.reply) && ri.escalar === true, ri.reply);
+
+console.log("\n=== El bot: el camino de la busqueda ===");
+const cx = bot.connections;
+ok("la rama sin agenda pasa por ¿Buscar inmuebles?", cx["¿Consultar agenda?"].main[1][0].node === "¿Buscar inmuebles?");
+ok("que si busca va a Buscar inmuebles y si no, a Respuesta sin agenda",
+  cx["¿Buscar inmuebles?"].main[0][0].node === "Buscar inmuebles" && cx["¿Buscar inmuebles?"].main[1][0].node === "Respuesta sin agenda");
+ok("y la respuesta acaba en Respuesta final, que pone la presentacion", cx["Respuesta con inmuebles"].main[0][0].node === "Respuesta final");
+ok("la cartera se lee antes de llamar a la IA", cx["Recoger productos"].main[0][0].node === "Cartera de inmuebles" && cx["Cartera de inmuebles"].main[0][0].node === "Consultar agenda");
+for (const nombre of ["Cartera de inmuebles", "Buscar inmuebles"]) {
+  const n = bot.nodes.find((x) => x.name === nombre);
+  ok(`"${nombre}" emite item aunque no encuentre nada o falle`,
+    n.alwaysOutputData === true && n.onError === "continueRegularOutput");
+}
+
 console.log("\n" + (fallos === 0 ? "TODO OK" : fallos + " FALLOS"));
 process.exit(fallos === 0 ? 0 : 1);

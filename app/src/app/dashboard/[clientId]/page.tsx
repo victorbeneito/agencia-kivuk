@@ -23,6 +23,7 @@ const MODULE_LABELS: Record<ModuleName, string> = {
   calendar: "Agenda / Calendar",
   email: "Automatización de correos",
   social: "Redes sociales",
+  inmuebles: "Cartera de inmuebles",
 };
 
 const MODULE_ORDER: ModuleName[] = [
@@ -31,6 +32,7 @@ const MODULE_ORDER: ModuleName[] = [
   "calendar",
   "email",
   "social",
+  "inmuebles",
 ];
 
 export default async function ClientSummaryPage({

@@ -1,0 +1,501 @@
+{
+  "_que_es": "Salida real de inmuebles_cartera y buscar_inmuebles (migración 0025) con docs/inmuebles-inmobiliaria-llaves.csv, tal como la devuelve PostgREST. La genera el ensayo en Postgres de la migración; si cambia la función o la cartera, hay que regenerarla.",
+  "cartera": {
+    "tipos": [
+      "adosado",
+      "casa de campo",
+      "casa de pueblo",
+      "chalet",
+      "local",
+      "nave",
+      "oficina",
+      "parcela",
+      "piso",
+      "ático"
+    ],
+    "total": 38,
+    "extras": [
+      "aerotermia",
+      "aire acondicionado",
+      "amueblado",
+      "ascensor",
+      "balcón",
+      "barbacoa",
+      "calefacción",
+      "chimenea",
+      "domótica",
+      "escaparate",
+      "garaje",
+      "huerto",
+      "jardín",
+      "muelle de carga",
+      "oficinas",
+      "patio",
+      "piscina",
+      "piscina comunitaria",
+      "planta baja",
+      "salida de humos",
+      "terraza",
+      "trastero",
+      "vistas"
+    ],
+    "precios": {
+      "venta": {
+        "desde": 68000,
+        "hasta": 560000,
+        "cuantos": 24
+      },
+      "alquiler": {
+        "desde": 300,
+        "hasta": 1500,
+        "cuantos": 14
+      }
+    },
+    "municipios": [
+      {
+        "zonas": [
+          "Almaig",
+          "Carretera de Valencia",
+          "Centro",
+          "El Llombo",
+          "El Pilar",
+          "La Vila",
+          "Les Aigües",
+          "Polígono El Pla",
+          "Sant Josep",
+          "Sant Rafel"
+        ],
+        "municipio": "Ontinyent"
+      },
+      {
+        "zonas": [
+          "Centro",
+          "Polígono"
+        ],
+        "municipio": "Aielo de Malferit"
+      },
+      {
+        "zonas": [
+          "Afueras",
+          "Centro"
+        ],
+        "municipio": "Agullent"
+      },
+      {
+        "zonas": [
+          "Centro"
+        ],
+        "municipio": "L'Olleria"
+      },
+      {
+        "zonas": [
+          "Centro"
+        ],
+        "municipio": "Albaida"
+      },
+      {
+        "zonas": [
+          "Centro"
+        ],
+        "municipio": "Bocairent"
+      },
+      {
+        "zonas": [
+          "Centro"
+        ],
+        "municipio": "Xàtiva"
+      }
+    ]
+  },
+  "busquedas": {
+    "piso_3hab_150k_ontinyent": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "piso"
+        ],
+        "municipios": [
+          "Ontinyent"
+        ],
+        "precio_max": 150000,
+        "habitaciones_min": 3
+      },
+      "filas": [
+        {
+          "ref": "105",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "Ontinyent",
+          "zona": "Sant Rafel",
+          "precio": 129000,
+          "habitaciones": 3,
+          "banos": 2,
+          "m2": 105,
+          "m2_parcela": null,
+          "estado": "buen estado",
+          "situacion": "disponible",
+          "extras": [
+            "ascensor",
+            "terraza"
+          ],
+          "descripcion": "Terraza de 15 m² muy soleada y dos baños completos",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 2
+        },
+        {
+          "ref": "102",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "Ontinyent",
+          "zona": "Sant Josep",
+          "precio": 118000,
+          "habitaciones": 3,
+          "banos": 1,
+          "m2": 95,
+          "m2_parcela": null,
+          "estado": "para actualizar",
+          "situacion": "disponible",
+          "extras": [
+            "ascensor",
+            "balcón"
+          ],
+          "descripcion": "Tres habitaciones amplias y exterior; cocina y baño para poner al día",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 2
+        },
+        {
+          "ref": "104",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "Ontinyent",
+          "zona": "Centro",
+          "precio": 152000,
+          "habitaciones": 3,
+          "banos": 2,
+          "m2": 112,
+          "m2_parcela": null,
+          "estado": "buen estado",
+          "situacion": "disponible",
+          "extras": [
+            "ascensor",
+            "garaje",
+            "trastero"
+          ],
+          "descripcion": "Plaza de garaje y trastero incluidos en pleno centro",
+          "url": null,
+          "encaje": "se_pasa",
+          "total_exactos": 2
+        }
+      ]
+    },
+    "piso_sant_josep_130k": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "piso"
+        ],
+        "municipios": [
+          "Ontinyent"
+        ],
+        "zonas": [
+          "Sant Josep"
+        ],
+        "precio_max": 130000
+      },
+      "filas": [
+        {
+          "ref": "102",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "Ontinyent",
+          "zona": "Sant Josep",
+          "precio": 118000,
+          "habitaciones": 3,
+          "banos": 1,
+          "m2": 95,
+          "m2_parcela": null,
+          "estado": "para actualizar",
+          "situacion": "disponible",
+          "extras": [
+            "ascensor",
+            "balcón"
+          ],
+          "descripcion": "Tres habitaciones amplias y exterior; cocina y baño para poner al día",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 2
+        },
+        {
+          "ref": "101",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "Ontinyent",
+          "zona": "Sant Josep",
+          "precio": 98000,
+          "habitaciones": 2,
+          "banos": 1,
+          "m2": 62,
+          "m2_parcela": null,
+          "estado": "buen estado",
+          "situacion": "disponible",
+          "extras": [
+            "ascensor",
+            "calefacción"
+          ],
+          "descripcion": "Piso pequeño y bien cuidado en zona de comercios con todo a mano",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 2
+        },
+        {
+          "ref": "105",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "Ontinyent",
+          "zona": "Sant Rafel",
+          "precio": 129000,
+          "habitaciones": 3,
+          "banos": 2,
+          "m2": 105,
+          "m2_parcela": null,
+          "estado": "buen estado",
+          "situacion": "disponible",
+          "extras": [
+            "ascensor",
+            "terraza"
+          ],
+          "descripcion": "Terraza de 15 m² muy soleada y dos baños completos",
+          "url": null,
+          "encaje": "otra_zona",
+          "total_exactos": 2
+        }
+      ]
+    },
+    "piso_venta_sin_mas": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "piso"
+        ]
+      },
+      "filas": [
+        {
+          "ref": "109",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "Albaida",
+          "zona": "Centro",
+          "precio": 95000,
+          "habitaciones": 3,
+          "banos": 1,
+          "m2": 100,
+          "m2_parcela": null,
+          "estado": "buen estado",
+          "situacion": "disponible",
+          "extras": [
+            "ascensor",
+            "balcón"
+          ],
+          "descripcion": "Tres habitaciones a buen precio cerca de la plaza",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 9
+        },
+        {
+          "ref": "101",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "Ontinyent",
+          "zona": "Sant Josep",
+          "precio": 98000,
+          "habitaciones": 2,
+          "banos": 1,
+          "m2": 62,
+          "m2_parcela": null,
+          "estado": "buen estado",
+          "situacion": "disponible",
+          "extras": [
+            "ascensor",
+            "calefacción"
+          ],
+          "descripcion": "Piso pequeño y bien cuidado en zona de comercios con todo a mano",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 9
+        },
+        {
+          "ref": "108",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "L'Olleria",
+          "zona": "Centro",
+          "precio": 112000,
+          "habitaciones": 3,
+          "banos": 2,
+          "m2": 108,
+          "m2_parcela": null,
+          "estado": "reformado",
+          "situacion": "disponible",
+          "extras": [
+            "planta baja",
+            "terraza"
+          ],
+          "descripcion": "Planta baja sin escaleras con terraza amplia y reformada",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 9
+        }
+      ]
+    },
+    "local_sin_operacion": {
+      "filtros": {
+        "tipos": [
+          "local"
+        ]
+      },
+      "filas": [
+        {
+          "ref": "209",
+          "operacion": "alquiler",
+          "tipo": "local",
+          "municipio": "Ontinyent",
+          "zona": "Sant Josep",
+          "precio": 300,
+          "habitaciones": null,
+          "banos": 1,
+          "m2": 80,
+          "m2_parcela": null,
+          "estado": "buen estado",
+          "situacion": "disponible",
+          "extras": [
+            "escaparate"
+          ],
+          "descripcion": "Local pequeño con escaparate para empezar un negocio",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 5
+        },
+        {
+          "ref": "211",
+          "operacion": "alquiler",
+          "tipo": "local",
+          "municipio": "Ontinyent",
+          "zona": "Centro",
+          "precio": 650,
+          "habitaciones": null,
+          "banos": 1,
+          "m2": 120,
+          "m2_parcela": null,
+          "estado": "buen estado",
+          "situacion": "disponible",
+          "extras": [
+            "escaparate"
+          ],
+          "descripcion": "Local en calle comercial del centro con mucho paso",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 5
+        },
+        {
+          "ref": "210",
+          "operacion": "alquiler",
+          "tipo": "local",
+          "municipio": "Ontinyent",
+          "zona": "Almaig",
+          "precio": 950,
+          "habitaciones": null,
+          "banos": 2,
+          "m2": 210,
+          "m2_parcela": null,
+          "estado": "reformado",
+          "situacion": "disponible",
+          "extras": [
+            "escaparate",
+            "salida de humos"
+          ],
+          "descripcion": "Local en esquina con mucha visibilidad y salida de humos",
+          "url": null,
+          "encaje": "exacto",
+          "total_exactos": 5
+        }
+      ]
+    },
+    "chalet_alquiler_1000": {
+      "filtros": {
+        "operacion": "alquiler",
+        "tipos": [
+          "chalet"
+        ],
+        "precio_max": 1000
+      },
+      "filas": []
+    },
+    "ref_116_reservado": {
+      "filtros": {
+        "refs": [
+          "116"
+        ]
+      },
+      "filas": [
+        {
+          "ref": "116",
+          "operacion": "venta",
+          "tipo": "chalet",
+          "municipio": "Ontinyent",
+          "zona": "Ombria",
+          "precio": 285000,
+          "habitaciones": 4,
+          "banos": 3,
+          "m2": 260,
+          "m2_parcela": 1500,
+          "estado": "buen estado",
+          "situacion": "reservado",
+          "extras": [
+            "piscina",
+            "vistas",
+            "jardín"
+          ],
+          "descripcion": "Chalet amplio con vistas a la Ombria y parcela grande",
+          "url": null,
+          "encaje": "ref",
+          "total_exactos": 1
+        }
+      ]
+    },
+    "ref_104_y_999": {
+      "filtros": {
+        "refs": [
+          "104",
+          "999"
+        ]
+      },
+      "filas": [
+        {
+          "ref": "104",
+          "operacion": "venta",
+          "tipo": "piso",
+          "municipio": "Ontinyent",
+          "zona": "Centro",
+          "precio": 152000,
+          "habitaciones": 3,
+          "banos": 2,
+          "m2": 112,
+          "m2_parcela": null,
+          "estado": "buen estado",
+          "situacion": "disponible",
+          "extras": [
+            "ascensor",
+            "garaje",
+            "trastero"
+          ],
+          "descripcion": "Plaza de garaje y trastero incluidos en pleno centro",
+          "url": null,
+          "encaje": "ref",
+          "total_exactos": 1
+        }
+      ]
+    }
+  }
+}

@@ -79,7 +79,7 @@ lo que hay que saber para tocar esto:
 node n8n/logica/construir-workflows.js          # regenera los workflows
 node n8n/logica/construir-workflows.js --check  # falla si están desactualizados
 node n8n/logica/motor-agenda.prueba.js          # 85 comprobaciones del motor
-node n8n/logica/nodos.prueba.js                 # el pegamento con n8n
+node n8n/logica/nodos.prueba.js                 # el pegamento con n8n (agenda e inmuebles)
 node n8n/logica/recordatorios.prueba.js         # 41 del nodo de recordatorios
 ```
 
@@ -689,6 +689,64 @@ mandó`.
   responder al correo es contestarle a él.
 - Toda la rama tolera errores (`continueRegularOutput`): si se despliega antes
   de aplicar la migración, falla en silencio sin tocar la respuesta ni el aviso.
+
+## Cartera de inmuebles (módulo `inmuebles`)
+
+Para una inmobiliaria, el bot busca en su cartera con filtros: operación, tipo,
+municipio, zona, precio, habitaciones, extras. Migración `0025`; la cartera se
+sube con `scripts/cargar-inmuebles.js`. Añadido el 05/10/2026 para la demo
+inmobiliaria (`docs/demo-inmobiliaria-llaves.md`).
+
+**Por qué no vale lo que ya había.** El conocimiento busca por parecido de
+significado y el catálogo por palabras. Ninguno entiende «menos de 150.000 € y
+tres habitaciones»: el vectorial trae el chalet de 435.000 porque «se parece».
+
+**El reparto es el de la agenda.** La IA solo extrae; decide la base; redacta
+el código:
+
+```
+Recoger productos → Cartera de inmuebles → Consultar agenda → …
+  … → Decidir acción → ¿Consultar agenda?
+        sí → (agenda, como siempre)
+        no → ¿Buscar inmuebles?
+               sí → Buscar inmuebles → Respuesta con inmuebles → Respuesta final
+               no → Respuesta sin agenda ──────────────────────→ Respuesta final
+```
+
+- `Cartera de inmuebles` (`inmuebles_cartera`) le da a la IA **lo que existe**:
+  tipos, municipios con sus zonas, extras y horquillas de precio. No las
+  fichas. Con eso traduce «San José» a `Sant Josep` y «una casa» a los tipos de
+  casa que hay. Sin la lista, inventa zonas plausibles y la búsqueda no
+  encuentra nada por un nombre mal escrito.
+- La IA rellena el campo `inmuebles` del JSON con **todos** los criterios de la
+  conversación, no solo los del último mensaje. `Decidir acción` los limpia:
+  «compra» pasa a `venta`, «150.000» y «150 mil» a 150000, y «hasta 150» en una
+  compra a 150.000. Si en el mismo mensaje hay algo de agenda, gana la agenda.
+- `buscar_inmuebles` cumple siempre lo que la persona pone como condición. Solo
+  afloja dos cosas, marcadas y de una en una, para rellenar: hasta un 10 % por
+  encima del tope (`se_pasa`) u otra zona del mismo municipio (`otra_zona`). Lo
+  reservado no sale en las búsquedas, pero sí al preguntar por su referencia,
+  para poder decir que está reservado.
+- **La lista la escribe `Respuesta con inmuebles`, no la IA.** Por lo mismo que
+  los precios del catálogo: un modelo que reescribe cifras alguna vez cambia
+  una. A la IA se le pide `reply` vacío. Si aun así escribe precios o
+  referencias, o una entradilla acabada en «:», se quita.
+- Con muchos resultados enseña tres, dice cuántos hay y pide lo que falta para
+  afinar (zona, presupuesto, habitaciones o metros). Sin resultados, ofrece
+  aflojar algo o pasar la búsqueda a un comercial.
+- Los dos nodos HTTP van con `alwaysOutputData` y `continueRegularOutput`. Una
+  búsqueda vacía no corta el flujo. Una base caída no deja al bot mudo: lo dice
+  y escala.
+
+A quien no tiene el módulo no le cambia nada: no ve la cartera, `Decidir
+acción` deja `inmuebles` en `null` y la rama es la de siempre. Lo único nuevo
+para todos es la llamada a `inmuebles_cartera`, que con la cartera vacía
+devuelve `total: 0`.
+
+Probado contra un Postgres de verdad (PGlite, con `unaccent`) y con la salida
+real guardada en `n8n/logica/inmuebles-ejemplo.json`, que es lo que usa
+`nodos.prueba.js`. Si cambia la función o la cartera de la demo, hay que
+regenerar ese fichero.
 
 ## Enviar desde el panel (`enviar-whatsapp.json`)
 

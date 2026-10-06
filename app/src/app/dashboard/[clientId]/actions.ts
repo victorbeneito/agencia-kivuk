@@ -32,7 +32,8 @@ export type ModuleName =
   | "voice"
   | "calendar"
   | "email"
-  | "social";
+  | "social"
+  | "inmuebles";
 
 export async function toggleModuleActive(
   clientId: string,

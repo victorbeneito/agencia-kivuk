@@ -17,6 +17,7 @@ const MODULE_LABELS: Record<ModuleName, string> = {
   calendar: "Agenda",
   email: "Correos",
   social: "Redes",
+  inmuebles: "Inmuebles",
 };
 
 export default async function DashboardPage() {
