@@ -1,0 +1,100 @@
+# Batería de preguntas reales para el bot de Inmobiliaria Llaves (demo).
+# Se lanza con:
+#   node scripts/probar-conocimiento.js "Inmobiliaria Llaves" --bateria docs/preguntas-inmobiliaria-llaves.txt
+#
+# Cada línea es una pregunta tal y como la escribiría alguien por WhatsApp: sin
+# tildes, con faltas y con prisa. Comprueba el CONOCIMIENTO, no la cartera: las
+# búsquedas de pisos («busco piso de 3 hab») las resuelve buscar_inmuebles y no
+# tienen que encontrar nada aquí. Las últimas son preguntas cuya respuesta NO
+# está en la base: ahí el bot tiene que decir que no lo sabe.
+
+# --- la inmobiliaria ---
+donde esta la oficina
+que horario teneis
+abris los sabados
+puedo pasar sin cita
+quien lleva los alquileres
+esta marta el sabado
+quien me enseña el local
+trabajais en xativa
+haceis alquiler vacacional
+estais registrados como inmobiliaria
+
+# --- visitas ---
+cuanto dura una visita
+me das la direccion del piso
+puedo ir con mi pareja a verlo
+puedo ver varios pisos el mismo dia
+hay que pagar por ver un piso
+
+# --- zonas ---
+que zona esta cerca de la universidad
+que es la vila
+donde hay chalets en ontinyent
+que zona es mas tranquila
+donde estan las naves
+
+# --- comprar ---
+como funciona comprar con vosotros
+se puede negociar el precio
+que gastos tiene comprar un piso
+pago comision si compro
+cuanto tengo que tener ahorrado
+que es el itp
+cuanto se tarda desde que lo reservo hasta la notaria
+
+# --- hipoteca ---
+me ayudais con la hipoteca
+cuanto pagaria al mes de hipoteca
+me van a dar la hipoteca
+
+# --- alquilar ---
+que piden para alquilar
+cuanto hay que pagar al entrar en un alquiler
+cuanto es la fianza
+pago comision por alquilar
+piden aval
+cuanto dura el contrato de alquiler
+admiten perros
+alquilais a estudiantes
+me puedo empadronar
+los gastos de luz y agua van incluidos
+alquilais por meses
+
+# --- vender o alquilar tu casa ---
+quiero vender mi piso
+cuanto vale mi casa
+cuanto cobrais por vender
+tengo que firmar exclusiva
+cuanto se tarda en vender un piso
+quiero alquilar mi piso, me buscais inquilino
+teneis seguro de impago
+
+# --- locales y naves ---
+busco local para poner un bar
+el local tiene licencia
+haceis traspasos
+cuanto es la fianza de un local
+
+# --- reservar y ofertas ---
+como reservo el piso
+me lo podeis guardar hasta el lunes
+quiero hacer una oferta
+
+# --- documentación del inmueble ---
+me mandas fotos del piso
+teneis planos
+cuanto es la comunidad
+que certificado energetico tiene
+tiene cargas
+
+# --- si no hay ---
+no teneis lo que busco, me avisais si entra algo
+cada cuanto entran pisos nuevos
+
+# --- SIN respuesta en la base (el bot debe decir que no lo sabe) ---
+cuanto cobrais exactamente de comision en una venta
+haceis reformas
+teneis pisos en valencia capital
+cuanto es el itp exacto para un menor de 35
+gestionais herencias

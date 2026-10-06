@@ -14,10 +14,10 @@ casar «casa» con cualquier saludo, la misma trampa que tuvo la fisioterapia
 | Pieza | Archivo | Estado |
 | --- | --- | --- |
 | Cartera de 39 inmuebles | `docs/inmuebles-inmobiliaria-llaves.csv` | hecho |
-| Dónde viven y cómo los busca el bot | `0025_inmuebles.sql`, `whatsapp-bot.json`, `scripts/cargar-inmuebles.js` | hecho, sin desplegar |
-| Comerciales, horario y tipos de visita | `scripts/montar-demo-inmobiliaria.js` | pendiente |
-| Prompt, conocimiento y batería de preguntas | `docs/prompt-…`, `docs/conocimiento-…` | pendiente |
-| Número y tarjeta en la web | eSIM + `app/src/lib/web/demos.ts` | pendiente |
+| Dónde viven y cómo los busca el bot | `0025_inmuebles.sql`, `whatsapp-bot.json`, `scripts/cargar-inmuebles.js` | en producción desde el 05/10/2026 |
+| Comerciales, horario y tipos de visita | `scripts/montar-demo-inmobiliaria.js`, `docs/servicios-inmobiliaria-llaves.csv` | montado el 06/10/2026 |
+| Prompt, conocimiento (16 documentos) y batería de 67 preguntas | `docs/prompt-inmobiliaria-llaves.md`, `docs/conocimiento-inmobiliaria-llaves.md`, `docs/preguntas-inmobiliaria-llaves.txt` | cargados el 06/10/2026 |
+| Número y tarjeta en la web | eSIM **+34 623 81 04 54** (`wa.me/34623810454`), nombre visible «Agencia Kivuk Demo Inmobiliaria»; tarjeta en `app/src/lib/web/demos.ts`, QR y tarjeta A6 en `docs/material-venta/demos/` | tarjeta hecha el 06/10/2026; falta el alta en Meta |
 
 ---
 
@@ -119,6 +119,101 @@ _Se pasa 2.000 € de lo que me dijiste._
 3. Con el cliente ya montado (paso 3): activar el módulo «Cartera de inmuebles»
    en su configuración y
    `node scripts/cargar-inmuebles.js docs/inmuebles-inmobiliaria-llaves.csv "Inmobiliaria Llaves" --aplicar`.
+
+## 3. Los comerciales y las visitas
+
+Montado el 06/10/2026: **`Inmobiliaria Llaves`**, id
+`bb2fc58a-f27a-43fe-9405-f10464e690cb`, con los módulos WhatsApp, agenda e
+inmuebles y los 39 inmuebles cargados (38 disponibles y el reservado).
+
+```bash
+node scripts/montar-demo-inmobiliaria.js --aplicar
+node scripts/cargar-inmuebles.js docs/inmuebles-inmobiliaria-llaves.csv "Inmobiliaria Llaves" --aplicar
+```
+
+Idempotentes los dos, como en las otras demos: sirven también para devolverla a
+su estado de fábrica.
+
+La oficina abre de lunes a viernes de 9:30 a 13:30 y de 16:30 a 20:00, y el
+sábado de 10:00 a 13:30, que es cuando más visitas se piden.
+
+| | Lunes | Martes | Miércoles | Jueves | Viernes | Sábado |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Marta** (venta, valoraciones) | mañana y tarde | mañana y tarde | mañana | mañana y tarde | mañana y tarde | 10-13:30 |
+| **Javier** (alquiler) | tarde | mañana y tarde | tarde | mañana y tarde | tarde | 10-13:30 |
+| **Sergio** (locales, naves, oficinas) | mañana y tarde | mañana | mañana y tarde | mañana | mañana | |
+
+| Cita | Duración | Quién |
+| --- | --- | --- |
+| Visita a vivienda en venta | 45 min | Marta, Sergio |
+| Visita a vivienda en alquiler | 30 min | Javier, Marta |
+| Visita a local o nave | 45 min | Sergio |
+| Valoración gratuita de vivienda | 60 min | Marta |
+| Cita en la oficina | 30 min | los tres |
+
+La **valoración gratuita** está a propósito. A una inmobiliaria le cuesta más
+conseguir pisos que venderlos: que el bot recoja «quiero vender mi casa,
+¿cuánto vale?» y le dé cita a Marta es probablemente lo que más le va a llamar
+la atención.
+
+Los alias no llevan «inmobiliaria» ni «llaves», que están en el nombre del
+negocio (la trampa de la fisioterapia), ni un «visita» a secas, que no dice de
+qué tipo es.
+
+Comprobado contra la agenda de producción: «quiero ver el piso» → visita de
+venta; «me gustaría ver el local» → visita de local, solo mañanas y el miércoles
+por la tarde (Sergio); «quiero vender mi casa, ¿cuánto vale?» → valoración, el
+miércoles solo por la mañana (Marta).
+
+**Fallo encontrado por el camino.** La agenda calculaba la lista de citas
+reservables (`catalogo`), pero `Respuesta del motor` (`agenda-api.json`) copia
+la respuesta campo a campo y ese no lo copiaba. Del 11/09 al 06/10/2026, ningún
+bot vio la lista «SERVICIOS QUE SE PUEDEN RESERVAR» que monta `Preparar
+contexto`. Arreglado, con su prueba en `nodos.prueba.js`. Al desplegarlo, las
+otras tres demos también empiezan a verla, que es como estaban diseñadas.
+
+## 4. El prompt, el conocimiento y las pruebas
+
+```bash
+node scripts/cargar-prompt.js docs/prompt-inmobiliaria-llaves.md "Inmobiliaria Llaves" --aplicar
+node scripts/cargar-conocimiento.js docs/conocimiento-inmobiliaria-llaves.md "Inmobiliaria Llaves" --aplicar
+node scripts/probar-conocimiento.js "Inmobiliaria Llaves" --bateria docs/preguntas-inmobiliaria-llaves.txt
+```
+
+**La batería, contra la búsqueda real:** de las 62 preguntas con respuesta,
+todas traen el documento bueno entre los cinco que recibe el bot, y la gran
+mayoría en primer lugar. Dos cosas se arreglaron por el camino:
+
+- «¿Pago comisión por alquilar?» traía primero el documento para
+  **propietarios**, que dice «los honorarios se acuerdan contigo». Un inquilino
+  podía entender que le cobran, cuando por ley no paga nada. En vez de pelear
+  el orden, ese documento dice ahora también que el inquilino no paga, y el de
+  comprar, que el comprador tampoco: lo que salga primero ya trae la respuesta
+  buena.
+- «¿Dónde están las naves?» no encontraba nada útil: el documento de locales
+  dice ahora en qué polígonos están.
+
+**Conversaciones de punta a punta, antes de activar el número.** Se pasaron
+conversaciones enteras por el código real de los nodos (`Preparar contexto`,
+`Decidir acción`, `Respuesta con inmuebles`, `Respuesta final`), con los datos
+de Supabase, la agenda de producción y gpt-4o, sin reservar nada. Salió bien la
+búsqueda y el afinado, el 116 reservado, «apuntadme» (avisa al equipo), la
+valoración en Agullent, las fotos (avisa al equipo), «¿esto es un bot?» y la
+respuesta legal sobre la comisión del alquiler; y la visita se pide con
+`motivo` «Ref. 105 · piso en Sant Rafel (Ontinyent)». Lo que salió mal y se
+corrigió:
+
+| Visto | Arreglo |
+| --- | --- |
+| «Me gustaría verlo el sábado por la mañana» → «te reservo una visita para el sábado», sin hora y sin cita | El prompt prohíbe dar una visita por hecha y pide las horas libres de ese día |
+| Copió literalmente las horas del ejemplo del prompt | Ejemplo con huecos genéricos (`<primera hora>`) |
+| «Busco casa, tengo 200 mil» → preguntaba qué tipo de casa en vez de buscar | «Una casa» = todos los tipos de casa; sin zona, todas |
+| Se presentó en valenciano a quien escribía en castellano | Idioma del último mensaje, dicho explícitamente |
+| Entradillas encima de la lista («Estoy buscando opciones…») | Filtro frase a frase en `Respuesta con inmuebles` |
+
+**Límite conocido:** las fichas y los cierres del sistema van en castellano
+aunque la persona escriba en valenciano. El bot conversa en su idioma, pero la
+lista no.
 
 ### Lo que falta para un cliente de verdad
 

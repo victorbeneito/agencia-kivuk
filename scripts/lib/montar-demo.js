@@ -22,6 +22,7 @@
  *   moduloCalendar   horario del negocio, tal cual va en client_modules.config
  *   equipo           [{ nombre, orden, horario: { dia: [[inicio, fin], ...] } }]
  *   soloLosHacen     { 'Servicio': ['Nombre', ...] }; lo que no está, lo hacen todos
+ *   modulosExtra     opcional: más módulos que activar, sin config (['inmuebles'])
  *   siguientes       líneas que se imprimen al final como "queda por hacer"
  */
 const fs = require('fs');
@@ -107,8 +108,10 @@ async function montarDemo(def) {
   const cal = def.moduloCalendar;
   const dias = cal.dias_laborables.split(',').map((d) => NOMBRE_DIA[d]).join(', ');
 
+  const extra = def.modulosExtra || [];
+
   console.log(`Cliente de demostración: ${def.cliente}\n`);
-  console.log(`  módulos      whatsapp (sin credenciales todavía), calendar`);
+  console.log(`  módulos      whatsapp (sin credenciales todavía), calendar${extra.map((m) => `, ${m}`).join('')}`);
   console.log(`  horario      ${dias}; ${cal.manana_inicio}-${cal.manana_fin} y ${cal.tarde_inicio}-${cal.tarde_fin}`);
   console.log(`  equipo       ${def.equipo.map((t) => t.nombre).join(', ')}`);
   console.log(`  servicios    ${servicios.length} desde ${def.csvServicios}`);
@@ -186,9 +189,17 @@ async function montarDemo(def) {
       // Se fusiona sobre lo que hubiera: si algún día se conecta Google, sus
       // credenciales viven en este mismo campo.
       { client_id: cliente.id, module: 'calendar', active: true, config: { ...configCalendar, ...cal } },
+      // Los extra no tienen config que montar aquí: el de inmuebles, p. ej.,
+      // solo enciende la búsqueda, y la cartera la sube su propio script.
+      ...extra.map((module) => ({
+        client_id: cliente.id,
+        module,
+        active: true,
+        config: modulos.find((m) => m.module === module)?.config ?? {},
+      })),
     ]),
   });
-  console.log('✓ módulos whatsapp y calendar activos, con el horario del negocio');
+  console.log(`✓ módulos whatsapp, calendar${extra.map((m) => `, ${m}`).join('')} activos, con el horario del negocio`);
 
   // --- equipo ------------------------------------------------------------
   const staffPrevio = await supabase(`staff?client_id=eq.${cliente.id}&select=id,nombre`);
