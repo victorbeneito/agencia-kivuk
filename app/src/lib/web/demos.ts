@@ -68,6 +68,20 @@ export const DEMOS: Demo[] = [
     visible: "+34 623 81 47 87",
     qr: "/demos/qr-fisio.png",
   },
+  {
+    slug: "inmobiliaria",
+    sector: "Inmobiliaria",
+    negocio: "Inmobiliaria Llaves",
+    whatsapp: "Agencia Kivuk Demo Inmobiliaria",
+    // Una búsqueda concreta, y no un «¿qué tenéis?»: así la primera respuesta
+    // ya enseña lo que distingue a esta demo, fichas que cumplen el precio y
+    // las habitaciones, y una que se pasa un poco, avisando.
+    pregunta: "Hola, busco un piso en Ontinyent de 3 habitaciones, hasta 150.000 €",
+    sabe: "Busca en su cartera por zona, precio y habitaciones, y da cita para la visita.",
+    numero: "34623810454",
+    visible: "+34 623 81 04 54",
+    qr: "/demos/qr-inmobiliaria.png",
+  },
 ];
 
 /** El enlace que abre WhatsApp con la primera pregunta ya escrita. */

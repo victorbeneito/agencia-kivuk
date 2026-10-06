@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { MessageCircle, Scissors, Stethoscope, Activity } from "lucide-react";
+import { MessageCircle, Scissors, Stethoscope, Activity, House } from "lucide-react";
 
 import { DEMOS, enlaceDemo, type Demo } from "@/lib/web/demos";
 
@@ -7,10 +7,11 @@ const ICONO: Record<string, typeof Scissors> = {
   peluqueria: Scissors,
   dental: Stethoscope,
   fisio: Activity,
+  inmobiliaria: House,
 };
 
 /**
- * «Pruébalo tú mismo»: tres demos reales, una por sector.
+ * «Pruébalo tú mismo»: una demo real por sector.
  *
  * Es la única sección que manda a un WhatsApp que no es el de Kivuk, y eso va
  * en contra de la regla de la landing —una sola acción—. Se acepta porque es la
@@ -27,7 +28,9 @@ const ICONO: Record<string, typeof Scissors> = {
  */
 export function Pruebalo() {
   return (
-    <div className="grid gap-5 md:grid-cols-3">
+    // Dos por fila en tableta y cuatro en escritorio: con tres columnas, la
+    // cuarta demo se quedaba sola en una fila.
+    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
       {DEMOS.map((demo) => (
         <Tarjeta key={demo.slug} demo={demo} />
       ))}

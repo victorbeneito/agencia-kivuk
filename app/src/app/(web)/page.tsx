@@ -196,7 +196,7 @@ function PruebaloSeccion() {
       <Titulo
         eyebrow="Pruébalo tú mismo"
         titulo="Escríbele al de tu sector, ahora mismo"
-        texto="Tres asistentes funcionando, uno por sector. Son negocios inventados, pero el asistente es el mismo que montamos para un cliente: responde con precios, sabe quién hace qué y da cita en hueco libre."
+        texto="Cuatro asistentes funcionando, uno por sector. Son negocios inventados, pero el asistente es el mismo que montamos para un cliente: responde con precios, sabe quién hace qué y da cita en hueco libre."
       />
 
       <div className="mt-12">

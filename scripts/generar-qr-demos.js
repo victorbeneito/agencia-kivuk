@@ -31,6 +31,9 @@ const DEMOS = [
   { slug: 'fisio', sector: 'Fisioterapia', numero: '34623814787', visible: '+34 623 81 47 87',
     texto: 'Hola, tengo una contractura, ¿tenéis hueco esta semana?',
     gancho: 'Pregúntale por un tratamiento, pide cita o elige fisio.' },
+  { slug: 'inmobiliaria', sector: 'Inmobiliaria', numero: '34623810454', visible: '+34 623 81 04 54',
+    texto: 'Hola, busco un piso en Ontinyent de 3 habitaciones, hasta 150.000 €',
+    gancho: 'Dile qué buscas, afina la búsqueda o pide una visita.' },
 ];
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
