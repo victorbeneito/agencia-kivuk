@@ -739,6 +739,22 @@ Recoger productos → Cartera de inmuebles → Consultar agenda → …
 - Con muchos resultados enseña tres, dice cuántos hay y pide lo que falta para
   afinar (zona, presupuesto, habitaciones o metros). Sin resultados, ofrece
   aflojar algo o pasar la búsqueda a un comercial.
+- **No repite y no rellena con otras zonas** (migración `0026`). En la primera
+  prueba real (06/10/2026) pidieron vivienda en Sant Josep, donde solo hay dos,
+  y a «¿no tienes nada más?» salían las mismas tres fichas una y otra vez, una
+  de ellas de La Vila, que nadie había pedido. Ahora `Decidir acción` saca del
+  historial las referencias ya enseñadas (`*Ref. 104*`) y las manda en
+  `excluir_refs`; la función las deja fuera y las cuenta en `vistos` («aparte de
+  los que ya te he enseñado…»). Otra zona ya no entra en la lista: se cuenta en
+  `otras_zonas` y se ofrece («en otras zonas de Ontinyent tengo 3 más, ¿te los
+  enseño?»). Por eso la función devuelve un objeto y no filas: el recuento
+  tiene que llegar aunque no haya ninguna ficha que enseñar.
+- **Aceptar esa oferta lo decide el código.** Se le pedía a la IA que quitara la
+  zona al oír «sí», y la dejó puesta tres veces seguidas: la misma oferta en
+  bucle. `Decidir acción` mira si lo último que dijo el bot fue la oferta y si
+  la persona acepta («sí», «vale», «enséñamelos») o pide más («¿no tienes nada
+  más?»), y entonces busca sin la zona. Es el mismo patrón que el «no» de las
+  citas.
 - Los dos nodos HTTP van con `alwaysOutputData` y `continueRegularOutput`. Una
   búsqueda vacía no corta el flujo. Una base caída no deja al bot mudo: lo dice
   y escala.

@@ -211,6 +211,28 @@ corrigió:
 | Se presentó en valenciano a quien escribía en castellano | Idioma del último mensaje, dicho explícitamente |
 | Entradillas encima de la lista («Estoy buscando opciones…») | Filtro frase a frase en `Respuesta con inmuebles` |
 
+**Primera prueba por WhatsApp (06/10/2026): parecía un bucle.** «Vivienda en San
+José, comprar» → las dos de Sant Josep y una de La Vila de relleno; «tengo
+150.000, ¿algo mejor?» → las mismas tres; «me has dado las mismas, ¿no tienes
+nada más?» → las mismas tres. En Sant Josep no hay más, pero la búsqueda no
+sabía qué se había enseñado ya. Arreglado con la migración `0026` y en el bot
+(detalle en `n8n/workflows/README.md`): no repite, no rellena con otras zonas,
+las ofrece con su número y, si dice que sí, busca sin la zona. Repetida la
+misma conversación con gpt-4o, sale así:
+
+1. «Comprar» → 101 y 102. *«Es todo lo que tengo en Sant Josep. En otras zonas
+   de Ontinyent tengo 12 más con lo que buscas. ¿Te los enseño?»*
+2. «Tenía 150.000» → *«En Sant Josep no tengo más aparte de los que ya te he
+   enseñado. En otras zonas de Ontinyent tengo 3 más con lo que buscas.
+   ¿Te los enseño?»*
+3. «Sí, enséñamelos» → 103, 105 y 112, *«aparte de los que ya te he enseñado»*.
+4. «¿No tienes nada más?» → nada más que cumpla; enseña el 104 y el 110
+   avisando de cuánto se pasan.
+
+Por el camino salió otro tropiezo de la IA: «vivienda» lo traducía como los
+tipos de casa y **sin pisos**. Ahora ve los tipos separados en «de vivienda» y
+«para negocio o suelo».
+
 **Límite conocido:** las fichas y los cierres del sistema van en castellano
 aunque la persona escriba en valenciano. El bot conversa en su idioma, pero la
 lista no.

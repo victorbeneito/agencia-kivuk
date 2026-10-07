@@ -587,6 +587,9 @@ ok("le da a la IA la cartera que existe", /CARTERA DE INMUEBLES/.test(texto) && 
 ok("con los precios en formato de aqui", /de 68\.000 a 560\.000 €/.test(texto) && /de 300 a 1\.500 €\/mes/.test(texto), (texto.match(/Disponibles ahora:.*$/m) || [""])[0]);
 ok("y le pide el campo inmuebles del JSON", /"inmuebles"/.test(texto) && /"precio_max"/.test(texto));
 ok("le prohibe escribir la lista ella", /NUNCA escribas tu inmuebles, precios ni referencias/.test(texto));
+ok("le separa los tipos de vivienda de los de negocio (pisos incluidos)",
+  /Tipos de vivienda: .*piso/.test(texto) && /Tipos para negocio o suelo: local, nave, oficina, parcela/.test(texto) && !/Tipos de vivienda: .*local/.test(texto),
+  (texto.match(/Tipos de vivienda:.*$/m) || [""])[0]);
 ok("sin el modulo no ve nada de inmuebles", !/CARTERA DE INMUEBLES|"inmuebles"/.test(contextoInmuebles(false)));
 ok("con el modulo pero la cartera vacia, tampoco", !/CARTERA DE INMUEBLES/.test(contextoInmuebles(true, { total: 0 })));
 ok("y si la consulta de la cartera fallo, sigue sin reventar", !/CARTERA DE INMUEBLES/.test(contextoInmuebles(true, { error: "500" })));
@@ -610,11 +613,43 @@ ok("quien no tiene el modulo no busca nunca", decidirInmuebles({ operacion: "ven
 d = decidirInmuebles({ operacion: "venta", refs: ["104"] }, { date: "2026-10-08", time: "17:00", confirmar: true, mensaje: "quiero ver el 104 el jueves a las 5" });
 ok("si pide visita, manda la agenda y no se busca", d.accion === "reservar" && d.inmuebles === null, JSON.stringify([d.accion, d.inmuebles]));
 
-function respuestaInmuebles(caso, reply, filasOverride) {
-  const b = INM.busquedas[caso] || { filtros: {}, filas: [] };
-  const filas = filasOverride || b.filas;
-  // Sin filas, `alwaysOutputData` deja pasar un item vacio: eso es lo que llega.
-  const items = (filas.length ? filas : [{}]).map((json) => ({ json }));
+const FICHAS_YA_ENVIADAS = "Tengo 2 que encajan:\n\n*Ref. 101* · Piso en Sant Josep (Ontinyent)\n98.000 €\n\n*Ref. 102* · Piso en Sant Josep (Ontinyent)\n118.000 €";
+d = ejecutar(nodoBot("Decidir acción"), {
+  "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: true },
+  "Extraer mensaje": { message_text: "me has dado las mismas, no tienes nada mas?" },
+  "Cargar historial": { role: "assistant", content: FICHAS_YA_ENVIADAS },
+}, { reply: "", inmuebles: { operacion: "venta", zonas: ["Sant Josep"] } })[0].json;
+ok("lo ya ensenado en la conversacion se manda para excluir", JSON.stringify(d.inmuebles.excluir_refs) === '["101","102"]', JSON.stringify(d.inmuebles.excluir_refs));
+d = ejecutar(nodoBot("Decidir acción"), {
+  "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: true },
+  "Extraer mensaje": { message_text: "y el 101 tiene trastero?" },
+  "Cargar historial": { role: "assistant", content: FICHAS_YA_ENVIADAS },
+}, { reply: "", inmuebles: { refs: ["101"] } })[0].json;
+ok("pero al preguntar por una referencia no se excluye nada", d.inmuebles.excluir_refs === undefined, JSON.stringify(d.inmuebles));
+ok("y sin historial no revienta", decidirInmuebles({ operacion: "venta" }).inmuebles.excluir_refs.length === 0);
+
+// «¿Te los enseño?» -> «si»: en la prueba del 06/10 la IA dejo la zona puesta
+// tres veces seguidas y el bot repetia la misma oferta en bucle.
+const OFERTA = "En Sant Josep no tengo más aparte de los que ya te he enseñado.\n\nEn otras zonas de Ontinyent tengo 3 más con lo que buscas. ¿Te los enseño?";
+function trasLaOferta(mensaje, ultimaDelBot) {
+  return ejecutar(nodoBot("Decidir acción"), {
+    "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: true },
+    "Extraer mensaje": { message_text: mensaje },
+    "Cargar historial": { role: "assistant", content: ultimaDelBot || OFERTA },
+  }, { reply: "", inmuebles: { operacion: "venta", municipios: ["Ontinyent"], zonas: ["Sant Josep"], precio_max: 150000 } })[0].json.inmuebles;
+}
+for (const si of ["si, enseñamelos", "Sí", "vale", "venga, a ver", "claro", "enséñamelos", "Me has dado las mismas opciones, no tienes nada más?", "y otras?"]) {
+  const f = trasLaOferta(si);
+  ok("tras la oferta, «" + si + "» busca sin la zona y con lo demas", f.zonas.length === 0 && f.municipios[0] === "Ontinyent" && f.precio_max === 150000, JSON.stringify(f));
+}
+ok("tras la oferta, cambiar de criterio no quita la zona", trasLaOferta("prefiero con garaje").zonas[0] === "Sant Josep");
+ok("sin oferta delante, un «si» no quita la zona", trasLaOferta("si", "¿Te gustaría ver alguno? Dime la referencia.").zonas[0] === "Sant Josep");
+
+// `buscar_inmuebles` devuelve un solo objeto (0026); si la llamada falla, llega
+// el item de error que deja pasar `continueRegularOutput`.
+function respuestaInmuebles(caso, reply, resultadoOverride) {
+  const b = INM.busquedas[caso] || { filtros: {}, resultado: { filas: [] } };
+  const items = [{ json: resultadoOverride || b.resultado }];
   const $ = (nombre) => {
     if (nombre !== "Decidir acción") throw new Error("Referenced node is unexecuted: " + nombre);
     return { first: () => ({ json: { reply: reply || "", inmuebles: b.filtros } }) };
@@ -629,13 +664,35 @@ ok("dice cuantos encajan", /^Tengo 2 que encajan con lo que buscas:/.test(ri.rep
 ok("en el orden de la base: 105, 102 y luego el 104",
   ri.reply.indexOf("*Ref. 105*") < ri.reply.indexOf("*Ref. 102*") && ri.reply.indexOf("*Ref. 102*") < ri.reply.indexOf("*Ref. 104*"));
 ok("cada precio sale tal cual de la base, con punto de millar",
-  INM.busquedas.piso_3hab_150k_ontinyent.filas.every((f) => ri.reply.includes(String(f.precio).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " €")));
+  INM.busquedas.piso_3hab_150k_ontinyent.resultado.filas.every((f) => ri.reply.includes(String(f.precio).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " €")));
 ok("el que se pasa lo dice, y cuanto", /Y este se acerca/.test(ri.reply) && /Se pasa 2\.000 € de lo que me dijiste/.test(ri.reply));
 ok("y cierra ofreciendo la visita", /te busco hueco para la visita/.test(ri.reply));
 ok("las referencias ensenadas viajan aparte", ri.inmuebles_mostrados.join(",") === "105,102,104", ri.inmuebles_mostrados.join(","));
 
 ri = respuestaInmuebles("piso_sant_josep_130k");
-ok("el de otra zona lo dice", /No está en Sant Josep, pero cumple todo lo demás/.test(ri.reply), ri.reply);
+ok("otra zona no rellena la lista: se ofrece", !/\*Ref\. 105\*/.test(ri.reply) &&
+  /Es todo lo que tengo en Sant Josep\. En otras zonas de Ontinyent tengo uno más con lo que buscas\. ¿Te lo enseño\?/.test(ri.reply), ri.reply);
+
+// La primera prueba real (06/10/2026), mensaje a mensaje. Antes: las mismas tres
+// fichas tres veces, una de ellas de La Vila, que nadie habia pedido.
+console.log("\n  --- la conversacion del 06/10, ahora ---");
+ri = respuestaInmuebles("sant_josep_vivienda");
+console.log("  «vivienda en San José, comprar»\n  " + ri.reply.split("\n").join("\n  ") + "\n");
+ok("1. salen las dos de Sant Josep y nada de La Vila", /\*Ref\. 101\*/.test(ri.reply) && /\*Ref\. 102\*/.test(ri.reply) && !/\*Ref\. 112\*/.test(ri.reply));
+ok("   y ofrece las 12 de otras zonas en vez de colarlas", /En otras zonas de Ontinyent tengo 12 más con lo que buscas\. ¿Te los enseño\?/.test(ri.reply), ri.reply.split("\n\n").slice(-1)[0]);
+ri = respuestaInmuebles("sant_josep_150k_ya_vistos");
+console.log("  «tengo 150.000, ¿algo mejor?»\n  " + ri.reply.split("\n").join("\n  ") + "\n");
+ok("2. con 150.000: no repite, dice que en Sant Josep no hay mas y ofrece las 3 de fuera",
+  !/\*Ref\./.test(ri.reply) && /^En Sant Josep no tengo más aparte de los que ya te he enseñado\./.test(ri.reply) &&
+  /En otras zonas de Ontinyent tengo 3 más con lo que buscas\. ¿Te los enseño\?/.test(ri.reply), ri.reply);
+ri = respuestaInmuebles("ontinyent_150k_ya_vistos");
+console.log("  «sí, enséñamelos»\n  " + ri.reply.split("\n").join("\n  ") + "\n");
+ok("3. «si»: las de otras zonas, diciendo que son aparte de las ya vistas",
+  /^Aparte de los que ya te he enseñado, tengo 3 más que encajan:/.test(ri.reply) && /\*Ref\. 103\*/.test(ri.reply), ri.reply.split("\n")[0]);
+ri = respuestaInmuebles("ontinyent_150k_todo_visto");
+console.log("  «¿no tienes nada más?»\n  " + ri.reply.split("\n").join("\n  ") + "\n");
+ok("4. visto todo lo que cumple: lo dice, y ensena solo la que se pasa un poco, avisando",
+  /^Aparte de los que ya te he enseñado, justo con todo lo que pides no tengo más, pero esto se acerca:/.test(ri.reply) && /Se pasa/.test(ri.reply), ri.reply.split("\n")[0]);
 
 ri = respuestaInmuebles("piso_venta_sin_mas");
 ok("con muchos, ensena 3 y dice cuantos hay", /^Tengo \d+ que encajan con lo que buscas; te pongo los 3 que más se ajustan:/.test(ri.reply), ri.reply.split("\n")[0]);
@@ -673,7 +730,7 @@ ok("si toda la entradilla es anunciar la busqueda, no queda nada", /^Tengo 2/.te
 ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Ara mateix busque opcions per a tu a Ontinyent amb ascensor.");
 ok("tambien en valenciano", /^Tengo 2/.test(ri.reply), ri.reply.slice(0, 60));
 
-ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "", [{ error: "500 Internal Server Error" }]);
+ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "", { error: "500 Internal Server Error" });
 ok("si la base falla, no improvisa: lo dice y avisa al equipo", /no puedo consultar la cartera/.test(ri.reply) && ri.escalar === true, ri.reply);
 
 console.log("\n=== El bot: el camino de la busqueda ===");
