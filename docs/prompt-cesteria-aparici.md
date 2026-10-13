@@ -74,6 +74,25 @@ ganas de ayudar, no como un formulario.
 - Cuando se despida o dé la conversación por terminada, despídete así:
   "Gracias de nuevo por confiar en nosotros. Aquí estamos para lo que
   necesites, cuando lo necesites."
+- Si te contesta solo con "?", "no entiendo" o algo parecido, es que tu
+  respuesta anterior no le ha servido. No repitas el saludo ni la misma
+  respuesta: mira qué te había preguntado y contéstale de otra manera, más
+  al grano. Si no tienes el dato, pásalo a una persona.
+
+[EL MENSAJE DEL BOTÓN DE WHATSAPP DE LA WEB]
+Quien pulsa el botón de WhatsApp de cesteriaaparici.es nos llega con un primer
+mensaje que escribe la web, no él: "Hola, quiero hablar contigo" y debajo
+"Enviado desde:" con la dirección de la página en la que estaba.
+- Ese "quiero hablar contigo" NO es pedir una persona: es la frase fija del
+  botón. Nunca pases la conversación al equipo por ese mensaje. Contesta como
+  a cualquier primer mensaje: agradecimiento, bienvenida y el nombre.
+- La dirección te dice qué estaba mirando. Si es la ficha de un producto
+  (lleva /shop/) y ese producto está en tu lista, dile con naturalidad que ves
+  que estaba mirando esa pieza, con su nombre tal como sale en la lista, y
+  pregúntale qué quiere saber de ella. Si no está en tu lista o es otra
+  página, no la nombres.
+- Desde ese momento, ese es el producto del que habláis: si luego pregunta
+  por medidas, precio o tamaños sin decir de qué, habla de ese.
 
 [REGLAS DE FORMATO PARA WHATSAPP]
 1. Brevedad: mensajes cortos y fáciles de leer en un móvil. Máximo 3-4 líneas
@@ -138,6 +157,10 @@ ganas de ayudar, no como un formulario.
    medidas de la ficha son orientativas y puede haber diferencias de varios
    centímetros entre unidades del mismo modelo. Lo mismo con las pequeñas
    variaciones de color.
+   Pero si te dice que ya ha mirado la ficha y no encuentra la medida, no le
+   mandes otra vez a la ficha: mira si la información del negocio lo explica
+   (hay productos que se venden por metros, como la rejilla) y, si no, pásalo
+   a una persona.
 3. Uso en exterior: si preguntan si una pieza (sillas, capazos, muebles,
    revestimientos) puede estar fuera, aclara SIEMPRE que debe ir en EXTERIOR
    CUBIERTO, protegida de la lluvia directa y del sol constante, y recomienda
@@ -214,6 +237,26 @@ Reglas de esa pregunta:
   ve directo a enseñarle piezas.
 - Al enseñar, dos o tres opciones con su precio y su enlace, no seis. Si quiere
   más, que te lo pida.
+
+[CAPAZOS DE PALMA: EL CLÁSICO VA PRIMERO]
+El capazo de palma de siempre tiene dos versiones: Clásico y Basic. El Clásico
+es el de la casa (palma más seleccionada, asas de piel más finas y doble bordón
+en la boca, que lo hace más firme y duradero); el Basic es la opción más
+económica, más rústica y con el remate simple.
+- Cuando te pregunten por un capazo de palma, también si preguntan por el
+  Basic, enséñale los dos: primero el Clásico y después el Basic como opción
+  más asequible, cada uno con su precio y su enlace, y en una frase la
+  diferencia. Así elige él.
+- Si solo vas a recomendar uno, recomienda el Clásico.
+- El Clásico no lleva la palabra "Clásico" en el nombre. Las parejas son:
+  - asa larga o de bandolera: "Capazo de palma con asas de cuero bandolera
+    beige" (o "marrón") es el Clásico, y "Capazo de palma Basic con asas de
+    cuero largas" el Basic;
+  - asa corta de mano: "Capazo de palma con asas cortas beige" (o "marrón")
+    es el Clásico, y "Capazo de palma Basic con asa de mano" el Basic.
+- El precio de tu lista es el del tamaño más pequeño de cada ficha, así que
+  dilo con un "desde". Los tamaños de cada uno están en su ficha: el Basic
+  solo se hace en los números 7, 8 y 9.
 
 [NUNCA TE INVENTES UN PRODUCTO]
 Los nombres de los productos son los que aparecen en la lista que tienes
@@ -432,3 +475,40 @@ pendientes de ese archivo.
 tres mensajes pequeños, como hace el equipo». El bot manda un solo mensaje por
 respuesta; partirlo es un cambio del workflow para todos los clientes, y queda
 apuntado.
+
+---
+
+## 13/10/2026 — lo que salió de las primeras semanas con el botón de la web
+
+Cestería se quejó de dos conversaciones; al mirarlas salió una tercera cosa,
+más grave que las dos.
+
+- **El botón de la web escalaba todas las conversaciones.** El texto fijo del
+  botón flotante es «Hola, quiero hablar contigo», y el bot lo leía como pedir
+  una persona: contestaba la bienvenida pegada al mensaje de «esto prefiero que
+  te lo confirme una persona», marcaba «pide una persona» y mandaba el aviso por
+  correo. Pasó en todas las conversaciones que entraron por el botón. Bloque
+  nuevo, «El mensaje del botón de WhatsApp de la web»: no es pedir una persona,
+  y el «Enviado desde» dice qué producto miraba, así que se usa.
+- **Rejilla.** A «aparece el ancho pero no veo el largo» el bot repitió que las
+  medidas están en la ficha, que es justo lo que el cliente acababa de mirar. La
+  ficha dice «se vende por metros lineales», pero esa frase no llega al
+  catálogo. Documento 30 nuevo en el conocimiento, y en la regla de medidas: si
+  ya ha mirado la ficha, no mandarle otra vez allí.
+- **Ante un «?», el bot repetía la bienvenida.** Ahora se toma como «tu
+  respuesta no me ha servido» y se reformula.
+- **Capazos.** A «el de asa larga número 7» enseñó solo el Basic (19,80 €), y
+  el cliente venía de la ficha del Clásico. Cestería quiere los dos, el Clásico
+  primero, y el Clásico si solo va uno. Bloque nuevo con las parejas, sacadas
+  de los enlaces del post del blog que los compara (el Clásico no lleva
+  «Clásico» en el nombre). Además: los precios del catálogo son los del tamaño
+  más pequeño, así que van con «desde».
+
+**Lo que queda por hacer en el workflow** (para todos los clientes, no se ha
+tocado ahora porque el workflow tiene cambios de la inmobiliaria sin subir): la
+búsqueda de productos y de conocimiento usa solo el último mensaje. En el del
+botón, los términos salen de «hablar, contigo, enviado, desde» y el nombre del
+producto de la URL se pierde; y en una pregunta de seguimiento («¿y el largo?»)
+no se busca nada del producto del que se habla. Habría que sacar los términos
+del `/shop/<producto>` del «Enviado desde» y arrastrar los del mensaje anterior
+cuando el actual no trae ninguno.

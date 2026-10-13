@@ -237,6 +237,8 @@ Aparici trabaja también el esparto y la palma. El esparto es la fibra de los le
 - **URL de origen:** https://www.cesteriaaparici.es/blog/cesteria-2/capazo-clasico-vs-capazo-basic-como-elegir-mi-proximo-capazo-de-palma-cesteria-aparici-279
 
 ```
+¿Qué diferencia hay entre el capazo básico y el clásico? Me interesa el capazo básico. ¿Qué capazo me recomiendas? ¿Cuál es mejor?
+
 Los capazos de palma de Aparici tienen dos versiones, Clásico y Basic, y la diferencia no es solo el precio.
 
 El capazo Clásico lleva una selección de palma más minuciosa y asas de piel de más calidad, más finas y de tacto suave. En la boca lleva un doble bordón, un remate reforzado que le da firmeza, evita que el capazo vuelque y alarga bastante su vida útil. Es el que eligen las marcas de lujo cuando lo quieren como complemento de mujer. Hay tamaños desde 4 hasta 9 vueltas.
@@ -246,6 +248,20 @@ El capazo Basic usa una palma a propósito menos homogénea y asas más gruesas,
 Los dos modelos se hacen con asa corta de mano y con asa larga de bandolera.
 
 En resumen: si se busca una pieza de vestir, con un acabado más fino y que dure muchos veranos, el Clásico. Si se busca un buen capazo de playa o de diario sin gastar de más, el Basic.
+
+Al recomendar, se enseñan los dos, el Clásico primero; y si solo se recomienda uno, el Clásico. En la tienda el Clásico no lleva la palabra «Clásico» en el nombre. Las parejas son:
+
+Con asa larga o de bandolera:
+- Clásico: Capazo de palma con asas de cuero bandolera beige (también en marrón), del N°6 al N°9.
+https://www.cesteriaaparici.es/shop/capazo-de-palma-con-asas-de-cuero-bandolera-beige-1217
+- Basic: Capazo de palma Basic con asas de cuero largas, del N°7 al N°9.
+https://www.cesteriaaparici.es/shop/capazo-de-palma-basic-con-asas-de-cuero-largas-4762
+
+Con asa corta de mano:
+- Clásico: Capazo de palma con asas cortas beige (también en marrón).
+https://www.cesteriaaparici.es/shop/capazo-de-palma-con-asas-cortas-beige-1271
+- Basic: Capazo de palma Basic con asa de mano.
+https://www.cesteriaaparici.es/shop/capazo-de-palma-basic-con-asa-de-mano-4761
 ```
 
 ---
@@ -676,6 +692,28 @@ Si es un particular que celebra su propia boda, se le dice igual que no se alqui
 
 ---
 
+## 30. Rejilla: se vende por metros
+
+- **Categoría:** Productos
+- **URL de origen:** https://www.cesteriaaparici.es/shop/rejilla-clasica-natural-1528
+
+Lo de la cantidad y el rollo de 15 m lo contestó el equipo a un cliente el
+08/10/2026; la ficha solo dice «se vende por metros lineales».
+
+```
+¿Cuánto mide de largo la rejilla? Aparece el ancho pero no veo el largo. ¿Cómo se vende la rejilla? ¿Cuántos metros son? ¿Qué es la talla de la rejilla? ¿Vendéis el rollo entero? Quiero rejilla para una silla o un mueble.
+
+La rejilla se vende por metros lineales. Vale para las cuatro de la tienda: Rejilla tupida natural, Rejilla clásica natural, Rejilla de ratán clásica natural Premium y Rejilla cuadradillo natural Premium.
+
+En la ficha se elige el ancho, que aparece como «Talla» (de 36 cm a 90 cm), y la cantidad son los metros de largo: 1 unidad es 1 metro del ancho elegido; 3 unidades, 3 metros. El precio que marca la ficha es el de un metro del ancho elegido.
+
+El rollo completo son 15 metros.
+
+Por eso en la ficha sale el ancho y no el largo: el largo lo pone el cliente con la cantidad.
+```
+
+---
+
 # Pendiente de confirmar con el cliente
 
 Resueltos el 03/08/2026 por el cliente: **horario** (9:00-13:00), **formas de
@@ -755,3 +793,15 @@ Queda esto:
    14) y el ancho del N°9 (55 vs 52) son diferencias de verdad. Conviene que
    borren o actualicen el post viejo: mientras los dos estén en Google, un
    cliente puede leer una medida y que el bot le diga otra.
+
+9. **Rejilla (documento 30, 13/10/2026).** Sabemos que va por metros y que el
+   rollo son 15 m. Falta: si varios metros llegan en una sola pieza seguida, y
+   si el rollo entero tiene otro precio. Mientras no lo confirmen, el bot no lo
+   dice y lo pasa a una persona.
+
+10. **El texto del botón de WhatsApp de la web.** Dice «Hola, quiero hablar
+    contigo», y el bot lo tomaba como «quiero hablar con una persona»: hasta el
+    13/10, las conversaciones que llegaban por el botón empezaban pasándose al
+    equipo, con su aviso. El prompt ya lo distingue, pero un texto neutro en
+    Odoo («Hola, tengo una consulta») lo evita del todo. El «Enviado desde» con
+    la página conviene dejarlo: dice qué producto miraba.

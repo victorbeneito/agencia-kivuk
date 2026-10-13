@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, Bot, Clock, Send, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Bot,
+  Check,
+  Clock,
+  Copy,
+  MessageCircle,
+  Send,
+  UserRound,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -13,12 +22,45 @@ import {
   tomarElMando,
 } from "./acciones";
 import {
+  enlaceWhatsApp,
   etiquetaContacto,
+  telefonoContacto,
+  telefonoLegible,
   tiempoRestanteVentana,
   ventanaAbierta,
   type ConversacionResumen,
   type MensajeBandeja,
 } from "./tipos";
+
+/**
+ * Botón de copiar el teléfono. Se copia en dígitos con el `+` delante, que es
+ * lo que acepta tal cual la agenda del móvil o el buscador de WhatsApp; los
+ * espacios del texto visible son solo para leerlo.
+ */
+function CopiarTelefono({ telefono }: { telefono: string }) {
+  const [copiado, setCopiado] = useState(false);
+
+  return (
+    <button
+      type="button"
+      className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+      aria-label={copiado ? "Teléfono copiado" : "Copiar teléfono"}
+      title={copiado ? "Copiado" : "Copiar teléfono"}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(`+${telefono}`);
+          setCopiado(true);
+          setTimeout(() => setCopiado(false), 1500);
+        } catch {
+          // Sin permiso de portapapeles el número sigue a la vista y se puede
+          // seleccionar a mano; no merece un error.
+        }
+      }}
+    >
+      {copiado ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+    </button>
+  );
+}
 
 /** Un mensaje suelto. El color dice quién habla sin necesidad de etiqueta. */
 function Burbuja({
@@ -264,6 +306,8 @@ export function Hilo({
   const abierta = ventanaAbierta(conversacion.ultimoEntrante);
   const alMando = conversacion.modo === "human";
   const puedeEscribir = alMando && abierta;
+  const telefono = telefonoContacto(conversacion);
+  const enlace = enlaceWhatsApp(conversacion);
 
   function enviar() {
     const contenido = texto.trim();
@@ -326,9 +370,21 @@ export function Hilo({
         </Button>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-medium md:text-[15px]">
-            {etiquetaContacto(conversacion)}
+          <p className="flex min-w-0 items-center gap-1">
+            <span className="truncate text-base font-medium md:text-[15px]">
+              {etiquetaContacto(conversacion)}
+            </span>
+            {/* Sin nombre, el teléfono ya es el título: solo falta copiarlo. */}
+            {telefono && !conversacion.nombre && (
+              <CopiarTelefono telefono={telefono} />
+            )}
           </p>
+          {telefono && conversacion.nombre && (
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="select-all">{telefonoLegible(conversacion)}</span>
+              <CopiarTelefono telefono={telefono} />
+            </p>
+          )}
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
             {alMando ? (
               <>
@@ -415,11 +471,44 @@ export function Hilo({
         {!abierta ? (
           <div className="flex items-start gap-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
             <Clock className="mt-0.5 size-4 shrink-0" />
-            <p>
-              Han pasado más de 24 horas desde su último mensaje. WhatsApp solo
-              permite escribir libremente dentro de ese plazo: hasta que vuelva
-              a escribir, no se le puede responder por aquí.
-            </p>
+            <div className="flex min-w-0 flex-col gap-2">
+              <p>
+                Han pasado más de 24 horas desde su último mensaje. WhatsApp
+                solo deja escribir libremente dentro de ese plazo: hasta que
+                vuelva a escribir, no se le puede responder desde este número.
+                La conversación se queda guardada aquí.
+              </p>
+              {/*
+                Pasado el plazo, la única forma de contestar es desde otra
+                cuenta. En el ordenador del negocio, wa.me abre su WhatsApp de
+                siempre, que no tiene esta limitación con este contacto.
+              */}
+              {enlace && (
+                <p>
+                  Si necesitas contestarle ya, escríbele desde tu otro WhatsApp
+                  o llámale al{" "}
+                  <span className="select-all font-medium text-foreground">
+                    {telefonoLegible(conversacion)}
+                  </span>
+                  .
+                </p>
+              )}
+              {enlace && (
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    nativeButton={false}
+                    render={
+                      <a href={enlace} target="_blank" rel="noopener noreferrer" />
+                    }
+                  >
+                    <MessageCircle className="size-4" />
+                    Abrir en mi WhatsApp
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         ) : !alMando ? (
           <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">

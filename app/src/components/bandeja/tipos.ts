@@ -100,7 +100,40 @@ export function desdeFila(fila: FilaConversacion): ConversacionResumen {
 
 /** Cómo se llama el contacto en la lista cuando no sabemos su nombre. */
 export function etiquetaContacto(c: ConversacionResumen): string {
-  return c.nombre || c.contacto || "Contacto sin identificar";
+  return c.nombre || telefonoLegible(c) || c.contacto || "Contacto sin identificar";
+}
+
+/**
+ * El teléfono del contacto, solo en dígitos y con prefijo de país, tal como lo
+ * manda Meta (`34612345678`). Null si el canal no es WhatsApp: en otros canales
+ * el identificador externo no es un número al que se pueda escribir.
+ */
+export function telefonoContacto(c: ConversacionResumen): string | null {
+  if (c.canal !== "whatsapp" || !c.contacto) return null;
+  return /^\d{8,15}$/.test(c.contacto) ? c.contacto : null;
+}
+
+/**
+ * El teléfono como lo escribiría una persona. Hace falta verlo aunque sepamos
+ * el nombre: pasadas las 24 h de Meta, la única forma de contestar es
+ * escribirle o llamarle desde otro número, y con el nombre solo no se puede.
+ */
+export function telefonoLegible(c: ConversacionResumen): string | null {
+  const t = telefonoContacto(c);
+  if (!t) return null;
+  const es = t.match(/^34(\d{3})(\d{2})(\d{2})(\d{2})$/);
+  if (es) return `+34 ${es[1]} ${es[2]} ${es[3]} ${es[4]}`;
+  return `+${t}`;
+}
+
+/**
+ * Enlace que abre un chat con el contacto en el WhatsApp de quien lo pulsa:
+ * en el ordenador de un cliente suele ser el número de siempre del negocio,
+ * que no tiene la limitación de las 24 h porque es otra cuenta.
+ */
+export function enlaceWhatsApp(c: ConversacionResumen): string | null {
+  const t = telefonoContacto(c);
+  return t ? `https://wa.me/${t}` : null;
 }
 
 /**
