@@ -1,5 +1,5 @@
 {
-  "_que_es": "Salida real de inmuebles_cartera y buscar_inmuebles (migración 0025) con docs/inmuebles-inmobiliaria-llaves.csv, tal como la devuelve PostgREST (un objeto, migración 0026). La genera el ensayo en Postgres de la migración; si cambia la función o la cartera, hay que regenerarla.",
+  "_que_es": "Salida real de inmuebles_cartera y buscar_inmuebles (migración 0025) con docs/inmuebles-inmobiliaria-llaves.csv, tal como la devuelve PostgREST (un objeto, migraciones 0026 y 0027). La genera el ensayo en Postgres de la migración; si cambia la función o la cartera, hay que regenerarla.",
   "cartera": {
     "tipos": [
       "adosado",
@@ -188,8 +188,15 @@
           }
         ],
         "vistos": 0,
+        "mas_caros": 2,
         "otras_zonas": 0,
-        "total_exactos": 2
+        "total_exactos": 2,
+        "mas_caros_desde": 189000,
+        "municipios_fuera": [
+          "Albaida",
+          "L'Olleria"
+        ],
+        "otros_municipios": 2
       }
     },
     "piso_sant_josep_130k": {
@@ -252,8 +259,15 @@
           }
         ],
         "vistos": 0,
+        "mas_caros": 0,
         "otras_zonas": 1,
-        "total_exactos": 2
+        "total_exactos": 2,
+        "mas_caros_desde": null,
+        "municipios_fuera": [
+          "Albaida",
+          "L'Olleria"
+        ],
+        "otros_municipios": 2
       }
     },
     "piso_venta_sin_mas": {
@@ -330,8 +344,12 @@
           }
         ],
         "vistos": 0,
+        "mas_caros": 0,
         "otras_zonas": 0,
-        "total_exactos": 9
+        "total_exactos": 9,
+        "mas_caros_desde": null,
+        "municipios_fuera": [],
+        "otros_municipios": 0
       }
     },
     "local_sin_operacion": {
@@ -405,8 +423,12 @@
           }
         ],
         "vistos": 0,
+        "mas_caros": 0,
         "otras_zonas": 0,
-        "total_exactos": 5
+        "total_exactos": 5,
+        "mas_caros_desde": null,
+        "municipios_fuera": [],
+        "otros_municipios": 0
       }
     },
     "chalet_alquiler_1000": {
@@ -420,8 +442,12 @@
       "resultado": {
         "filas": [],
         "vistos": 0,
+        "mas_caros": 1,
         "otras_zonas": 0,
-        "total_exactos": 0
+        "total_exactos": 0,
+        "mas_caros_desde": 1300,
+        "municipios_fuera": [],
+        "otros_municipios": 0
       }
     },
     "ref_116_reservado": {
@@ -456,8 +482,12 @@
           }
         ],
         "vistos": 0,
+        "mas_caros": 0,
         "otras_zonas": 0,
-        "total_exactos": 1
+        "total_exactos": 1,
+        "mas_caros_desde": null,
+        "municipios_fuera": [],
+        "otros_municipios": 0
       }
     },
     "ref_104_y_999": {
@@ -493,8 +523,12 @@
           }
         ],
         "vistos": 0,
+        "mas_caros": 0,
         "otras_zonas": 0,
-        "total_exactos": 1
+        "total_exactos": 1,
+        "mas_caros_desde": null,
+        "municipios_fuera": [],
+        "otros_municipios": 0
       }
     },
     "sant_josep_vivienda": {
@@ -561,8 +595,18 @@
           }
         ],
         "vistos": 0,
+        "mas_caros": 0,
         "otras_zonas": 12,
-        "total_exactos": 2
+        "total_exactos": 2,
+        "mas_caros_desde": null,
+        "municipios_fuera": [
+          "Agullent",
+          "Aielo de Malferit",
+          "Albaida",
+          "Bocairent",
+          "L'Olleria"
+        ],
+        "otros_municipios": 6
       }
     },
     "sant_josep_150k_ya_vistos": {
@@ -591,8 +635,18 @@
       "resultado": {
         "filas": [],
         "vistos": 2,
+        "mas_caros": 0,
         "otras_zonas": 3,
-        "total_exactos": 0
+        "total_exactos": 0,
+        "mas_caros_desde": null,
+        "municipios_fuera": [
+          "Agullent",
+          "Aielo de Malferit",
+          "Albaida",
+          "Bocairent",
+          "L'Olleria"
+        ],
+        "otros_municipios": 5
       }
     },
     "ontinyent_150k_ya_vistos": {
@@ -681,8 +735,199 @@
           }
         ],
         "vistos": 2,
+        "mas_caros": 7,
         "otras_zonas": 0,
-        "total_exactos": 3
+        "total_exactos": 3,
+        "mas_caros_desde": 175000,
+        "municipios_fuera": [
+          "Agullent",
+          "Aielo de Malferit",
+          "Albaida",
+          "Bocairent",
+          "L'Olleria"
+        ],
+        "otros_municipios": 5
+      }
+    },
+    "casa_de_campo_llombo_180k": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "casa de campo"
+        ],
+        "municipios": [
+          "Ontinyent"
+        ],
+        "zonas": [
+          "El Llombo"
+        ],
+        "precio_max": 180000
+      },
+      "resultado": {
+        "filas": [],
+        "vistos": 0,
+        "mas_caros": 0,
+        "otras_zonas": 0,
+        "total_exactos": 0,
+        "mas_caros_desde": null,
+        "municipios_fuera": [
+          "Agullent"
+        ],
+        "otros_municipios": 1
+      }
+    },
+    "casa_de_campo_fuera_180k": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "casa de campo"
+        ],
+        "precio_max": 180000
+      },
+      "resultado": {
+        "filas": [
+          {
+            "m2": 120,
+            "ref": "120",
+            "url": null,
+            "tipo": "casa de campo",
+            "zona": "Afueras",
+            "banos": 1,
+            "encaje": "se_pasa",
+            "estado": "buen estado",
+            "extras": [
+              "huerto",
+              "chimenea",
+              "vistas"
+            ],
+            "precio": 195000,
+            "municipio": "Agullent",
+            "operacion": "venta",
+            "situacion": "disponible",
+            "m2_parcela": 5000,
+            "descripcion": "Casa de campo con huerto y árboles frutales a cinco minutos del pueblo",
+            "habitaciones": 3
+          }
+        ],
+        "vistos": 0,
+        "mas_caros": 0,
+        "otras_zonas": 0,
+        "total_exactos": 0,
+        "mas_caros_desde": null,
+        "municipios_fuera": [],
+        "otros_municipios": 0
+      }
+    },
+    "chalet_ontinyent_180k": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "chalet"
+        ],
+        "municipios": [
+          "Ontinyent"
+        ],
+        "precio_max": 180000
+      },
+      "resultado": {
+        "filas": [],
+        "vistos": 0,
+        "mas_caros": 4,
+        "otras_zonas": 0,
+        "total_exactos": 0,
+        "mas_caros_desde": 240000,
+        "municipios_fuera": [],
+        "otros_municipios": 0
+      }
+    },
+    "chalet_ontinyent_sin_tope": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "chalet"
+        ],
+        "municipios": [
+          "Ontinyent"
+        ]
+      },
+      "resultado": {
+        "filas": [
+          {
+            "m2": 210,
+            "ref": "115",
+            "url": null,
+            "tipo": "chalet",
+            "zona": "El Pilar",
+            "banos": 2,
+            "encaje": "exacto",
+            "estado": "buen estado",
+            "extras": [
+              "piscina",
+              "garaje",
+              "barbacoa",
+              "jardín"
+            ],
+            "precio": 240000,
+            "municipio": "Ontinyent",
+            "operacion": "venta",
+            "situacion": "disponible",
+            "m2_parcela": 900,
+            "descripcion": "Chalet de dos plantas con piscina y barbacoa en urbanización tranquila",
+            "habitaciones": 4
+          },
+          {
+            "m2": 160,
+            "ref": "117",
+            "url": null,
+            "tipo": "chalet",
+            "zona": "Les Aigües",
+            "banos": 2,
+            "encaje": "exacto",
+            "estado": "buen estado",
+            "extras": [
+              "piscina",
+              "chimenea",
+              "jardín"
+            ],
+            "precio": 265000,
+            "municipio": "Ontinyent",
+            "operacion": "venta",
+            "situacion": "disponible",
+            "m2_parcela": 1200,
+            "descripcion": "Chalet de una planta con chimenea y piscina a diez minutos del centro",
+            "habitaciones": 3
+          },
+          {
+            "m2": 240,
+            "ref": "118",
+            "url": null,
+            "tipo": "chalet",
+            "zona": "Carretera de Valencia",
+            "banos": 3,
+            "encaje": "exacto",
+            "estado": "buen estado",
+            "extras": [
+              "piscina",
+              "garaje",
+              "vistas",
+              "jardín"
+            ],
+            "precio": 435000,
+            "municipio": "Ontinyent",
+            "operacion": "venta",
+            "situacion": "disponible",
+            "m2_parcela": 2500,
+            "descripcion": "Chalet de cinco habitaciones con mucha privacidad y parcela de 2.500 m²",
+            "habitaciones": 5
+          }
+        ],
+        "vistos": 0,
+        "mas_caros": 0,
+        "otras_zonas": 0,
+        "total_exactos": 4,
+        "mas_caros_desde": null,
+        "municipios_fuera": [],
+        "otros_municipios": 0
       }
     },
     "ontinyent_150k_todo_visto": {
@@ -734,8 +979,18 @@
           }
         ],
         "vistos": 5,
+        "mas_caros": 7,
         "otras_zonas": 0,
-        "total_exactos": 0
+        "total_exactos": 0,
+        "mas_caros_desde": 175000,
+        "municipios_fuera": [
+          "Agullent",
+          "Aielo de Malferit",
+          "Albaida",
+          "Bocairent",
+          "L'Olleria"
+        ],
+        "otros_municipios": 5
       }
     }
   }

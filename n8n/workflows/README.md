@@ -749,12 +749,35 @@ Recoger productos → Cartera de inmuebles → Consultar agenda → …
   `otras_zonas` y se ofrece («en otras zonas de Ontinyent tengo 3 más, ¿te los
   enseño?»). Por eso la función devuelve un objeto y no filas: el recuento
   tiene que llegar aunque no haya ninguna ficha que enseñar.
-- **Aceptar esa oferta lo decide el código.** Se le pedía a la IA que quitara la
-  zona al oír «sí», y la dejó puesta tres veces seguidas: la misma oferta en
-  bucle. `Decidir acción` mira si lo último que dijo el bot fue la oferta y si
-  la persona acepta («sí», «vale», «enséñamelos») o pide más («¿no tienes nada
-  más?»), y entonces busca sin la zona. Es el mismo patrón que el «no» de las
-  citas.
+- **Cuando no hay nada, dice qué buscó y qué hay más cerca** (migración
+  `0027`). «En El Llombo no tengo nada que cumpla todo eso», a quien acababa de
+  preguntar por casas de campo, no decía ni que se habían buscado casas de
+  campo. Ahora: *«No tengo chalets en venta en Ontinyent hasta 180.000 €. Con
+  lo demás que buscas tengo 4, pero el más económico está en 240.000 €. ¿Te los
+  enseño?»*. La función cuenta lo que encajaría aflojando una sola cosa (otra
+  zona, otro pueblo o el tope de precio) y se ofrece eso, en ese orden.
+- **Aceptar una oferta lo decide el código, con la búsqueda anterior** (migración
+  `0028`). Cada oferta acaba en «¿Te lo(s) enseño?» con su frase propia («En
+  otras zonas de», «Fuera de», «el más económico»). Si lo último que dijo el bot
+  fue una de ellas y la persona acepta («sí», «vale», «enséñamelos») o pide más
+  («¿no tienes nada más?»), `Decidir acción` toma la búsqueda anterior de esa
+  persona (`Última búsqueda`, tabla `inmuebles_busquedas`, que escribe `Anotar
+  búsqueda` en paralelo) y afloja solo lo ofrecido. Dejárselo a la IA falló de
+  todas las formas posibles: dejó la zona puesta tres veces (bucle), a un «sí»
+  no rellenó la búsqueda, y a «vale, enséñamelos» tras la oferta de chalets
+  cambió los tipos y salieron pisos. Sin búsqueda guardada se afloja lo que
+  haya puesto la IA.
+- **Más redes en código, por lo mismo** (07/10/2026): si la IA no pone tipo y la
+  persona habla de vivienda, casa o piso, se buscan solo viviendas (salió un
+  local a quien buscaba casa); un «municipio» que no es un pueblo de la cartera
+  se trata como zona («fuera de Sant Antoni tengo 13 en Agullent…» no tiene
+  sentido para un barrio); y lo ya enseñado solo cuenta durante seis horas
+  («hola, empiezo de nuevo» al día siguiente arrastraba lo de la víspera).
+- **La lección de esta pieza**: cada vez que la continuidad de la conversación
+  dependía de que la IA reescribiera bien los criterios, falló alguna vez en las
+  pruebas. Lo que tiene que pasar siempre (no repetir, aceptar una oferta, no
+  ofrecer un local a quien busca casa) lo hace el código; a la IA le queda
+  entender qué pide la persona.
 - Los dos nodos HTTP van con `alwaysOutputData` y `continueRegularOutput`. Una
   búsqueda vacía no corta el flujo. Una base caída no deja al bot mudo: lo dice
   y escala.

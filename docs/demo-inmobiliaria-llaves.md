@@ -233,6 +233,26 @@ Por el camino salió otro tropiezo de la IA: «vivienda» lo traducía como los
 tipos de casa y **sin pisos**. Ahora ve los tipos separados en «de vivienda» y
 «para negocio o suelo».
 
+**Segunda prueba por WhatsApp (07/10/2026): respuestas ciertas pero inútiles.**
+Con 180.000 € para comprar: «¿y en Sant Antoni?» → «no trabajamos esa zona»;
+«¿y casas de campo?» → «En El Llombo no tengo nada» (arrastraba la zona y ni
+nombraba las casas de campo); «¿un chalet por 180.000?» → «no tengo nada que
+cumpla todo eso». Arreglado con las migraciones `0027` y `0028` y varias redes
+en código (detalle en `n8n/workflows/README.md`). La misma conversación, ahora:
+
+1. «¿Y en Sant Antoni?» → *«No tengo viviendas en venta en Sant Antoni hasta
+   180.000 €. En otras zonas de Ontinyent tengo 6 más con lo que buscas.
+   ¿Te los enseño?»* → «sí» → los enseña.
+2. «¿Y casas de campo?» → *«No tengo casas de campo en venta en Ontinyent hasta
+   180.000 €. Fuera de Ontinyent tengo uno en Agullent que se acerca a lo que
+   buscas. ¿Te lo enseño?»*
+3. «¿Algún chalet por 180.000?» → *«No tengo chalets en venta en Ontinyent hasta
+   180.000 €. Con lo demás que buscas tengo 4, pero el más económico está en
+   240.000 €. ¿Te los enseño?»* → «vale» → los chalets, del más barato al más
+   caro.
+
+Probado tres veces seguidas con gpt-4o: los «sí» hacen siempre lo ofrecido.
+
 **Límite conocido:** las fichas y los cierres del sistema van en castellano
 aunque la persona escriba en valenciano. El bot conversa en su idioma, pero la
 lista no.

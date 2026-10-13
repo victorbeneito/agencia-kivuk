@@ -645,6 +645,83 @@ for (const si of ["si, enseñamelos", "Sí", "vale", "venga, a ver", "claro", "e
 ok("tras la oferta, cambiar de criterio no quita la zona", trasLaOferta("prefiero con garaje").zonas[0] === "Sant Josep");
 ok("sin oferta delante, un «si» no quita la zona", trasLaOferta("si", "¿Te gustaría ver alguno? Dime la referencia.").zonas[0] === "Sant Josep");
 
+// Las otras dos ofertas (07/10/2026).
+let f2 = trasLaOferta("si", "No tengo casas de campo en venta en El Llombo hasta 180.000 €.\n\nFuera de Ontinyent tengo uno en Agullent con lo que buscas. ¿Te lo enseño?");
+ok("«fuera de Ontinyent... ¿te lo enseño?» -> «si»: sin municipio ni zona, con el precio",
+  f2.municipios.length === 0 && f2.zonas.length === 0 && f2.precio_max === 150000, JSON.stringify(f2));
+f2 = trasLaOferta("vale", "No tengo chalets en venta en Ontinyent hasta 180.000 €.\n\nCon lo demás que buscas tengo 4, pero el más económico está en 240.000 €. ¿Te los enseño?");
+ok("«el mas economico esta en 240.000... ¿te los enseño?» -> «vale»: sin tope, con la zona",
+  f2.precio_max === null && f2.zonas[0] === "Sant Josep", JSON.stringify(f2));
+f2 = trasLaOferta("vale", "No tengo chalets en alquiler hasta 1.000 €/mes.\n\nCon lo demás que buscas tengo uno, pero está en 1.300 €/mes. ¿Te lo enseño?");
+ok("lo mismo con uno solo («pero está en 1.300 €/mes»)", f2.precio_max === null, JSON.stringify(f2));
+
+// «Busco una vivienda en Sant Josep» llego sin tipos y salio un local (07/10/2026).
+function tiposTras(mensaje, tipos, historial) {
+  const entradas = {
+    "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: true },
+    "Extraer mensaje": { message_text: mensaje },
+  };
+  if (historial) entradas["Cargar historial"] = historial;
+  return ejecutar(nodoBot("Decidir acción"), entradas, { reply: "", inmuebles: { operacion: "venta", tipos } })[0].json.inmuebles.tipos;
+}
+const VIVIENDAS = '["piso","ático","casa de pueblo","adosado","chalet","casa de campo"]';
+ok("«busco una vivienda» sin tipos: solo viviendas, nunca locales", JSON.stringify(tiposTras("Busco una vivienda en la zona de San Jose para comprar", [])) === VIVIENDAS);
+ok("lo mismo si lo dijo antes («y en Sant Antoni?» tras pedir casa)",
+  JSON.stringify(tiposTras("y en Sant Antoni?", [], { role: "user", content: "busco casa para comprar" })) === VIVIENDAS);
+ok("sin hablar de vivir, sin tipos se queda sin tipos", tiposTras("que teneis en venta en Ontinyent?", []).length === 0);
+ok("y si la IA ya puso tipo, no se toca", JSON.stringify(tiposTras("busco local, que es para mi negocio no para vivienda", ["local"])) === '["local"]');
+
+// Un «municipio» que no es un pueblo de la cartera se trata como zona (07/10/2026).
+function lugaresTras(municipios, zonas) {
+  const f = ejecutar(nodoBot("Decidir acción"), {
+    "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: true },
+    "Extraer mensaje": { message_text: "y en sant antoni?" },
+    "Cartera de inmuebles": INM.cartera,
+  }, { reply: "", inmuebles: { operacion: "venta", tipos: ["piso"], municipios, zonas } })[0].json.inmuebles;
+  return JSON.stringify({ municipios: f.municipios, zonas: f.zonas });
+}
+ok("«Sant Antoni» como municipio pasa a zona", lugaresTras(["Sant Antoni"], []) === '{"municipios":[],"zonas":["Sant Antoni"]}', lugaresTras(["Sant Antoni"], []));
+ok("Valencia tambien (no es de la cartera)", lugaresTras(["Valencia"], []) === '{"municipios":[],"zonas":["Valencia"]}', lugaresTras(["Valencia"], []));
+ok("los pueblos de la cartera se quedan, con o sin tilde ni «L'»",
+  lugaresTras(["Ontinyent", "olleria", "Xativa"], []) === '{"municipios":["Ontinyent","olleria","Xativa"],"zonas":[]}', lugaresTras(["Ontinyent", "olleria", "Xativa"], []));
+ok("sin cartera a mano, no se toca nada", JSON.stringify(ejecutar(nodoBot("Decidir acción"), {
+  "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: true },
+  "Extraer mensaje": { message_text: "y en sant antoni?" },
+}, { reply: "", inmuebles: { operacion: "venta", municipios: ["Sant Antoni"] } })[0].json.inmuebles.municipios) === '["Sant Antoni"]');
+
+// Aceptar una oferta rehace la busqueda ANTERIOR (0028), no la que escriba la IA.
+const CHALETS_180K = { operacion: "venta", tipos: ["chalet"], municipios: ["Ontinyent"], precio_max: 180000 };
+const OFERTA_CHALETS = "No tengo chalets en venta en Ontinyent hasta 180.000 €.\n\nCon lo demás que buscas tengo 4, pero el más económico está en 240.000 €. ¿Te los enseño?";
+function aceptar(mensaje, iaInmuebles, ultima) {
+  const entradas = {
+    "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: true },
+    "Extraer mensaje": { message_text: mensaje },
+    "Cargar historial": { role: "assistant", content: OFERTA_CHALETS },
+  };
+  if (ultima !== undefined) entradas["Última búsqueda"] = ultima;
+  return ejecutar(nodoBot("Decidir acción"), entradas, { reply: "", inmuebles: iaInmuebles })[0].json.inmuebles;
+}
+const RECIENTE = new Date().toISOString();
+let fa = aceptar("vale, enseñamelos", { operacion: "venta", tipos: ["piso", "ático", "chalet"], municipios: ["Ontinyent"] }, { filtros: CHALETS_180K, updated_at: RECIENTE });
+ok("«vale, enseñamelos» tras la oferta de chalets: chalets sin tope, aunque la IA cambiara los tipos",
+  JSON.stringify(fa.tipos) === '["chalet"]' && fa.precio_max === null && fa.municipios[0] === "Ontinyent", JSON.stringify(fa));
+fa = aceptar("si", null, { filtros: CHALETS_180K, updated_at: RECIENTE });
+ok("«si» sin que la IA rellene la busqueda: se busca igual", fa && JSON.stringify(fa.tipos) === '["chalet"]' && fa.precio_max === null, JSON.stringify(fa));
+fa = aceptar("si", { operacion: "venta", tipos: ["chalet"], precio_max: 180000 }, {});
+ok("sin busqueda guardada, se afloja lo que puso la IA (como antes)", fa.precio_max === null, JSON.stringify(fa));
+fa = aceptar("si", { operacion: "venta", tipos: ["chalet"], precio_max: 180000 }, { filtros: { operacion: "alquiler", tipos: ["piso"] }, updated_at: new Date(Date.now() - 3 * 86400000).toISOString() });
+ok("una busqueda guardada de hace dias no cuenta como «la anterior»", fa.operacion === "venta" && fa.precio_max === null, JSON.stringify(fa));
+fa = aceptar("prefiero en alquiler", { operacion: "alquiler", tipos: ["chalet"] }, { filtros: CHALETS_180K, updated_at: RECIENTE });
+ok("cambiar de criterio no es aceptar: manda lo nuevo de la IA", fa.operacion === "alquiler", JSON.stringify(fa));
+
+// Lo enseñado caduca: «hola, empiezo de nuevo» al dia siguiente (07/10/2026).
+d = ejecutar(nodoBot("Decidir acción"), {
+  "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: true },
+  "Extraer mensaje": { message_text: "busco vivienda en san jose para comprar" },
+  "Cargar historial": { role: "assistant", content: FICHAS_YA_ENVIADAS, created_at: new Date(Date.now() - 20 * 3600 * 1000).toISOString() },
+}, { reply: "", inmuebles: { operacion: "venta", zonas: ["Sant Josep"] } })[0].json;
+ok("lo ensenado ayer no cuenta como ya visto", d.inmuebles.excluir_refs.length === 0, JSON.stringify(d.inmuebles.excluir_refs));
+
 // `buscar_inmuebles` devuelve un solo objeto (0026); si la llamada falla, llega
 // el item de error que deja pasar `continueRegularOutput`.
 function respuestaInmuebles(caso, reply, resultadoOverride) {
@@ -703,8 +780,26 @@ ok("sin decir compra o alquiler, cada ficha lo dice", /Local en alquiler/.test(r
 ok("y en un local no pregunta habitaciones sino metros", /comprar o alquilar y la zona/.test(ri.reply) && !/habitaciones necesitas/.test(ri.reply), ri.reply.split("\n\n").slice(-1)[0]);
 
 ri = respuestaInmuebles("chalet_alquiler_1000");
-ok("sin nada que encaje, lo dice y ofrece afinar o avisar", /no tengo nada que cumpla todo eso/.test(ri.reply) && /para que te avise/.test(ri.reply), ri.reply);
+ok("sin nada que encaje, dice que es lo que ha buscado", /^No tengo chalets en alquiler hasta 1\.000 €\/mes\./.test(ri.reply), ri.reply);
+ok("y lo mas cercano que si hay, con su precio", /Con lo demás que buscas tengo uno, pero está en 1\.300 €\/mes\. ¿Te lo enseño\?/.test(ri.reply), ri.reply);
 ok("y no escala: sigue la conversacion", ri.escalar === false);
+ri = respuestaInmuebles("chalet_alquiler_1000", "", { filas: [], total_exactos: 0, vistos: 0, otras_zonas: 0, otros_municipios: 0, municipios_fuera: [], mas_caros: 0, mas_caros_desde: null });
+ok("sin nada ni parecido, ofrece aflojar o avisar", /aflojamos algo/.test(ri.reply) && /para que te avise/.test(ri.reply), ri.reply);
+
+// La segunda prueba real (07/10/2026), con 180.000 € para comprar.
+console.log("\n  --- la conversacion del 07/10, ahora ---");
+ri = respuestaInmuebles("casa_de_campo_llombo_180k");
+console.log("  «¿y en casa de campo por ese importe?» (con El Llombo arrastrado)\n  " + ri.reply.split("\n").join("\n  ") + "\n");
+ok("casa de campo: dice que ha buscado casas de campo, no «nada en El Llombo»",
+  /^No tengo casas de campo en venta en El Llombo hasta 180\.000 €\./.test(ri.reply), ri.reply);
+ok("y ofrece la de Agullent", /Fuera de Ontinyent tengo uno en Agullent que se acerca a lo que buscas\. ¿Te lo enseño\?/.test(ri.reply), ri.reply);
+ri = respuestaInmuebles("chalet_ontinyent_180k");
+console.log("  «¿algún chalet por 180.000?»\n  " + ri.reply.split("\n").join("\n  ") + "\n");
+ok("chalet por 180.000: no hay, y el mas economico esta en 240.000",
+  /^No tengo chalets en venta en Ontinyent hasta 180\.000 €\./.test(ri.reply) &&
+  /Con lo demás que buscas tengo 4, pero el más económico está en 240\.000 €\. ¿Te los enseño\?/.test(ri.reply), ri.reply);
+ri = respuestaInmuebles("casa_de_campo_fuera_180k");
+ok("y al aceptar Agullent: la ensena avisando de que se pasa", /\*Ref\. 120\*/.test(ri.reply) && /Se pasa 15\.000 €/.test(ri.reply), ri.reply);
 
 ri = respuestaInmuebles("ref_116_reservado");
 ok("una referencia reservada: lo dice y no la ofrece", /El 116 .* está reservado/.test(ri.reply) && !/\*Ref\. 116\*/.test(ri.reply) && !/hueco para la visita/.test(ri.reply), ri.reply);
@@ -729,6 +824,8 @@ ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Ahora mismo te busco opcion
 ok("si toda la entradilla es anunciar la busqueda, no queda nada", /^Tengo 2/.test(ri.reply), ri.reply.slice(0, 60));
 ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Ara mateix busque opcions per a tu a Ontinyent amb ascensor.");
 ok("tambien en valenciano", /^Tengo 2/.test(ri.reply), ri.reply.slice(0, 60));
+ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "Vamos a echar un vistazo en Sant Antoni entonces. Dame un momento mientras reviso la disponibilidad.");
+ok("y «vamos a echar un vistazo…» (07/10/2026)", /^Tengo 2/.test(ri.reply), ri.reply.slice(0, 60));
 
 ri = respuestaInmuebles("piso_3hab_150k_ontinyent", "", { error: "500 Internal Server Error" });
 ok("si la base falla, no improvisa: lo dice y avisa al equipo", /no puedo consultar la cartera/.test(ri.reply) && ri.escalar === true, ri.reply);
@@ -739,12 +836,19 @@ ok("la rama sin agenda pasa por ¿Buscar inmuebles?", cx["¿Consultar agenda?"].
 ok("que si busca va a Buscar inmuebles y si no, a Respuesta sin agenda",
   cx["¿Buscar inmuebles?"].main[0][0].node === "Buscar inmuebles" && cx["¿Buscar inmuebles?"].main[1][0].node === "Respuesta sin agenda");
 ok("y la respuesta acaba en Respuesta final, que pone la presentacion", cx["Respuesta con inmuebles"].main[0][0].node === "Respuesta final");
-ok("la cartera se lee antes de llamar a la IA", cx["Recoger productos"].main[0][0].node === "Cartera de inmuebles" && cx["Cartera de inmuebles"].main[0][0].node === "Consultar agenda");
-for (const nombre of ["Cartera de inmuebles", "Buscar inmuebles"]) {
+ok("la cartera y la ultima busqueda se leen antes de llamar a la IA",
+  cx["Recoger productos"].main[0][0].node === "Cartera de inmuebles" &&
+  cx["Cartera de inmuebles"].main[0][0].node === "Última búsqueda" &&
+  cx["Última búsqueda"].main[0][0].node === "Consultar agenda");
+ok("la busqueda se anota en paralelo, como hoja: no toca la respuesta",
+  cx["¿Buscar inmuebles?"].main[0].some((c) => c.node === "Anotar búsqueda") && !cx["Anotar búsqueda"]);
+for (const nombre of ["Cartera de inmuebles", "Última búsqueda", "Buscar inmuebles"]) {
   const n = bot.nodes.find((x) => x.name === nombre);
   ok(`"${nombre}" emite item aunque no encuentre nada o falle`,
     n.alwaysOutputData === true && n.onError === "continueRegularOutput");
 }
+ok('"Anotar búsqueda" no tumba nada si falla (p. ej. sin la migracion 0028)',
+  bot.nodes.find((x) => x.name === "Anotar búsqueda").onError === "continueRegularOutput");
 
 console.log("\n" + (fallos === 0 ? "TODO OK" : fallos + " FALLOS"));
 process.exit(fallos === 0 ? 0 : 1);
