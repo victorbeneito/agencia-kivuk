@@ -850,5 +850,96 @@ for (const nombre of ["Cartera de inmuebles", "Última búsqueda", "Buscar inmue
 ok('"Anotar búsqueda" no tumba nada si falla (p. ej. sin la migracion 0028)',
   bot.nodes.find((x) => x.name === "Anotar búsqueda").onError === "continueRegularOutput");
 
+// === Busqueda con contexto (14/10/2026) =======================================
+// A «¿cuales son las terminaciones?», en mitad de una conversacion de persianas,
+// la busqueda no traia el documento de persianas porque solo miraba el ultimo
+// mensaje, y la IA se invento los acabados. Ahora se busca tambien con lo que se
+// dijo justo antes.
+
+console.log("\n=== El bot: busqueda con contexto ===");
+
+/** Como `ejecutar`, pero un nodo puede dar varios items (un array). */
+function ejecutarItems(codigo, entradas, itemsEntrada) {
+  const $ = (nombre) => {
+    if (!(nombre in entradas)) throw new Error("Referenced node is unexecuted: " + nombre);
+    const v = entradas[nombre];
+    const items = (Array.isArray(v) ? v : [v]).map((json) => ({ json }));
+    return { first: () => items[0], all: () => items };
+  };
+  const items = itemsEntrada.map((json) => ({ json }));
+  const $input = { first: () => items[0], all: () => items };
+  return new Function("$", "$json", "$input", "$now", codigo)($, items[0] && items[0].json, $input, AHORA);
+}
+
+const BOTON = "Hola, quiero hablar contigo \n\n*Enviado desde: https://www.cesteriaaparici.es /shop/7123-persiana-de-esparto-a-medida-4471#attr=*";
+function preparar(mensaje, recientes) {
+  const entradas = { "Extraer mensaje": { message_text: mensaje } };
+  if (recientes !== undefined) entradas["Mensajes recientes"] = recientes;
+  return ejecutarItems(nodoBot("Preparar búsqueda"), entradas, [{ module: "whatsapp" }])[0].json;
+}
+
+let pbq = preparar("hola");
+ok("sin el nodo de mensajes recientes busca solo con el mensaje, como antes",
+  pbq.textos_busqueda.length === 1 && pbq.textos_busqueda[0] === "hola", JSON.stringify(pbq.textos_busqueda));
+pbq = preparar("hola", [{}]);
+ok("y si no hay mensajes recientes (item vacio), igual", pbq.textos_busqueda.length === 1);
+
+pbq = preparar(BOTON);
+ok("del boton de la web se queda el producto de la pagina y no la direccion",
+  /persiana de esparto a medida/.test(pbq.texto_busqueda) && !/https|cesteriaaparici|4471|attr/.test(pbq.texto_busqueda), pbq.texto_busqueda);
+ok("y los terminos del catalogo son los del producto, no los del texto fijo",
+  pbq.terminos.includes("persiana") && pbq.terminos.includes("esparto") && !pbq.terminos.includes("hablar") && !pbq.terminos.includes("desde"),
+  JSON.stringify(pbq.terminos));
+ok("el mensaje que se guarda para la IA no se toca", pbq.pregunta === BOTON);
+
+const RECIENTES = [
+  { sender: "bot", content: "Las persianas de esparto a medida tardan entre 4 y 6 semanas en confeccionarse." },
+  { sender: "contact", content: "Cuánto tiempo tardan en confeccionarse?" },
+  { sender: "bot", content: "Gracias por la información." },
+  { sender: "contact", content: "C/Mayor 28" },
+];
+pbq = preparar("Cuáles son las terminaciones? Creo que hay de varios tipos", RECIENTES);
+ok("con mensajes recientes se busca dos veces: el mensaje solo y con lo anterior",
+  pbq.textos_busqueda.length === 2 && pbq.textos_busqueda[0] === "Cuáles son las terminaciones? Creo que hay de varios tipos");
+ok("el contexto lleva lo ultimo del contacto, la ultima respuesta y el mensaje, en ese orden",
+  /^Cuánto tiempo tardan en confeccionarse\?\nLas persianas de esparto[^\n]*\nCuáles son las terminaciones/.test(pbq.textos_busqueda[1]),
+  pbq.textos_busqueda[1]);
+ok("con palabras de sobra en el mensaje, los terminos del catalogo son solo los suyos",
+  !pbq.terminos.includes("persiana"), JSON.stringify(pbq.terminos));
+
+pbq = preparar("?", RECIENTES);
+ok("a un «?» se le completan los terminos con lo anterior",
+  pbq.terminos.includes("persiana") || pbq.terminos.includes("confeccionarse"), JSON.stringify(pbq.terminos));
+
+const largo = "x".repeat(2000);
+pbq = preparar("¿y el largo?", [{ sender: "bot", content: largo }]);
+ok("de una respuesta larga solo entra el principio", pbq.textos_busqueda[1].length < 600);
+
+let sep = ejecutarItems(nodoBot("Separar búsquedas"), {}, [{ data: [{ embedding: [1] }, { embedding: [2] }] }]);
+ok("Separar busquedas da un item por embedding: 5 fragmentos del mensaje y 3 del contexto",
+  sep.length === 2 && sep[0].json.cuantos === 5 && sep[1].json.cuantos === 3 && sep[1].json.embedding[0] === 2);
+sep = ejecutarItems(nodoBot("Separar búsquedas"), {}, [{ data: [{ embedding: [1] }] }]);
+ok("con un solo texto, una sola busqueda", sep.length === 1 && sep[0].json.cuantos === 5);
+let revienta = false;
+try { ejecutarItems(nodoBot("Separar búsquedas"), {}, [{}]); } catch (e) { revienta = /embedding/.test(e.message); }
+ok("sin embedding falla diciendo por que, no se para en silencio", revienta);
+
+const frag = (t, c) => ({ title: t, content: c, similarity: 0.5 });
+const rec = ejecutarItems(nodoBot("Recoger conocimiento"), {},
+  [frag("Envios", "a"), frag("Persianas", "b"), {}, frag("Persianas", "b"), frag("Plazos", "c")])[0].json.fragmentos;
+ok("Recoger conocimiento junta las dos busquedas sin repetir y en orden",
+  rec.map((f) => f.title).join(",") === "Envios,Persianas,Plazos", rec.map((f) => f.title).join(","));
+
+const mr = bot.nodes.find((x) => x.name === "Mensajes recientes");
+ok('"Mensajes recientes" no tumba nada si falla y se ejecuta una vez',
+  mr.alwaysOutputData === true && mr.onError === "continueRegularOutput" && mr.executeOnce === true);
+ok("y va entre el prompt y los modulos, que se piden una sola vez",
+  cx["Buscar prompt del cliente"].main[0][0].node === "Mensajes recientes" &&
+  cx["Mensajes recientes"].main[0][0].node === "Módulos del cliente" &&
+  bot.nodes.find((x) => x.name === "Módulos del cliente").executeOnce === true);
+ok("el embedding pasa por Separar busquedas antes de Buscar conocimiento",
+  cx["Generar embedding"].main[0][0].node === "Separar búsquedas" &&
+  cx["Separar búsquedas"].main[0][0].node === "Buscar conocimiento");
+
 console.log("\n" + (fallos === 0 ? "TODO OK" : fallos + " FALLOS"));
 process.exit(fallos === 0 ? 0 : 1);

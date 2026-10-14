@@ -543,11 +543,12 @@
       ],
       "id": "rag-1a2b3c4d-0001-4000-8000-000000000001",
       "name": "Módulos del cliente",
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "executeOnce": true
     },
     {
       "parameters": {
-        "jsCode": "// Este nodo recibe un item por cada módulo activo del cliente y los reduce a\n// uno solo: a partir de aquí el flujo vuelve a tratar un único mensaje.\nconst modulos = $input.all().map((i) => i.json.module).filter(Boolean);\n\n// Un bot de tienda no debe hablar de citas. En vez de duplicar el workflow por\n// cliente, se mira si tiene activo el módulo de agenda y se adapta el contexto.\n// Así el mismo workflow sirve para una clínica que reserva y para una tienda\n// que solo asesora.\nconst tiene_agenda = modulos.includes('calendar');\n\n// Lo mismo con la cartera de una inmobiliaria: solo quien tiene el módulo\n// recibe la cartera en el contexto y el campo `inmuebles` en el JSON.\nconst tiene_inmuebles = modulos.includes('inmuebles');\n\nconst pregunta = String($('Extraer mensaje').first().json.message_text || '');\n\n// Palabras demasiado comunes para buscar un producto con ellas: \"cuanto\",\n// \"precio\" o \"teneis\" aparecen en media tienda y solo añaden ruido.\nconst VACIAS = new Set([\n  'cuanto', 'cuanta', 'cuantos', 'cuantas', 'cuesta', 'cuestan', 'precio',\n  'precios', 'vale', 'valen', 'tiene', 'tienen', 'teneis', 'hola', 'buenas',\n  'gracias', 'quiero', 'queria', 'necesito', 'busco', 'buscaba', 'sobre',\n  'para', 'como', 'donde', 'porque', 'puedo', 'puede', 'pueden', 'hacer',\n  'decir', 'saber', 'favor', 'euros', 'envio', 'envios', 'pedido', 'tienda',\n  'producto', 'productos', 'algun', 'alguna', 'tambien', 'mucho', 'mucha',\n  'sois', 'estais', 'venden', 'vendeis', 'comprar', 'pagar', 'esta', 'este',\n  'unas', 'unos', 'otra', 'otro', 'cual', 'cuales', 'vuestro', 'vuestra',\n  // Verbos y comodines de uso. Se añadieron cuando la búsqueda empezó a mirar\n  // también dentro de las descripciones: «algo para dejar la leña» dejaba los\n  // términos en [algo, dejar, lena], y como se ordena por número de términos\n  // cumplidos, un producto cuya descripción decía «algo» y «dejar» adelantaba a\n  // un leñero que solo cumplía «leña». Con el nombre solo no molestaban porque\n  // casi nunca aparecen ahí; en prosa están en todas partes.\n  'algo', 'cosa', 'cosas', 'dejar', 'poner', 'tener', 'llevar', 'usar',\n  'gustaria', 'quisiera', 'mirar', 'ideal', 'ideales', 'perfecto', 'perfecta',\n]);\n\n// El catálogo guarda los nombres en singular (\"Cesto jacinto Valle\") pero la\n// gente pregunta en plural (\"¿tenéis cestos?\"). Sin esto, \"cestos\" no encuentra\n// ni un producto y \"cesto\" encuentra tres. Como la comparación lleva comodines\n// a los dos lados, acortar la palabra solo puede encontrar de más, nunca de\n// menos; el mínimo de cuatro letras evita raíces tan cortas que valgan para\n// cualquier cosa.\nconst singular = (p) => {\n  const raiz = p.replace(/(es|s)$/, '');\n  return raiz.length >= 4 ? raiz : p;\n};\n\n// Se comparan sin tildes porque por WhatsApp casi nadie las escribe, y la\n// función buscar_productos aplica unaccent por el otro lado.\nconst terminos = [...new Set(\n  pregunta\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .split(/\\s+/)\n    // Se descartan las palabras vacías dos veces, antes y después de recortar\n    // el plural: si no, \"teneis\" pasaría el filtro convertido en \"tenei\" y se\n    // buscaría en el catálogo un producto que contenga esa sílaba.\n    .filter((p) => p.length >= 4 && !VACIAS.has(p))\n    .map(singular)\n    .filter((p) => !VACIAS.has(p))\n)].slice(0, 5);\n\nreturn [{\n  json: {\n    tiene_agenda,\n    tiene_inmuebles,\n    modulos,\n    pregunta,\n    terminos,\n    // Sin términos útiles no tiene sentido mirar el catálogo: se piden cero\n    // filas en lugar de lanzar una consulta que devolvería cualquier cosa.\n    limite_productos: terminos.length ? 6 : 0,\n  },\n}];\n"
+        "jsCode": "// Este nodo recibe un item por cada módulo activo del cliente y los reduce a\n// uno solo: a partir de aquí el flujo vuelve a tratar un único mensaje.\nconst modulos = $input.all().map((i) => i.json.module).filter(Boolean);\n\n// Un bot de tienda no debe hablar de citas. En vez de duplicar el workflow por\n// cliente, se mira si tiene activo el módulo de agenda y se adapta el contexto.\n// Así el mismo workflow sirve para una clínica que reserva y para una tienda\n// que solo asesora.\nconst tiene_agenda = modulos.includes('calendar');\n\n// Lo mismo con la cartera de una inmobiliaria: solo quien tiene el módulo\n// recibe la cartera en el contexto y el campo `inmuebles` en el JSON.\nconst tiene_inmuebles = modulos.includes('inmuebles');\n\nconst pregunta = String($('Extraer mensaje').first().json.message_text || '');\n\n// El botón de WhatsApp de una tienda suele añadir la página desde la que se\n// escribe: «Enviado desde: https://www.cesteriaaparici.es /shop/rejilla-clasica-\n// natural-1528». La dirección entera solo mete ruido en la búsqueda («https»,\n// el dominio), pero el nombre de la página es justo el producto que estaba\n// mirando. Se quitan las direcciones y se deja su último trozo en palabras. Odoo\n// mete un espacio entre el dominio y la ruta, de ahí el primer replace.\nconst URL_RE = /https?:\\/\\/\\S+/g;\nconst juntarUrl = (t) => String(t || '').replace(/(https?:\\/\\/[^\\s\\/]+)\\s+(\\/\\S+)/g, '$1$2');\nconst paginas = (t) => [...juntarUrl(t).matchAll(URL_RE)]\n  .map((m) => m[0].replace(/[#?].*$/, '').replace(/[*\\/]+$/, '').split('/').pop() || '')\n  .map((s) => {\n    try { s = decodeURIComponent(s); } catch (e) { /* se queda como venía */ }\n    return s.replace(/^\\d+[a-z]?-/i, '').replace(/-\\d+$/, '').replace(/[-_]+/g, ' ').trim();\n  })\n  .filter((s) => s.length >= 4 && !s.includes('.'));\nconst legible = (t) => [juntarUrl(t).replace(URL_RE, ' ').replace(/\\s+/g, ' ').trim(), ...paginas(t)]\n  .filter(Boolean).join(' ');\n\nconst texto_busqueda = legible(pregunta) || pregunta;\n\n// Lo que se ha dicho justo antes. La búsqueda miraba solo el mensaje que acaba\n// de llegar, y eso falla en cuanto la pregunta no nombra el producto: a «¿cuáles\n// son las terminaciones?», en mitad de una conversación sobre persianas, no\n// llegaba el documento de persianas y la IA se inventó los acabados (Cestería,\n// 11/10/2026). Igual con «aparece el ancho pero no veo el largo» de la rejilla.\n//\n// Por eso se busca dos veces: con el mensaje solo, como siempre, y con el\n// mensaje más lo último que dijeron las dos partes. Con una sola búsqueda\n// mezclada, un cambio de tema («¿y el envío a Baleares?») quedaba ahogado por lo\n// anterior y se perdía el documento de envíos.\nlet recientes = [];\ntry {\n  recientes = $('Mensajes recientes').all().map((i) => i.json).filter((m) => m && m.content);\n} catch (e) {\n  // Sin el nodo, o si falló, se busca solo con el mensaje, como antes.\n}\n// Vienen del más nuevo al más viejo.\nconst anteriorDelContacto = recientes.find((m) => m.sender === 'contact');\nconst ultimaRespuesta = recientes.find((m) => m.sender === 'bot' || m.sender === 'human');\nconst contexto = [\n  anteriorDelContacto && legible(anteriorDelContacto.content),\n  // La respuesta entera puede ser larga y comerse la búsqueda: con el principio\n  // basta, que es donde suele estar de qué se habla.\n  ultimaRespuesta && legible(ultimaRespuesta.content).slice(0, 500),\n  texto_busqueda,\n].filter(Boolean).join('\\n');\n\n// Lo que se convierte en embedding: el mensaje y, si hay algo antes, el contexto.\nconst textos_busqueda = contexto !== texto_busqueda ? [texto_busqueda, contexto] : [texto_busqueda];\n\n// Palabras demasiado comunes para buscar un producto con ellas: \"cuanto\",\n// \"precio\" o \"teneis\" aparecen en media tienda y solo añaden ruido.\nconst VACIAS = new Set([\n  'cuanto', 'cuanta', 'cuantos', 'cuantas', 'cuesta', 'cuestan', 'precio',\n  'precios', 'vale', 'valen', 'tiene', 'tienen', 'teneis', 'hola', 'buenas',\n  'gracias', 'quiero', 'queria', 'necesito', 'busco', 'buscaba', 'sobre',\n  'para', 'como', 'donde', 'porque', 'puedo', 'puede', 'pueden', 'hacer',\n  'decir', 'saber', 'favor', 'euros', 'envio', 'envios', 'pedido', 'tienda',\n  'producto', 'productos', 'algun', 'alguna', 'tambien', 'mucho', 'mucha',\n  'sois', 'estais', 'venden', 'vendeis', 'comprar', 'pagar', 'esta', 'este',\n  'unas', 'unos', 'otra', 'otro', 'cual', 'cuales', 'vuestro', 'vuestra',\n  // Verbos y comodines de uso. Se añadieron cuando la búsqueda empezó a mirar\n  // también dentro de las descripciones: «algo para dejar la leña» dejaba los\n  // términos en [algo, dejar, lena], y como se ordena por número de términos\n  // cumplidos, un producto cuya descripción decía «algo» y «dejar» adelantaba a\n  // un leñero que solo cumplía «leña». Con el nombre solo no molestaban porque\n  // casi nunca aparecen ahí; en prosa están en todas partes.\n  'algo', 'cosa', 'cosas', 'dejar', 'poner', 'tener', 'llevar', 'usar',\n  'gustaria', 'quisiera', 'mirar', 'ideal', 'ideales', 'perfecto', 'perfecta',\n  // El texto fijo del botón de WhatsApp de la web («Hola, quiero hablar contigo»\n  // y «Enviado desde:»): ocupaba cuatro de los cinco términos y dejaba fuera el\n  // producto de la página.\n  'hablar', 'contigo', 'enviado', 'desde',\n]);\n\n// El catálogo guarda los nombres en singular (\"Cesto jacinto Valle\") pero la\n// gente pregunta en plural (\"¿tenéis cestos?\"). Sin esto, \"cestos\" no encuentra\n// ni un producto y \"cesto\" encuentra tres. Como la comparación lleva comodines\n// a los dos lados, acortar la palabra solo puede encontrar de más, nunca de\n// menos; el mínimo de cuatro letras evita raíces tan cortas que valgan para\n// cualquier cosa.\nconst singular = (p) => {\n  const raiz = p.replace(/(es|s)$/, '');\n  return raiz.length >= 4 ? raiz : p;\n};\n\n// Se comparan sin tildes porque por WhatsApp casi nadie las escribe, y la\n// función buscar_productos aplica unaccent por el otro lado.\nconst extraerTerminos = (texto) => [...new Set(\n  String(texto || '')\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .split(/\\s+/)\n    // Se descartan las palabras vacías dos veces, antes y después de recortar\n    // el plural: si no, \"teneis\" pasaría el filtro convertido en \"tenei\" y se\n    // buscaría en el catálogo un producto que contenga esa sílaba.\n    .filter((p) => p.length >= 4 && !VACIAS.has(p))\n    .map(singular)\n    .filter((p) => !VACIAS.has(p))\n)];\n\n// Si el mensaje casi no trae palabras útiles («?», «¿y en marrón?»), se completan\n// con lo anterior: primero lo que dijo el contacto y luego lo que le contestamos,\n// que es donde están los nombres de los productos de los que se hablaba.\n// La página desde la que escribe va delante: es el producto del que quiere hablar.\nconst terminosMensaje = extraerTerminos([...paginas(pregunta), texto_busqueda].join(' '));\nconst terminos = [...new Set([\n  ...terminosMensaje,\n  ...(terminosMensaje.length < 2\n    ? [\n        ...extraerTerminos(anteriorDelContacto && legible(anteriorDelContacto.content)),\n        ...extraerTerminos(ultimaRespuesta && legible(ultimaRespuesta.content)),\n      ]\n    : []),\n])].slice(0, 5);\n\nreturn [{\n  json: {\n    tiene_agenda,\n    tiene_inmuebles,\n    modulos,\n    pregunta,\n    texto_busqueda,\n    textos_busqueda,\n    terminos,\n    // Sin términos útiles no tiene sentido mirar el catálogo: se piden cero\n    // filas en lugar de lanzar una consulta que devolvería cualquier cosa.\n    limite_productos: terminos.length ? 6 : 0,\n  },\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -577,7 +578,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"text-embedding-3-small\",\n  \"input\": {{ JSON.stringify($('Preparar búsqueda').first().json.pregunta) }}\n}",
+        "jsonBody": "={\n  \"model\": \"text-embedding-3-small\",\n  \"input\": {{ JSON.stringify($('Preparar búsqueda').first().json.textos_busqueda || [$('Preparar búsqueda').first().json.pregunta]) }}\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -612,7 +613,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"p_client_id\": {{ JSON.stringify($('Buscar cliente Whatsapp').first().json.client_id) }},\n  \"p_embedding\": {{ JSON.stringify($json.data[0].embedding) }},\n  \"p_match_count\": 5,\n  \"p_min_similarity\": 0.2\n}",
+        "jsonBody": "={\n  \"p_client_id\": {{ JSON.stringify($('Buscar cliente Whatsapp').first().json.client_id) }},\n  \"p_embedding\": {{ JSON.stringify($json.embedding) }},\n  \"p_match_count\": {{ $json.cuantos || 5 }},\n  \"p_min_similarity\": 0.2\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -627,7 +628,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// El nodo anterior devuelve una fila por item; aquí se recogen todas en un\n// único item para que el resto del flujo siga tratando un solo mensaje.\n//\n// «Always Output Data» está activado en la búsqueda: cuando no hay resultados\n// llega un item vacío en lugar de ninguno. Sin eso, un cliente sin conocimiento\n// cargado cortaría el flujo aquí y el bot no contestaría nada.\nconst fragmentos = $input\n  .all()\n  .map((i) => i.json)\n  .filter((f) => f && f.content);\n\nreturn [{ json: { fragmentos } }];\n"
+        "jsCode": "// El nodo anterior devuelve una fila por item; aquí se recogen todas en un\n// único item para que el resto del flujo siga tratando un solo mensaje.\n//\n// «Always Output Data» está activado en la búsqueda: cuando no hay resultados\n// llega un item vacío en lugar de ninguno. Sin eso, un cliente sin conocimiento\n// cargado cortaría el flujo aquí y el bot no contestaría nada.\n//\n// Llegan las dos búsquedas seguidas (la del mensaje solo y la del mensaje con\n// lo anterior), así que un mismo fragmento puede venir dos veces: se queda la\n// primera, que es la de la búsqueda del mensaje.\nconst vistos = new Set();\nconst fragmentos = $input\n  .all()\n  .map((i) => i.json)\n  .filter((f) => f && f.content)\n  .filter((f) => {\n    const clave = (f.title || '') + '\\n' + f.content;\n    if (vistos.has(clave)) return false;\n    vistos.add(clave);\n    return true;\n  });\n\nreturn [{ json: { fragmentos } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1825,6 +1826,50 @@
       "id": "inm00006-0006-4006-8006-000000000006",
       "name": "Anotar búsqueda",
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/messages?select=content,sender,conversations!inner(id)&conversations.client_id=eq.{{ $('Buscar cliente Whatsapp').first().json.client_id }}&conversations.external_contact_id=eq.{{ encodeURIComponent($('Extraer mensaje').first().json.from) }}&created_at=gte.{{ encodeURIComponent(new Date(Date.now() - 6 * 3600 * 1000).toISOString()) }}&order=created_at.desc&limit=4",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1760,
+        384
+      ],
+      "id": "ctx00001-0001-4001-8001-000000000001",
+      "name": "Mensajes recientes",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "notes": "Lo último que se ha dicho en esta conversación (6 h, 4 mensajes), para que la búsqueda entienda «¿y el largo?» o «¿qué terminaciones hay?» sin que el mensaje nombre el producto. El mensaje que acaba de llegar todavía no está guardado, así que no sale aquí. Si falla, se busca solo con el mensaje, como antes."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Una búsqueda por cada texto: la del mensaje solo, con sus cinco fragmentos de\n// siempre, y la del mensaje con lo anterior, con tres más. «Buscar\n// conocimiento» se ejecuta una vez por item y «Recoger conocimiento» las junta,\n// las del mensaje primero.\nconst embeddings = ($json.data || []).map((d) => d && d.embedding).filter(Boolean);\nif (!embeddings.length) {\n  // Antes, sin embedding, la expresión de «Buscar conocimiento» reventaba igual.\n  // Mejor un error que diga qué ha pasado que un flujo que se para en silencio.\n  throw new Error('OpenAI no ha devuelto ningún embedding');\n}\nreturn embeddings.map((embedding, i) => ({ json: { embedding, cuantos: i === 0 ? 5 : 3 } }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2140,
+        576
+      ],
+      "id": "ctx00002-0002-4002-8002-000000000002",
+      "name": "Separar búsquedas"
     }
   ],
   "connections": {
@@ -1894,7 +1939,7 @@
       "main": [
         [
           {
-            "node": "Módulos del cliente",
+            "node": "Mensajes recientes",
             "type": "main",
             "index": 0
           }
@@ -2077,7 +2122,7 @@
       "main": [
         [
           {
-            "node": "Buscar conocimiento",
+            "node": "Separar búsquedas",
             "type": "main",
             "index": 0
           }
@@ -2549,6 +2594,28 @@
         [
           {
             "node": "Respuesta final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensajes recientes": {
+      "main": [
+        [
+          {
+            "node": "Módulos del cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar búsquedas": {
+      "main": [
+        [
+          {
+            "node": "Buscar conocimiento",
             "type": "main",
             "index": 0
           }

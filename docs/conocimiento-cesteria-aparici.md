@@ -315,8 +315,6 @@ Personalización en cuero: los colores son marrón oscuro, marrón claro, beige 
 
 PENDIENTE: si el cliente pone su propia tela. Esa excepción la decide una persona: se pasa al equipo.
 
-Trabajan para hoteles y alojamientos, restaurantes, marcas de moda y retail, arquitectos e interioristas, museos y empresas que buscan regalos corporativos. Han hecho proyectos para Meliá Hotels, el Grand Hotel Central de Barcelona, el Museo Dalí, el Thyssen-Bornemisza Art Contemporary, Mango, Oysho, Tiffany & Co., Eroski y RTVE.
-
 Un producto personalizado no admite devolución ni cambio una vez hecho, porque se fabrica expresamente para ese cliente. Las condiciones de pago de un encargo (anticipos, porcentajes) no se dan por aquí: las pone la persona que hace el presupuesto.
 
 Si prefiere hablar con la empresa directamente, el WhatsApp y teléfono de Cestería Aparici es el 633 67 81 92, el fijo el 96 236 03 33 y el correo gestion@cesteriaaparici.es. Es una alternativa que se le ofrece, nunca una forma de despacharle.
@@ -578,7 +576,7 @@ Plazos en pedidos grandes: dependen de los productos y de las cantidades, así q
 - **URL de origen:** *(guía del bot del cliente, 01/10/2026)*
 
 ```
-¿Qué medidas tienen las persianas? ¿Hacéis persianas a medida? ¿Cuánto cuesta una persiana de esparto? ¿Cómo se cuelga? ¿Qué ancho máximo puede tener? El color no es como en la foto.
+¿Qué medidas tienen las persianas? ¿Hacéis persianas a medida? ¿Cuánto cuesta una persiana de esparto? ¿Cómo se cuelga? ¿Qué ancho máximo puede tener? El color no es como en la foto. ¿Qué terminaciones o acabados tienen las persianas? ¿Qué calidades hay? ¿Hay varios tipos de persiana?
 
 Las persianas de esparto se hacen totalmente a medida. Para preparar el presupuesto hacen falta el ancho y el largo, la dirección de envío con el código postal y un email. Por ejemplo: «¡Gracias por pensar en nosotros para tus persianas! Las hacemos totalmente a medida. Si me pasas el ancho y el largo, la dirección de envío y un email, te preparamos el presupuesto encantados.»
 
@@ -588,7 +586,7 @@ Cómo se cuelga: es muy sencillo, se le pueden poner ganchos o atornillar direct
 
 El color no es como en la web: el esparto es una fibra natural, así que cada pieza tiene su propio tono y, con el tiempo y sobre todo con el sol, va cambiando. Es parte de su encanto: no hay dos iguales.
 
-Calidad: se trabaja con un único estándar de calidad, pleita de unos 7 cm de ancho y 0,6 cm de grosor.
+Calidad y acabado: hay uno solo. Todas las persianas se hacen con el mismo estándar de calidad y el mismo acabado, en pleita de unos 7 cm de ancho y 0,6 cm de grosor, así que el cliente no tiene que elegir entre acabados, calidades ni terminaciones: solo da las medidas. Si pide algo distinto (otro acabado, otro color, un remate especial), no se le dice que se puede: se pasa a una persona del equipo.
 
 Las persianas y las alfombras se fabrican en 4 a 6 semanas, más el envío.
 ```

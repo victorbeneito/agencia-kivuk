@@ -221,6 +221,46 @@ por emparejamiento de items, y los nodos nuevos agrupan varias filas en una, con
 lo que ese emparejamiento se pierde. Aquí cada ejecución atiende un solo mensaje,
 así que `.first()` es equivalente y no depende de él.
 
+### Se busca también con lo que se dijo justo antes
+
+Hasta el 14/10/2026 la búsqueda usaba solo el mensaje que acababa de llegar, y
+eso falla en cuanto la pregunta no nombra el producto. Tres casos de Cestería en
+una semana:
+
+- «¿Cuáles son las terminaciones? Creo que hay de varios tipos», en mitad de una
+  conversación sobre persianas: no llegó el documento de persianas (que dice que
+  hay un único acabado) y **la IA se inventó los acabados**. Un mensaje antes,
+  a «¿qué tipos de calidades hay?» contestó hablando de capazos.
+- «Aparece el ancho pero no veo el largo», de la rejilla: no salía nada de la
+  rejilla.
+- El mensaje del botón de la web («Hola, quiero hablar contigo» + «Enviado
+  desde: …/shop/rejilla-clasica-natural-1528»): los términos del catálogo eran
+  `hablar, contigo, enviado, desde, http` y el producto se perdía.
+
+Lo que hace ahora:
+
+- **`Mensajes recientes`** (entre el prompt y los módulos) lee los cuatro
+  últimos mensajes de esa conversación de las últimas seis horas. El que acaba
+  de llegar todavía no está guardado, así que no sale. Si falla, se sigue como
+  antes.
+- **`Preparar búsqueda`** arma dos textos: el mensaje solo, y el mensaje con lo
+  último que dijo el contacto y el principio de nuestra última respuesta (que es
+  donde suele estar de qué se habla: «Las persianas de esparto a medida
+  tardan…»). De las direcciones se queda solo el último trozo en palabras
+  (`persiana de esparto a medida`), y van delante en los términos del catálogo.
+  Si el mensaje casi no trae términos («?», «¿y en marrón?»), se completan con
+  lo anterior.
+- **`Generar embedding`** pide los dos en la misma llamada; **`Separar
+  búsquedas`** hace un item por cada uno (5 fragmentos para el mensaje, 3 para
+  el contexto); **`Recoger conocimiento`** los junta sin repetir, los del
+  mensaje primero.
+
+**Por qué dos búsquedas y no una mezclada.** Se probó con una sola: arreglaba
+los tres casos, pero a «¿y el envío a Baleares?» después de hablar de capazos
+el contexto se comía la pregunta y el documento de envíos ni salía entre los
+cinco. Con dos, el cambio de tema lo sigue encontrando la búsqueda del mensaje
+solo, y la continuidad la pone la otra.
+
 ### Un matiz que el modelo no puede resumir hay que subirlo de rango
 
 Caso real (Kivuk, 04/09/2026). El documento decía que la web incluye un dominio
