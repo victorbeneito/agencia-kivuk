@@ -188,11 +188,15 @@ Cómo se da de alta una línea (para la próxima demo sectorial):
 
 1. La eSIM en el móvil, **sin** activar WhatsApp en ella.
 2. WhatsApp Manager → cuenta Agencia Kivuk → *Añadir número de teléfono*, con
-   nombre `Agencia Kivuk Demo <sector>`, y verificar por SMS. Queda en
+   nombre `Agencia Kivuk Demo` (sin el sector), y verificar por SMS. Queda en
    «Pendiente»: está verificado pero no registrado, y es lo esperado. **Antes**
    de pedir el nombre, que salga tal cual en la web (campo `whatsapp` de
    `app/src/lib/web/demos.ts`): el 30/09/2026 Meta rechazó los tres
-   `Kivuk Demo <sector>` porque no aparecían en `agenciakivuk.com`.
+   `Kivuk Demo <sector>` porque no aparecían en `agenciakivuk.com`, y el
+   15/10/2026 constaban rechazados también los `Agencia Kivuk Demo <sector>`,
+   ya publicados: a la marca solo se le puede añadir «Demo»/«Test», una región
+   o un departamento, y el sector es una palabra de más. El estado se ve con la
+   API (`name_status`, `new_name_status`, `new_display_name` del número).
 3. `node scripts/activar-numero-demo.js "<cliente>" <phone_number_id> <pin> --aplicar`
    lo registra, suscribe la app a la WABA y lo pone en el cliente. El
    `phone_number_id` se ve en la ficha del número o con la API.
