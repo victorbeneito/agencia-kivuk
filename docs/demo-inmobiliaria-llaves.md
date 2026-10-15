@@ -253,6 +253,23 @@ en código (detalle en `n8n/workflows/README.md`). La misma conversación, ahora
 
 Probado tres veces seguidas con gpt-4o: los «sí» hacen siempre lo ofrecido.
 
+**Tercera prueba por WhatsApp (15/10/2026): demasiado por encima.** Con 200.000 €
+para un chalet, ofreció bien el de 240.000, pero al aceptar enseñó también uno de
+435.000. Después, con «como máximo 250.000», dijo bien que no había más, pero
+ofreció el de 560.000. Pasarse 40.000 se le puede proponer a alguien; pasarse
+300.000, no. Arreglado con la migración `0029`: lo más caro solo se ofrece si no
+pasa de un tercio por encima del presupuesto, y al aceptarlo se enseña solo eso.
+La misma conversación, ahora:
+
+1. «Chalet en Ontinyent, unos 200.000» → *«No tengo chalets en venta en
+   Ontinyent hasta 200.000 €. Con lo demás que buscas tengo 2, pero el más
+   económico está en 240.000 €. ¿Te los enseño?»*
+2. «Sí, enséñamelos» → el 115 (240.000) y el 117 (265.000). El de 435.000 ya no
+   sale.
+3. «Como máximo 250.000» → *«Con lo que buscas no tengo más aparte de lo que ya
+   te he enseñado»* y la propuesta de aflojar algo o pasarle la búsqueda a un
+   comercial, sin el de 560.000.
+
 **Límite conocido:** las fichas y los cierres del sistema van en castellano
 aunque la persona escriba en valenciano. El bot conversa en su idioma, pero la
 lista no.

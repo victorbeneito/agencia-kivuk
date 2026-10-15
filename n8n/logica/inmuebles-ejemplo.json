@@ -1,5 +1,5 @@
 {
-  "_que_es": "Salida real de inmuebles_cartera y buscar_inmuebles (migración 0025) con docs/inmuebles-inmobiliaria-llaves.csv, tal como la devuelve PostgREST (un objeto, migraciones 0026 y 0027). La genera el ensayo en Postgres de la migración; si cambia la función o la cartera, hay que regenerarla.",
+  "_que_es": "Salida real de inmuebles_cartera y buscar_inmuebles (migración 0025) con docs/inmuebles-inmobiliaria-llaves.csv, tal como la devuelve PostgREST (un objeto, migraciones 0026, 0027 y 0029). La genera el ensayo en Postgres de la migración; si cambia la función o la cartera, hay que regenerarla.",
   "cartera": {
     "tipos": [
       "adosado",
@@ -188,7 +188,7 @@
           }
         ],
         "vistos": 0,
-        "mas_caros": 2,
+        "mas_caros": 1,
         "otras_zonas": 0,
         "total_exactos": 2,
         "mas_caros_desde": 189000,
@@ -735,7 +735,7 @@
           }
         ],
         "vistos": 2,
-        "mas_caros": 7,
+        "mas_caros": 2,
         "otras_zonas": 0,
         "total_exactos": 3,
         "mas_caros_desde": 175000,
@@ -832,7 +832,7 @@
       "resultado": {
         "filas": [],
         "vistos": 0,
-        "mas_caros": 4,
+        "mas_caros": 1,
         "otras_zonas": 0,
         "total_exactos": 0,
         "mas_caros_desde": 240000,
@@ -930,6 +930,123 @@
         "otros_municipios": 0
       }
     },
+    "chalet_ontinyent_200k": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "chalet"
+        ],
+        "municipios": [
+          "Ontinyent"
+        ],
+        "precio_max": 200000
+      },
+      "resultado": {
+        "filas": [],
+        "vistos": 0,
+        "mas_caros": 2,
+        "otras_zonas": 0,
+        "total_exactos": 0,
+        "mas_caros_desde": 240000,
+        "municipios_fuera": [],
+        "otros_municipios": 0
+      }
+    },
+    "chalet_ontinyent_200k_aceptado": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "chalet"
+        ],
+        "municipios": [
+          "Ontinyent"
+        ],
+        "precio_max": 267000,
+        "tope_ampliado": true
+      },
+      "resultado": {
+        "filas": [
+          {
+            "m2": 210,
+            "ref": "115",
+            "url": null,
+            "tipo": "chalet",
+            "zona": "El Pilar",
+            "banos": 2,
+            "encaje": "exacto",
+            "estado": "buen estado",
+            "extras": [
+              "piscina",
+              "garaje",
+              "barbacoa",
+              "jardín"
+            ],
+            "precio": 240000,
+            "municipio": "Ontinyent",
+            "operacion": "venta",
+            "situacion": "disponible",
+            "m2_parcela": 900,
+            "descripcion": "Chalet de dos plantas con piscina y barbacoa en urbanización tranquila",
+            "habitaciones": 4
+          },
+          {
+            "m2": 160,
+            "ref": "117",
+            "url": null,
+            "tipo": "chalet",
+            "zona": "Les Aigües",
+            "banos": 2,
+            "encaje": "exacto",
+            "estado": "buen estado",
+            "extras": [
+              "piscina",
+              "chimenea",
+              "jardín"
+            ],
+            "precio": 265000,
+            "municipio": "Ontinyent",
+            "operacion": "venta",
+            "situacion": "disponible",
+            "m2_parcela": 1200,
+            "descripcion": "Chalet de una planta con chimenea y piscina a diez minutos del centro",
+            "habitaciones": 3
+          }
+        ],
+        "vistos": 0,
+        "mas_caros": 0,
+        "otras_zonas": 0,
+        "total_exactos": 2,
+        "mas_caros_desde": null,
+        "municipios_fuera": [],
+        "otros_municipios": 0
+      }
+    },
+    "chalet_ontinyent_250k_ya_vistos": {
+      "filtros": {
+        "operacion": "venta",
+        "tipos": [
+          "chalet"
+        ],
+        "municipios": [
+          "Ontinyent"
+        ],
+        "precio_max": 250000,
+        "excluir_refs": [
+          "115",
+          "117"
+        ]
+      },
+      "resultado": {
+        "filas": [],
+        "vistos": 1,
+        "mas_caros": 0,
+        "otras_zonas": 0,
+        "total_exactos": 0,
+        "mas_caros_desde": null,
+        "municipios_fuera": [],
+        "otros_municipios": 0
+      }
+    },
     "ontinyent_150k_todo_visto": {
       "filtros": {
         "operacion": "venta",
@@ -979,7 +1096,7 @@
           }
         ],
         "vistos": 5,
-        "mas_caros": 7,
+        "mas_caros": 2,
         "otras_zonas": 0,
         "total_exactos": 0,
         "mas_caros_desde": 175000,

@@ -796,6 +796,14 @@ Recoger productos → Cartera de inmuebles → Consultar agenda → …
   lo demás que buscas tengo 4, pero el más económico está en 240.000 €. ¿Te los
   enseño?»*. La función cuenta lo que encajaría aflojando una sola cosa (otra
   zona, otro pueblo o el tope de precio) y se ofrece eso, en ese orden.
+- **Lo más caro, con límite** (migración `0029`, 15/10/2026). Con 200.000 €,
+  aceptar «el más económico está en 240.000» quitaba el tope del todo y salía
+  también uno de 435.000; y al bajar a 250.000 ofrecía el de 560.000. Ahora
+  `mas_caros` solo cuenta lo que no pasa de **un tercio** por encima del tope
+  (200.000 → 266.667; si ahí no hay nada, no hay oferta), y al aceptar,
+  `Decidir acción` sube el tope ese tercio en vez de quitarlo, con
+  `tope_ampliado: true`: sin el 10 % de margen encima (sería pasarse dos
+  veces) y del más barato al más caro, que es lo que se acaba de anunciar.
 - **Aceptar una oferta lo decide el código, con la búsqueda anterior** (migración
   `0028`). Cada oferta acaba en «¿Te lo(s) enseño?» con su frase propia («En
   otras zonas de», «Fuera de», «el más económico»). Si lo último que dijo el bot

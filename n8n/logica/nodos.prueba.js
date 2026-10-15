@@ -650,10 +650,17 @@ let f2 = trasLaOferta("si", "No tengo casas de campo en venta en El Llombo hasta
 ok("«fuera de Ontinyent... ¿te lo enseño?» -> «si»: sin municipio ni zona, con el precio",
   f2.municipios.length === 0 && f2.zonas.length === 0 && f2.precio_max === 150000, JSON.stringify(f2));
 f2 = trasLaOferta("vale", "No tengo chalets en venta en Ontinyent hasta 180.000 €.\n\nCon lo demás que buscas tengo 4, pero el más económico está en 240.000 €. ¿Te los enseño?");
-ok("«el mas economico esta en 240.000... ¿te los enseño?» -> «vale»: sin tope, con la zona",
-  f2.precio_max === null && f2.zonas[0] === "Sant Josep", JSON.stringify(f2));
+ok("«el mas economico esta en 240.000... ¿te los enseño?» -> «vale»: el tope un tercio mas alto (150.000 -> 200.000), con la zona",
+  f2.precio_max === 200000 && f2.tope_ampliado === true && f2.zonas[0] === "Sant Josep", JSON.stringify(f2));
 f2 = trasLaOferta("vale", "No tengo chalets en alquiler hasta 1.000 €/mes.\n\nCon lo demás que buscas tengo uno, pero está en 1.300 €/mes. ¿Te lo enseño?");
-ok("lo mismo con uno solo («pero está en 1.300 €/mes»)", f2.precio_max === null, JSON.stringify(f2));
+ok("lo mismo con uno solo («pero está en 1.300 €/mes»)", f2.precio_max === 200000 && f2.tope_ampliado === true, JSON.stringify(f2));
+// En alquiler se redondea a decenas, no a miles.
+f2 = ejecutar(nodoBot("Decidir acción"), {
+  "Preparar búsqueda": { tiene_agenda: true, tiene_inmuebles: true },
+  "Extraer mensaje": { message_text: "vale" },
+  "Cargar historial": { role: "assistant", content: "No tengo chalets en alquiler hasta 1.000 €/mes.\n\nCon lo demás que buscas tengo uno, pero está en 1.300 €/mes. ¿Te lo enseño?" },
+}, { reply: "", inmuebles: { operacion: "alquiler", tipos: ["chalet"], precio_max: 1000 } })[0].json.inmuebles;
+ok("alquiler de 1.000 aceptando la oferta: hasta 1.340 €/mes", f2.precio_max === 1340, JSON.stringify(f2));
 
 // «Busco una vivienda en Sant Josep» llego sin tipos y salio un local (07/10/2026).
 function tiposTras(mensaje, tipos, historial) {
@@ -703,14 +710,14 @@ function aceptar(mensaje, iaInmuebles, ultima) {
 }
 const RECIENTE = new Date().toISOString();
 let fa = aceptar("vale, enseñamelos", { operacion: "venta", tipos: ["piso", "ático", "chalet"], municipios: ["Ontinyent"] }, { filtros: CHALETS_180K, updated_at: RECIENTE });
-ok("«vale, enseñamelos» tras la oferta de chalets: chalets sin tope, aunque la IA cambiara los tipos",
-  JSON.stringify(fa.tipos) === '["chalet"]' && fa.precio_max === null && fa.municipios[0] === "Ontinyent", JSON.stringify(fa));
+ok("«vale, enseñamelos» tras la oferta de chalets: chalets hasta un tercio mas (240.000), aunque la IA cambiara los tipos",
+  JSON.stringify(fa.tipos) === '["chalet"]' && fa.precio_max === 240000 && fa.tope_ampliado === true && fa.municipios[0] === "Ontinyent", JSON.stringify(fa));
 fa = aceptar("si", null, { filtros: CHALETS_180K, updated_at: RECIENTE });
-ok("«si» sin que la IA rellene la busqueda: se busca igual", fa && JSON.stringify(fa.tipos) === '["chalet"]' && fa.precio_max === null, JSON.stringify(fa));
+ok("«si» sin que la IA rellene la busqueda: se busca igual", fa && JSON.stringify(fa.tipos) === '["chalet"]' && fa.precio_max === 240000, JSON.stringify(fa));
 fa = aceptar("si", { operacion: "venta", tipos: ["chalet"], precio_max: 180000 }, {});
-ok("sin busqueda guardada, se afloja lo que puso la IA (como antes)", fa.precio_max === null, JSON.stringify(fa));
+ok("sin busqueda guardada, se afloja lo que puso la IA (como antes)", fa.precio_max === 240000, JSON.stringify(fa));
 fa = aceptar("si", { operacion: "venta", tipos: ["chalet"], precio_max: 180000 }, { filtros: { operacion: "alquiler", tipos: ["piso"] }, updated_at: new Date(Date.now() - 3 * 86400000).toISOString() });
-ok("una busqueda guardada de hace dias no cuenta como «la anterior»", fa.operacion === "venta" && fa.precio_max === null, JSON.stringify(fa));
+ok("una busqueda guardada de hace dias no cuenta como «la anterior»", fa.operacion === "venta" && fa.precio_max === 240000, JSON.stringify(fa));
 fa = aceptar("prefiero en alquiler", { operacion: "alquiler", tipos: ["chalet"] }, { filtros: CHALETS_180K, updated_at: RECIENTE });
 ok("cambiar de criterio no es aceptar: manda lo nuevo de la IA", fa.operacion === "alquiler", JSON.stringify(fa));
 
@@ -797,7 +804,21 @@ ri = respuestaInmuebles("chalet_ontinyent_180k");
 console.log("  «¿algún chalet por 180.000?»\n  " + ri.reply.split("\n").join("\n  ") + "\n");
 ok("chalet por 180.000: no hay, y el mas economico esta en 240.000",
   /^No tengo chalets en venta en Ontinyent hasta 180\.000 €\./.test(ri.reply) &&
-  /Con lo demás que buscas tengo 4, pero el más económico está en 240\.000 €\. ¿Te los enseño\?/.test(ri.reply), ri.reply);
+  /Con lo demás que buscas tengo uno, pero está en 240\.000 €\. ¿Te lo enseño\?/.test(ri.reply), ri.reply);
+
+// La tercera prueba real (15/10/2026): con 200.000, «sí» enseñaba tambien el
+// de 435.000 y, bajando a 250.000, ofrecia el de 560.000.
+ri = respuestaInmuebles("chalet_ontinyent_200k");
+ok("chalets por 200.000: ofrece los 2 que no pasan de un tercio, desde 240.000",
+  /Con lo demás que buscas tengo 2, pero el más económico está en 240\.000 €\. ¿Te los enseño\?/.test(ri.reply), ri.reply);
+const aceptada = trasLaOferta("si", ri.reply);
+ok("y «si» la acepta con el tope ampliado", aceptada.tope_ampliado === true && aceptada.precio_max === 200000, JSON.stringify(aceptada));
+ri = respuestaInmuebles("chalet_ontinyent_200k_aceptado");
+ok("al aceptar: el de 240.000 y el de 265.000, por ese orden, sin el de 435.000",
+  /\*Ref\. 115\*/.test(ri.reply) && /\*Ref\. 117\*/.test(ri.reply) && !/\*Ref\. 118\*/.test(ri.reply) && ri.reply.indexOf("Ref. 115") < ri.reply.indexOf("Ref. 117"), ri.reply);
+ri = respuestaInmuebles("chalet_ontinyent_250k_ya_vistos");
+console.log("  «máximo 250.000» tras verlos\n  " + ri.reply.split("\n").join("\n  ") + "\n");
+ok("«máximo 250.000» tras verlos: no hay mas, y no ofrece el de 560.000", !/560\.000|¿Te los? enseño\?/.test(ri.reply), ri.reply);
 ri = respuestaInmuebles("casa_de_campo_fuera_180k");
 ok("y al aceptar Agullent: la ensena avisando de que se pasa", /\*Ref\. 120\*/.test(ri.reply) && /Se pasa 15\.000 €/.test(ri.reply), ri.reply);
 
