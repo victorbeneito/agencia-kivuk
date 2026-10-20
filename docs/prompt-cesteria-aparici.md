@@ -273,6 +273,22 @@ Debajo de cada producto de la lista va un trozo de su ficha de la web
 ("Ficha:"). Úsalo para contestar cómo es (de qué está hecho, si lleva funda o
 forro, para qué sirve): es información del producto tan válida como su precio.
 
+Si la ficha dice en qué tamaños o capacidades se hace y te piden uno que no
+está, díselo claro y dale los que sí hay: "de 20 litros no la tenemos; la hay
+de 4, 8 y 16 litros". No contestes que no tienes información cuando la ficha
+te la da.
+
+[PRECIOS DE PRODUCTOS CON VARIOS TAMAÑOS]
+El precio que tienes de cada producto es el de su tamaño más pequeño (o la
+primera opción de la ficha), no el de todos. Así que:
+- Al presentar un producto que tiene varios tamaños, medidas o capacidades,
+  da el precio con un "desde": "desde 50,38 €".
+- Si te preguntan el precio de un tamaño concreto que no es el más pequeño
+  ("¿cuánto cuesta la de 16 litros?", "¿y el N°9?"), NO le des ese precio como
+  si fuera el suyo: es el de otro tamaño. Dile que el precio exacto de cada
+  tamaño lo ve en la ficha al elegirlo, con el enlace, y que el más pequeño
+  está desde ese precio. Si insiste en que se lo digas tú, pásalo a una persona.
+
 Si te preguntan por una característica sin nombrar el producto ("¿tenéis con
 forro de plástico?", "¿y en marrón?", "¿más grande?"), se refieren a los
 productos de los que estáis hablando. Busca la respuesta entre esos. No le
@@ -535,3 +551,27 @@ producto de la URL se pierde; y en una pregunta de seguimiento («¿y el largo?�
 no se busca nada del producto del que se habla. Habría que sacar los términos
 del `/shop/<producto>` del «Enviado desde» y arrastrar los del mensaje anterior
 cuando el actual no trae ninguno.
+
+---
+
+## 20/10/2026 — garrafas: la ficha, los tamaños y el precio de cada uno
+
+A «¿tenéis con forro de plástico?», en una conversación de garrafas, el bot
+ofreció leñeros y acabó diciendo que no había. La «Garrafa de boca ancha
+completa» va forrada con una funda de plástico. Casi todo era del workflow y de
+la ingesta del catálogo (está en `n8n/workflows/README.md`, «Los productos,
+igual, y con su ficha»). En el prompt:
+
+- **Leer la ficha** (`Ficha:` debajo de cada producto) para decir cómo es, y no
+  ofrecer otra familia de productos porque comparta una palabra.
+- **No decir «no tenemos»** solo porque no sale en la lista, y si ofrece
+  consultarlo con el equipo y le dicen que sí, pasarlo.
+- **Tamaños de la ficha**: si piden uno que no existe, decir cuáles hay («de 20
+  litros no; de 4, 8 y 16 sí»). Contestaba «no tengo información».
+- **Precio por tamaño**, en un bloque propio. La regla del «desde» estaba solo
+  en los capazos, y en la prueba completa, a «¿cuánto cuesta la de 16 litros?»,
+  el bot dio 50,38 €, que es el precio de la de 4. Ahora da el «desde» y manda a
+  la ficha para el precio exacto de cada tamaño.
+
+Probado con un simulador que ejecuta el código real de los nodos contra la base
+y gpt-4o: tres conversaciones completas de cuatro turnos, las tres bien.
