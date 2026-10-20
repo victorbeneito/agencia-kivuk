@@ -210,7 +210,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const html = String($json.data || $json.body || '');\nconst url = $('Lotes').item.json.url;\nconst clientId = $('Leer configuración').first().json.client_id;\n\n// El nodo Code no expone DOM, fetch ni Buffer: todo se resuelve con regex.\nconst ENTIDADES = {\n  amp: '&', lt: '<', gt: '>', quot: '\"', apos: \"'\", nbsp: ' ',\n  aacute: 'á', eacute: 'é', iacute: 'í', oacute: 'ó', uacute: 'ú',\n  ntilde: 'ñ', Ntilde: 'Ñ', uuml: 'ü', ordm: 'º', ordf: 'ª', euro: '€',\n};\nconst decodificar = (s) =>\n  String(s || '')\n    .replace(/&#(\\d+);/g, (_, n) => String.fromCharCode(Number(n)))\n    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))\n    .replace(/&([a-z]+);/gi, (m, n) => (n in ENTIDADES ? ENTIDADES[n] : m));\n\nconst limpiar = (s) =>\n  decodificar(String(s || '').replace(/<[^>]*>/g, ' '))\n    .replace(/\\s+/g, ' ')\n    .trim();\n\nconst meta = (patron) => {\n  const m = html.match(\n    new RegExp('<meta[^>]+(?:name|property)=[\"\\']' + patron + '[\"\\'][^>]*content=[\"\\']([^\"\\']*)[\"\\']', 'i')\n  );\n  return m ? decodificar(m[1]).trim() : '';\n};\n\n// === 1) JSON-LD ===\n// La vía preferente: dato estructurado explícito. Así publican PrestaShop,\n// Shopify y WooCommerce.\nlet p = null;\nfor (const m of html.matchAll(/<script[^>]+application\\/ld\\+json[^>]*>([\\s\\S]*?)<\\/script>/gi)) {\n  let j;\n  try { j = JSON.parse(m[1].trim()); } catch (e) { continue; }\n  const candidatos = Array.isArray(j) ? j : [j, ...(j['@graph'] || [])];\n  for (const c of candidatos) {\n    if (c && c['@type'] === 'Product') { p = c; break; }\n  }\n  if (p) break;\n}\n\n// === 2) Microdatos ===\n// Odoo no emite JSON-LD de producto: declara los mismos campos de schema.org\n// como atributos itemprop en el HTML. Sin esta segunda vía, una tienda Odoo\n// entera se descarta ficha a ficha y el catálogo se queda vacío sin que salte\n// ningún error: el workflow termina «bien», con cero productos.\nif (!p || !p.name) {\n  // Una ficha declara exactamente un Product. Las páginas de categoría\n  // declaran uno por cada tarjeta del listado (16 en /shop/category/capazos),\n  // y sin esta comprobación la primera tarjeta se guardaría como un producto\n  // cuya URL es la del listado: basura que además parece correcta de un vistazo.\n  const bloques = (html.match(/itemtype=[\"']https?:\\/\\/schema\\.org\\/Product[\"']/gi) || []).length;\n\n  if (bloques === 1) {\n    // Un campo puede venir como atributo content (<meta itemprop=...>) o como\n    // texto dentro de la etiqueta (<span itemprop=\"price\">16.56</span>).\n    const prop = (nombre) => {\n      const attr = html.match(\n        new RegExp('<[^>]+itemprop=[\"\\']' + nombre + '[\"\\'][^>]*content=[\"\\']([^\"\\']*)[\"\\']', 'i')\n      );\n      if (attr) return decodificar(attr[1]).trim();\n\n      const texto = html.match(\n        new RegExp('<(\\\\w+)[^>]*itemprop=[\"\\']' + nombre + '[\"\\'][^>]*>([\\\\s\\\\S]*?)<\\\\/\\\\1>', 'i')\n      );\n      return texto ? limpiar(texto[2]) : '';\n    };\n\n    // La categoría sale de la miga de pan, descartando el enlace raíz del\n    // listado. Odoo solo la incluye si se llegó a la ficha navegando por la\n    // categoría, así que muchas veces no habrá ninguna: se deja vacía antes que\n    // inventar una. `category` es opcional en catalog_products.\n    const GENERICAS = /^(todos los productos|productos|tienda|shop|inicio|home)$/i;\n    const migas = [...html.matchAll(/<li[^>]*breadcrumb-item[^>]*>[\\s\\S]{0,200}?<a[^>]*>([\\s\\S]*?)<\\/a>/gi)]\n      .map((m) => limpiar(m[1]))\n      .filter((t) => t && !GENERICAS.test(t));\n\n    const nombre = prop('name') || meta('og:title');\n    if (nombre) {\n      p = {\n        name: nombre,\n        // El itemprop description de Odoo envuelve el bloque maquetado entero\n        // (divs anidados, estilos en línea y todo). La meta description es ese\n        // mismo texto ya resumido y sin HTML.\n        description: meta('description') || meta('og:description'),\n        image: prop('image') || meta('og:image'),\n        sku: prop('sku') || prop('mpn') || prop('productID'),\n        category: migas.length ? migas[migas.length - 1] : '',\n        offers: {\n          price: prop('price'),\n          priceCurrency: prop('priceCurrency') || 'EUR',\n          availability: prop('availability'),\n        },\n      };\n    }\n  }\n}\n\n// Portada, listados, páginas legales... no son producto y se descartan aquí.\nif (!p || !p.name) return { json: { descartado: true, url } };\n\nconst oferta = (Array.isArray(p.offers) ? p.offers[0] : p.offers) || {};\n\n// Resolvemos la ruta relativa a mano en vez de con new URL(): la sandbox del\n// nodo Code no expone esa clase, y como estaba dentro de un try/catch el fallo\n// no se veía por ningún lado, solo aparecían las imágenes vacías en Supabase.\nconst raiz = (url.match(/^(https?:\\/\\/[^/]+)/i) || ['', ''])[1];\nconst absoluta = (u) => {\n  const s = String(u || '').trim();\n  if (!s) return '';\n  if (/^https?:\\/\\//i.test(s)) return s;\n  if (s.startsWith('//')) return 'https:' + s;\n  if (s.startsWith('/')) return raiz + s;\n  return raiz + '/' + s;\n};\n\nlet imagen = absoluta(Array.isArray(p.image) ? p.image[0] : p.image);\n// PrestaShop sirve la misma foto en varios tamaños y en el JSON-LD pone el\n// thumbnail. Para Instagram no vale: pedimos la grande.\nimagen = imagen.replace(/-(home|medium|small|cart)_default\\.(jpg|jpeg|png|webp)$/i, '-large_default.$2');\n\nconst marca = (p.brand && (p.brand.name || p.brand)) || '';\nconst precio = Number(String(oferta.price || '').replace(',', '.'));\n\n// === Descripción ===\n// La meta description de Odoo es un resumen comercial corto y a menudo copiado\n// entre productos: en Cestería, 31 descripciones se repetían en varias fichas y\n// ninguno de los 17 leñeros mencionaba la leña. Así, alguien que preguntaba\n// «algo para dejar la leña» no encontraba nada, porque ni el nombre («Leñero»)\n// ni ese resumen contienen esa palabra.\n//\n// La descripción de verdad —las pestañas Descripción, Material, Medidas, Usos y\n// Envíos— sí está en la página, pero no donde uno la buscaría: el\n// `itemprop=description` de Odoo apunta al bloque «Te puede interesar», y el\n// texto bueno vive dentro del snippet del editor visual, `s_tabs_main`.\nfunction descripcionLarga() {\n  const i = html.indexOf('s_tabs_main');\n  if (i === -1) return '';\n  const abre = html.lastIndexOf('<div', i);\n  // Ventana fija en vez de equilibrar etiquetas: el texto útil está al\n  // principio del bloque y algunas de estas páginas pesan 11 MB.\n  const trozo = html.slice(abre === -1 ? i : abre, (abre === -1 ? i : abre) + 300000);\n  // `limpiar` no quita script ni style, y aquí dentro los hay.\n  return limpiar(\n    trozo\n      .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n      .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  );\n}\n\n// Las fichas que no usan las pestañas tienen el texto de verdad en el bloque\n// `product_full_description`, escrito a mano en el editor. Hasta el 20/10/2026 no\n// se leía y se guardaba la meta description, que es otra cosa: en la «Garrafa de\n// boca ancha completa» la meta decía «introducidas en una funda de plástico» y la\n// ficha «forrada con una funda de plástico de color negro», y además las tres\n// capacidades (4, 8 y 16 litros). Un cliente preguntó justo por eso, por\n// garrafones de 16 o 20 litros y «con forro de plástico», y el bot no lo sabía.\n//\n// Detrás del texto, Odoo mete lo que se repite en todas las páginas (el hueco de\n// un fragmento dinámico, la newsletter, los sellos de envío gratis…): se corta en\n// la primera de esas marcas. En las fichas con pestañas este bloque empieza\n// precisamente por esas marcas («Te puede interesar»), así que ahí sale vacío y\n// no estorba.\nconst FIN_DE_FICHA = [\n  'Su fragmento dinámico', 'Te puede interesar', 'Consigue tu 15%',\n  '¿Quieres más información?', 'Suscribirse',\n];\nfunction descripcionCompleta() {\n  const i = html.indexOf('id=\"product_full_description\"');\n  if (i === -1) return '';\n  const abre = html.indexOf('>', i);\n  const trozo = html.slice(abre + 1, abre + 1 + 200000);\n  let texto = limpiar(\n    trozo\n      .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n      .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  ).replace(/[\\u200b-\\u200d\\ufeff]/g, '').replace(/\\s+/g, ' ').trim();\n  let corte = texto.length;\n  for (const marca of FIN_DE_FICHA) {\n    const j = texto.indexOf(marca);\n    if (j !== -1 && j < corte) corte = j;\n  }\n  texto = texto.slice(0, corte).trim();\n  // Un resto de dos palabras no es una ficha.\n  return texto.length >= 60 ? texto : '';\n}\n\nconst larga = descripcionLarga();\nconst completa = descripcionCompleta();\nconst corta = limpiar(p.description) || meta('description') || meta('og:description');\n\n// La de las pestañas solo si de verdad aporta: en las fichas que no usan ese\n// snippet el bloque no existe o sale un resto de menú. Si no, el texto de la\n// ficha escrito a mano, y si tampoco hay, el resumen.\n//\n// Con el texto de la ficha, el resumen se añade detrás cuando dice algo que la\n// ficha no: en el «Expositor de mimbre calado» el resumen es «Pedido mínimo 50\n// und.» y la ficha no lo menciona.\nconst conResumen = (texto) =>\n  corta && !texto.toLowerCase().includes(corta.toLowerCase()) ? texto + ' ' + corta : texto;\nconst descripcion = larga.length > Math.max(corta.length, 300)\n  ? larga\n  : completa.length > corta.length\n    ? conResumen(completa)\n    : corta;\n\n// Odoo publicó su sitemap con `www.` hasta agosto de 2026 y sin él después.\n// La tabla deduplica por URL, así que ese cambio de host duplicó el catálogo\n// entero de Cestería: 366 filas viejas conviviendo con 368 nuevas, cada\n// producto ofrecido dos veces al bot y con el precio de dos fechas distintas.\n// La ficha es la misma aunque el host cambie, así que se guarda con el host\n// normalizado. La descarga ya se hizo con la URL original, de modo que esto\n// solo cambia cómo se identifica el producto, no lo que se lee de él.\nconst urlGuardada = url.replace(/^(https?:\\/\\/)www\\./i, '$1');\n\nreturn {\n  json: {\n    descartado: false,\n    client_id: clientId,\n    url: urlGuardada,\n    external_id: String(p.sku || p.mpn || p.productID || ''),\n    name: limpiar(p.name),\n    description: String(descripcion).slice(0, 2000),\n    price: Number.isFinite(precio) && precio > 0 ? precio : null,\n    currency: String(oferta.priceCurrency || 'EUR'),\n    image_url: imagen,\n    category: limpiar(p.category) || null,\n    tags: marca ? [String(marca)] : [],\n    // Solo marcamos como no disponible si lo dice explícitamente; una tienda\n    // que no informa de stock no debería quedarse con todo a false.\n    available: !/OutOfStock|SoldOut|Discontinued|BackOrder/i.test(String(oferta.availability || '')),\n    last_seen_at: new Date().toISOString(),\n  },\n};\n"
+        "jsCode": "const html = String($json.data || $json.body || '');\nconst url = $('Lotes').item.json.url;\nconst clientId = $('Leer configuración').first().json.client_id;\n\n// El nodo Code no expone DOM, fetch ni Buffer: todo se resuelve con regex.\nconst ENTIDADES = {\n  amp: '&', lt: '<', gt: '>', quot: '\"', apos: \"'\", nbsp: ' ',\n  aacute: 'á', eacute: 'é', iacute: 'í', oacute: 'ó', uacute: 'ú',\n  ntilde: 'ñ', Ntilde: 'Ñ', uuml: 'ü', ordm: 'º', ordf: 'ª', euro: '€',\n};\nconst decodificar = (s) =>\n  String(s || '')\n    .replace(/&#(\\d+);/g, (_, n) => String.fromCharCode(Number(n)))\n    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))\n    .replace(/&([a-z]+);/gi, (m, n) => (n in ENTIDADES ? ENTIDADES[n] : m));\n\nconst limpiar = (s) =>\n  decodificar(String(s || '').replace(/<[^>]*>/g, ' '))\n    .replace(/\\s+/g, ' ')\n    .trim();\n\nconst meta = (patron) => {\n  const m = html.match(\n    new RegExp('<meta[^>]+(?:name|property)=[\"\\']' + patron + '[\"\\'][^>]*content=[\"\\']([^\"\\']*)[\"\\']', 'i')\n  );\n  return m ? decodificar(m[1]).trim() : '';\n};\n\n// === 1) JSON-LD ===\n// La vía preferente: dato estructurado explícito. Así publican PrestaShop,\n// Shopify y WooCommerce.\nlet p = null;\nfor (const m of html.matchAll(/<script[^>]+application\\/ld\\+json[^>]*>([\\s\\S]*?)<\\/script>/gi)) {\n  let j;\n  try { j = JSON.parse(m[1].trim()); } catch (e) { continue; }\n  const candidatos = Array.isArray(j) ? j : [j, ...(j['@graph'] || [])];\n  for (const c of candidatos) {\n    if (c && c['@type'] === 'Product') { p = c; break; }\n  }\n  if (p) break;\n}\n\n// === 2) Microdatos ===\n// Odoo no emite JSON-LD de producto: declara los mismos campos de schema.org\n// como atributos itemprop en el HTML. Sin esta segunda vía, una tienda Odoo\n// entera se descarta ficha a ficha y el catálogo se queda vacío sin que salte\n// ningún error: el workflow termina «bien», con cero productos.\nif (!p || !p.name) {\n  // Una ficha declara exactamente un Product. Las páginas de categoría\n  // declaran uno por cada tarjeta del listado (16 en /shop/category/capazos),\n  // y sin esta comprobación la primera tarjeta se guardaría como un producto\n  // cuya URL es la del listado: basura que además parece correcta de un vistazo.\n  const bloques = (html.match(/itemtype=[\"']https?:\\/\\/schema\\.org\\/Product[\"']/gi) || []).length;\n\n  if (bloques === 1) {\n    // Un campo puede venir como atributo content (<meta itemprop=...>) o como\n    // texto dentro de la etiqueta (<span itemprop=\"price\">16.56</span>).\n    const prop = (nombre) => {\n      const attr = html.match(\n        new RegExp('<[^>]+itemprop=[\"\\']' + nombre + '[\"\\'][^>]*content=[\"\\']([^\"\\']*)[\"\\']', 'i')\n      );\n      if (attr) return decodificar(attr[1]).trim();\n\n      const texto = html.match(\n        new RegExp('<(\\\\w+)[^>]*itemprop=[\"\\']' + nombre + '[\"\\'][^>]*>([\\\\s\\\\S]*?)<\\\\/\\\\1>', 'i')\n      );\n      return texto ? limpiar(texto[2]) : '';\n    };\n\n    // La categoría sale de la miga de pan, descartando el enlace raíz del\n    // listado. Odoo solo la incluye si se llegó a la ficha navegando por la\n    // categoría, así que muchas veces no habrá ninguna: se deja vacía antes que\n    // inventar una. `category` es opcional en catalog_products.\n    const GENERICAS = /^(todos los productos|productos|tienda|shop|inicio|home)$/i;\n    const migas = [...html.matchAll(/<li[^>]*breadcrumb-item[^>]*>[\\s\\S]{0,200}?<a[^>]*>([\\s\\S]*?)<\\/a>/gi)]\n      .map((m) => limpiar(m[1]))\n      .filter((t) => t && !GENERICAS.test(t));\n\n    const nombre = prop('name') || meta('og:title');\n    if (nombre) {\n      p = {\n        name: nombre,\n        // El itemprop description de Odoo envuelve el bloque maquetado entero\n        // (divs anidados, estilos en línea y todo). La meta description es ese\n        // mismo texto ya resumido y sin HTML.\n        description: meta('description') || meta('og:description'),\n        image: prop('image') || meta('og:image'),\n        sku: prop('sku') || prop('mpn') || prop('productID'),\n        category: migas.length ? migas[migas.length - 1] : '',\n        offers: {\n          price: prop('price'),\n          priceCurrency: prop('priceCurrency') || 'EUR',\n          availability: prop('availability'),\n        },\n      };\n    }\n  }\n}\n\n// Portada, listados, páginas legales... no son producto y se descartan aquí.\nif (!p || !p.name) return { json: { descartado: true, url } };\n\nconst oferta = (Array.isArray(p.offers) ? p.offers[0] : p.offers) || {};\n\n// Resolvemos la ruta relativa a mano en vez de con new URL(): la sandbox del\n// nodo Code no expone esa clase, y como estaba dentro de un try/catch el fallo\n// no se veía por ningún lado, solo aparecían las imágenes vacías en Supabase.\nconst raiz = (url.match(/^(https?:\\/\\/[^/]+)/i) || ['', ''])[1];\nconst absoluta = (u) => {\n  const s = String(u || '').trim();\n  if (!s) return '';\n  if (/^https?:\\/\\//i.test(s)) return s;\n  if (s.startsWith('//')) return 'https:' + s;\n  if (s.startsWith('/')) return raiz + s;\n  return raiz + '/' + s;\n};\n\nlet imagen = absoluta(Array.isArray(p.image) ? p.image[0] : p.image);\n// PrestaShop sirve la misma foto en varios tamaños y en el JSON-LD pone el\n// thumbnail. Para Instagram no vale: pedimos la grande.\nimagen = imagen.replace(/-(home|medium|small|cart)_default\\.(jpg|jpeg|png|webp)$/i, '-large_default.$2');\n\nconst marca = (p.brand && (p.brand.name || p.brand)) || '';\nconst precio = Number(String(oferta.price || '').replace(',', '.'));\n\n// === Descripción ===\n// La meta description de Odoo es un resumen comercial corto y a menudo copiado\n// entre productos: en Cestería, 31 descripciones se repetían en varias fichas y\n// ninguno de los 17 leñeros mencionaba la leña. Así, alguien que preguntaba\n// «algo para dejar la leña» no encontraba nada, porque ni el nombre («Leñero»)\n// ni ese resumen contienen esa palabra.\n//\n// La descripción de verdad —las pestañas Descripción, Material, Medidas, Usos y\n// Envíos— sí está en la página, pero no donde uno la buscaría: el\n// `itemprop=description` de Odoo apunta al bloque «Te puede interesar», y el\n// texto bueno vive dentro del snippet del editor visual, `s_tabs_main`.\nfunction descripcionLarga() {\n  const i = html.indexOf('s_tabs_main');\n  if (i === -1) return '';\n  const abre = html.lastIndexOf('<div', i);\n  // Ventana fija en vez de equilibrar etiquetas: el texto útil está al\n  // principio del bloque y algunas de estas páginas pesan 11 MB.\n  const trozo = html.slice(abre === -1 ? i : abre, (abre === -1 ? i : abre) + 300000);\n  // `limpiar` no quita script ni style, y aquí dentro los hay.\n  return limpiar(\n    trozo\n      .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n      .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  );\n}\n\n// Las fichas que no usan las pestañas tienen el texto de verdad en el bloque\n// `product_full_description`, escrito a mano en el editor. Hasta el 20/10/2026 no\n// se leía y se guardaba la meta description, que es otra cosa: en la «Garrafa de\n// boca ancha completa» la meta decía «introducidas en una funda de plástico» y la\n// ficha «forrada con una funda de plástico de color negro», y además las tres\n// capacidades (4, 8 y 16 litros). Un cliente preguntó justo por eso, por\n// garrafones de 16 o 20 litros y «con forro de plástico», y el bot no lo sabía.\n//\n// Detrás del texto, Odoo mete lo que se repite en todas las páginas (el hueco de\n// un fragmento dinámico, la newsletter, los sellos de envío gratis…): se corta en\n// la primera de esas marcas. En las fichas con pestañas este bloque empieza\n// precisamente por esas marcas («Te puede interesar»), así que ahí sale vacío y\n// no estorba.\nconst FIN_DE_FICHA = [\n  'Su fragmento dinámico', 'Te puede interesar', 'Consigue tu 15%',\n  '¿Quieres más información?', 'Suscribirse',\n];\nfunction descripcionCompleta() {\n  const i = html.indexOf('id=\"product_full_description\"');\n  if (i === -1) return '';\n  const abre = html.indexOf('>', i);\n  const trozo = html.slice(abre + 1, abre + 1 + 200000);\n  let texto = limpiar(\n    trozo\n      .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n      .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  ).replace(/[\\u200b-\\u200d\\ufeff]/g, '').replace(/\\s+/g, ' ').trim();\n  let corte = texto.length;\n  for (const marca of FIN_DE_FICHA) {\n    const j = texto.indexOf(marca);\n    if (j !== -1 && j < corte) corte = j;\n  }\n  texto = texto.slice(0, corte).trim();\n  // Un resto de dos palabras no es una ficha.\n  return texto.length >= 60 ? texto : '';\n}\n\nconst larga = descripcionLarga();\nconst completa = descripcionCompleta();\nconst corta = limpiar(p.description) || meta('description') || meta('og:description');\n\n// La de las pestañas solo si de verdad aporta: en las fichas que no usan ese\n// snippet el bloque no existe o sale un resto de menú. Si no, el texto de la\n// ficha escrito a mano, y si tampoco hay, el resumen.\n//\n// Con el texto de la ficha, el resumen se añade detrás cuando dice algo que la\n// ficha no: en el «Expositor de mimbre calado» el resumen es «Pedido mínimo 50\n// und.» y la ficha no lo menciona.\nconst conResumen = (texto) =>\n  corta && !texto.toLowerCase().includes(corta.toLowerCase()) ? texto + ' ' + corta : texto;\nconst descripcion = larga.length > Math.max(corta.length, 300)\n  ? larga\n  : completa.length > corta.length\n    ? conResumen(completa)\n    : corta;\n\n// === Variantes de Odoo ===\n// El precio y el stock de cada tamaño no están en el HTML: la ficha los pide a\n// Odoo al elegir una opción. Aquí solo se apunta qué opciones hay, con los ids\n// que Odoo necesita para contestar; el segundo tramo del workflow (después de\n// «Resumen») hace las preguntas. Cada atributo es un grupo de radios con el\n// mismo «name» (ptal-N): Tamaño, Capacidad, Tela, Color…\n//\n// Solo en Odoo: el resto de tiendas no tienen este campo y se quedan sin\n// variantes, como antes.\nfunction variantesOdoo() {\n  const tpl = html.match(/name=[\"']product_template_id[\"'][^>]*value=[\"'](\\d+)[\"']/i)\n    || html.match(/value=[\"'](\\d+)[\"'][^>]*name=[\"']product_template_id[\"']/i);\n  if (!tpl) return null;\n  const lineas = new Map();\n  for (const m of html.matchAll(/<input[^>]*js_variant_change[^>]*>/gi)) {\n    const etiqueta = m[0];\n    const attr = (n) => {\n      const r = etiqueta.match(new RegExp(n + '=[\"\\']([^\"\\']*)[\"\\']', 'i'));\n      return r ? decodificar(r[1]).trim() : '';\n    };\n    const linea = attr('name');\n    const id = Number(attr('data-value_id') || attr('value'));\n    if (!linea || !id) continue;\n    if (!lineas.has(linea)) lineas.set(linea, { atributo: attr('data-attribute_name'), valores: [] });\n    const l = lineas.get(linea);\n    if (!l.valores.some((v) => v.id === id)) l.valores.push({ id, nombre: attr('data-value_name') });\n  }\n  return { template_id: Number(tpl[1]), lineas: [...lineas.values()] };\n}\nconst odoo = variantesOdoo();\n\n// Odoo publicó su sitemap con `www.` hasta agosto de 2026 y sin él después.\n// La tabla deduplica por URL, así que ese cambio de host duplicó el catálogo\n// entero de Cestería: 366 filas viejas conviviendo con 368 nuevas, cada\n// producto ofrecido dos veces al bot y con el precio de dos fechas distintas.\n// La ficha es la misma aunque el host cambie, así que se guarda con el host\n// normalizado. La descarga ya se hizo con la URL original, de modo que esto\n// solo cambia cómo se identifica el producto, no lo que se lee de él.\nconst urlGuardada = url.replace(/^(https?:\\/\\/)www\\./i, '$1');\n\nreturn {\n  json: {\n    descartado: false,\n    client_id: clientId,\n    url: urlGuardada,\n    external_id: String(p.sku || p.mpn || p.productID || ''),\n    name: limpiar(p.name),\n    description: String(descripcion).slice(0, 2000),\n    price: Number.isFinite(precio) && precio > 0 ? precio : null,\n    currency: String(oferta.priceCurrency || 'EUR'),\n    image_url: imagen,\n    category: limpiar(p.category) || null,\n    tags: marca ? [String(marca)] : [],\n    // Solo marcamos como no disponible si lo dice explícitamente; una tienda\n    // que no informa de stock no debería quedarse con todo a false.\n    available: !/OutOfStock|SoldOut|Discontinued|BackOrder/i.test(String(oferta.availability || '')),\n    last_seen_at: new Date().toISOString(),\n    odoo,\n  },\n};\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -282,7 +282,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"client_id\": {{ JSON.stringify($json.client_id) }},\n  \"url\": {{ JSON.stringify($json.url) }},\n  \"external_id\": {{ JSON.stringify($json.external_id) }},\n  \"name\": {{ JSON.stringify($json.name) }},\n  \"description\": {{ JSON.stringify($json.description) }},\n  \"price\": {{ $json.price === null ? 'null' : $json.price }},\n  \"currency\": {{ JSON.stringify($json.currency) }},\n  \"image_url\": {{ JSON.stringify($json.image_url) }},\n  \"category\": {{ JSON.stringify($json.category) }},\n  \"tags\": {{ JSON.stringify($json.tags) }},\n  \"available\": {{ $json.available }},\n  \"last_seen_at\": {{ JSON.stringify($json.last_seen_at) }}\n}",
+        "jsonBody": "={\n  \"client_id\": {{ JSON.stringify($json.client_id) }},\n  \"url\": {{ JSON.stringify($json.url) }},\n  \"external_id\": {{ JSON.stringify($json.external_id) }},\n  \"name\": {{ JSON.stringify($json.name) }},\n  \"description\": {{ JSON.stringify($json.description) }},\n  \"price\": {{ $json.price === null ? 'null' : $json.price }},\n  \"currency\": {{ JSON.stringify($json.currency) }},\n  \"image_url\": {{ JSON.stringify($json.image_url) }},\n  \"category\": {{ JSON.stringify($json.category) }},\n  \"tags\": {{ JSON.stringify($json.tags) }},\n  \"available\": {{ $json.available }},\n  \"last_seen_at\": {{ JSON.stringify($json.last_seen_at) }},\n  \"odoo\": {{ JSON.stringify($json.odoo || null) }}\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -323,6 +323,140 @@
       ],
       "id": "ct000016-0016-4016-8016-000000000016",
       "name": "Resumen"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/catalog_products?client_id=eq.{{ $('Leer configuración').first().json.client_id }}&odoo=not.is.null&last_seen_at=gte.{{ encodeURIComponent(new Date(Date.now() - 12 * 3600 * 1000).toISOString()) }}&select=url,odoo",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1380,
+        -120
+      ],
+      "id": "ct000021-0021-4021-8021-000000000021",
+      "name": "Productos de Odoo",
+      "notes": "Los productos Odoo vistos en esta pasada (últimas 12 h), con la definición de sus opciones que guardó «Extraer producto»."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Una pregunta a Odoo por cada combinación de opciones de cada producto. Los\n// productos sin opciones también preguntan una vez (combinación vacía): así se\n// sabe su stock.\n//\n// El tope de 30 combinaciones por producto es un seguro: en Cestería la que más\n// tiene son 20 (dos atributos), y un producto con cinco atributos de cinco\n// valores serían 3.125 peticiones a la tienda del cliente.\nconst TOPE = 30;\nconst salida = [];\nfor (const { json: p } of $input.all()) {\n  const odoo = p.odoo;\n  if (!p.url || !odoo || !odoo.template_id) continue;\n  // La raíz de la tienda, a mano: la sandbox del nodo Code no tiene URL.\n  const raiz = (String(p.url).match(/^(https?:\\/\\/[^/]+)/i) || ['', ''])[1];\n  let combinaciones = [{ ids: [], nombres: [] }];\n  for (const linea of odoo.lineas || []) {\n    const siguiente = [];\n    for (const c of combinaciones) {\n      for (const v of linea.valores || []) {\n        siguiente.push({ ids: [...c.ids, v.id], nombres: [...c.nombres, v.nombre] });\n      }\n    }\n    if (siguiente.length) combinaciones = siguiente;\n  }\n  for (const c of combinaciones.slice(0, TOPE)) {\n    salida.push({\n      json: {\n        url: p.url,\n        raiz,\n        template_id: odoo.template_id,\n        combinacion: c.ids,\n        nombre: c.nombres.join(', '),\n      },\n    });\n  }\n}\nreturn salida;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        -120
+      ],
+      "id": "ct000022-0022-4022-8022-000000000022",
+      "name": "Combinaciones"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.raiz }}/sale/get_combination_info_website",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', method: 'call', params: { product_template_id: $json.template_id, product_id: false, combination: $json.combinacion, add_qty: 1, pricelist_id: false } }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1780,
+        -120
+      ],
+      "id": "ct000023-0023-4023-8023-000000000023",
+      "name": "Precio y stock",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "notes": "Lo mismo que pide la ficha de Odoo al elegir una opción: precio de la tarifa pública (B2C) y existencias."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta las respuestas de Odoo por producto.\n//\n// Cada respuesta va con su combinación por posición (pairedItem). Una que falle\n// se ignora; si fallan todas las de un producto, ese producto no se toca y se\n// queda con lo que tenía.\n//\n// «Se puede pedir» es lo que decide la propia tienda: un producto sin control de\n// stock (product_type distinto de 'product') o que admite pedidos sin stock\n// siempre se puede; si no, hace falta que queden unidades libres.\nconst combinaciones = $('Combinaciones').all();\nconst porUrl = new Map();\n$input.all().forEach((item, i) => {\n  const r = item.json && item.json.result;\n  const indice = item.pairedItem && typeof item.pairedItem.item === 'number' ? item.pairedItem.item : i;\n  const c = combinaciones[indice] && combinaciones[indice].json;\n  if (!c || !r || typeof r.price !== 'number' || r.price <= 0) return;\n  const stock = typeof r.free_qty === 'number' ? r.free_qty : null;\n  const sePuede = r.product_type !== 'product' || r.allow_out_of_stock_order === true || (stock !== null && stock > 0);\n  if (!porUrl.has(c.url)) porUrl.set(c.url, []);\n  // Odoo calcula en coma flotante (49.370000000000005): se redondea al céntimo.\n  const precio = Math.round(r.price * 100) / 100;\n  porUrl.get(c.url).push({ nombre: c.nombre, precio, stock, se_puede_pedir: sePuede });\n});\n\nconst ahora = new Date().toISOString();\nconst salida = [];\nfor (const [url, opciones] of porUrl) {\n  const pedibles = opciones.filter((o) => o.se_puede_pedir);\n  // El «desde» es el más barato que se puede comprar; si no se puede ninguno,\n  // el más barato a secas.\n  const precios = (pedibles.length ? pedibles : opciones).map((o) => o.precio);\n  salida.push({\n    json: {\n      url,\n      price: Math.min(...precios),\n      available: pedibles.length > 0,\n      // Un producto de una sola opción no tiene nada que elegir: sin lista.\n      variantes: opciones.some((o) => o.nombre) ? opciones : [],\n      variantes_at: ahora,\n    },\n  });\n}\nreturn salida;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        -120
+      ],
+      "id": "ct000024-0024-4024-8024-000000000024",
+      "name": "Agrupar variantes"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/catalog_products?client_id=eq.{{ $('Leer configuración').first().json.client_id }}&url=eq.{{ encodeURIComponent($json.url) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ price: $json.price, available: $json.available, variantes: $json.variantes, variantes_at: $json.variantes_at }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 10,
+              "batchInterval": 500
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2180,
+        -120
+      ],
+      "id": "ct000025-0025-4025-8025-000000000025",
+      "name": "Guardar variantes",
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -495,6 +629,61 @@
         [
           {
             "node": "Lotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen": {
+      "main": [
+        [
+          {
+            "node": "Productos de Odoo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Productos de Odoo": {
+      "main": [
+        [
+          {
+            "node": "Combinaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combinaciones": {
+      "main": [
+        [
+          {
+            "node": "Precio y stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precio y stock": {
+      "main": [
+        [
+          {
+            "node": "Agrupar variantes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar variantes": {
+      "main": [
+        [
+          {
+            "node": "Guardar variantes",
             "type": "main",
             "index": 0
           }

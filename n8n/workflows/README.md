@@ -13,7 +13,8 @@ el panel de la agencia escribe por cliente.
 | `agenda-api.json` | API interna de agenda: consultar disponibilidad y reservar. La comparten el bot de WhatsApp y el agente de voz. |
 | `recordatorios-citas.json` | Reloj cada hora: avisa por WhatsApp a quien tiene cita, con una plantilla aprobada por Meta. Detalle en `docs/recordatorios-whatsapp.md`. |
 | `voz-vapi.json` | Adaptador entre las tool calls de Vapi (agente de voz) y la Agenda API. |
-| `catalogo-ingesta.json` | Recorre el sitemap de la tienda de un cliente y vuelca sus productos en `catalog_products`. |
+| `catalogo-ingesta.json` | Recorre el sitemap de la tienda de un cliente y vuelca sus productos en `catalog_products`, con los tamaños, precios y stock de cada uno si es Odoo. |
+| `catalogo-programado.json` | Cada mañana a las 5:30 lanza la ingesta de cada cliente con sitemap, para que el stock y los precios sean los del día. |
 | `contenido-generar.json` | Elige productos del catálogo, pide los copys a la IA, manda renderizar la pieza y la deja pendiente de aprobación. |
 | `whatsapp-bot-v1-calendar.json` | Copia de seguridad de la primera versión (sin memoria, email ni disponibilidad). |
 | `agenda-api-v1-un-trabajador.json` | Copia de seguridad de la Agenda API anterior, la de un solo calendario por negocio. |
@@ -324,6 +325,43 @@ llamada con OpenAI se vio por qué, y eran tres cosas:
 El trozo de ficha que llega a la IA es de unos 450 caracteres: con 320 se
 quedaba fuera la tercera capacidad y el bot decía «de 4 y 8 litros».
 
+### Tamaños, precios y stock; sinónimos; el día y la hora (20/10/2026)
+
+Salió de revisar las 37 conversaciones reales de Cestería y de una batería de 30
+conversaciones de prueba con el código real de los nodos (pasó de 19 bien a 28).
+
+- **Opciones con su precio y su stock.** Desde la migración `0031` cada producto
+  puede traer `variantes` (ver «Ingesta de catálogo»). `Preparar contexto` pone
+  debajo del producto una línea `Opciones: 4 litros: 36,99 € | 8 litros: 45,24
+  € | 16 litros: 50,38 € (agotado)`, hasta doce, y el precio del producto pasa a
+  ir con «desde». Antes había un precio por producto y el bot lo daba para
+  cualquier tamaño, y ofrecía lo agotado.
+- **Sinónimos por cliente** (`client_modules.config.catalog_sinonimos` del
+  módulo social; se cargan con `scripts/cargar-sinonimos.js` desde un JSON de
+  `docs/`). La búsqueda compara letras: «leña» no está dentro de «leñero», ni
+  «roba» dentro de nada. Cada término lleva detrás los suyos, y pueden ser frases
+  («capazo de palma con asas cortas») para apuntar a un producto que el cliente
+  llama de otra forma. `Módulos del cliente` lee solo esa clave del config, no
+  el config entero (lleva tokens de Meta).
+- **El producto de la conversación no se pierde.** Los términos de contexto
+  salen de los enlaces de todos los mensajes recientes, también del «Enviado
+  desde» con el que llegó, no solo de la última respuesta.
+- **Peso por término** en `buscar_productos` (`0031`): un término vale
+  1 / nº de productos que lo llevan en el nombre. «Cesta» (22 productos) ya no
+  empata con «ropero» (2).
+- **Bloque `AHORA`** para todos los clientes, no solo los de agenda: día, hora
+  y que, si pasa la conversación con el negocio cerrado, diga cuándo le
+  contestarán.
+- **Formato de WhatsApp en `Respuesta final`**: `[texto](enlace)` pasa a
+  «texto: enlace» y `**negrita**` a `*negrita*`, para todos los clientes. Los
+  prompts lo prohíben y aun así se colaba.
+- **Plan B si OpenAI falla.** `Llamar a OpenAI` reintenta tres veces y sigue
+  adelante; `Parsear respuesta IA`, si no hay respuesta válida, contesta «ahora
+  mismo no puedo responderte, tu mensaje ya le ha llegado al equipo…» y marca
+  escalar, así que al negocio le llega el aviso de siempre. El 20/10/2026 la
+  cuenta se quedó sin saldo y el bot dejó de contestar a todo el mundo sin que
+  nadie se enterara.
+
 ### Un matiz que el modelo no puede resumir hay que subirlo de rango
 
 Caso real (Kivuk, 04/09/2026). El documento decía que la web incluye un dominio
@@ -542,6 +580,30 @@ El paso 2 se añadió el 20/10/2026. Hasta entonces, en las fichas sin pestañas
 guardaba la meta description, que es un resumen para Google y a veces dice otra
 cosa: en Cestería, de las 61 fichas con descripción corta, 42 tenían un texto
 de verdad que no se leía. Las fichas con pestañas no cambian.
+
+**Tamaños, precios y existencias (tiendas Odoo, 20/10/2026).** El precio de
+cada tamaño no está en el HTML: la ficha se lo pide a Odoo al elegirlo, a
+`/sale/get_combination_info_website`, que es público y contesta precio de la
+tarifa B2C, unidades libres y si admite pedidos sin stock. La ingesta lo hace
+en dos tramos:
+
+1. `Extraer producto` apunta qué opciones tiene cada ficha (`odoo`: el
+   `product_template_id` y los radios `js_variant_change` agrupados por atributo)
+   y `Guardar producto` lo guarda.
+2. Después de `Resumen`: `Productos de Odoo` lee los vistos en esta pasada,
+   `Combinaciones` saca todas las combinaciones (como mucho 30 por producto; los
+   que no tienen opciones preguntan una vez, para saber su stock), `Precio y
+   stock` pregunta a cinco por segundo, `Agrupar variantes` junta por producto y
+   `Guardar variantes` escribe `variantes`, `price` (el «desde»: el más barato
+   que se puede pedir) y `available`.
+
+«Se puede pedir» es lo que decide la tienda: sin control de stock, o admite
+pedidos sin stock, o quedan unidades libres. Antes `available` era siempre
+`true`, porque Odoo declara «InStock» en todas las fichas.
+
+**Cada mañana** (`catalogo-programado.json`, «Catálogo - Programado», 5:30):
+lanza esta ingesta para cada cliente con sitemap, uno cada diez minutos. Un
+stock de la semana pasada es peor que ninguno.
 
 **Odoo casi nunca dice la categoría en la ficha.** Solo aparece en la miga de
 pan si se llegó navegando desde la categoría, así que al entrar por el sitemap

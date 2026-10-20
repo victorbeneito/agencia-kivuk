@@ -1,0 +1,132 @@
+{
+  "name": "Catálogo - Programado",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 5 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "id": "cp000001-0001-4001-8001-000000000001",
+      "name": "Cada mañana",
+      "notes": "A las 5:30, antes de que abra ninguna tienda: el bot empieza el día con los precios y el stock de esa mañana. Desde el 20/10/2026 la ingesta lee el stock de cada tamaño, y un stock de la semana pasada es peor que ninguno: el bot ofrecería lo agotado como disponible."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/client_modules?module=eq.social&active=is.true&select=client_id,config",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        220,
+        300
+      ],
+      "id": "cp000002-0002-4002-8002-000000000002",
+      "name": "Clientes con catálogo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Solo los que tienen sitemap configurado: es lo mismo que comprueba la ingesta\n// en «Leer configuración», y llamarla para el resto sería contestar «sin\n// configurar» cada mañana.\nreturn $input\n  .all()\n  .map((i) => i.json)\n  .filter((f) => f && f.client_id && f.config && String(f.config.catalog_sitemap_url || '').trim())\n  .map((f) => ({ json: { client_id: f.client_id } }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "id": "cp000003-0003-4003-8003-000000000003",
+      "name": "Con sitemap"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WEBHOOK_URL }}webhook/catalogo",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client_id: $json.client_id }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 600000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        660,
+        300
+      ],
+      "id": "cp000004-0004-4004-8004-000000000004",
+      "name": "Lanzar ingesta",
+      "onError": "continueRegularOutput",
+      "notes": "La misma llamada que se hace a mano. Un cliente cada diez minutos: cada ingesta descarga cientos de fichas y pregunta cientos de precios a la tienda, y dos a la vez no ganan nada. Si uno falla, el resto sigue."
+    }
+  ],
+  "connections": {
+    "Cada mañana": {
+      "main": [
+        [
+          {
+            "node": "Clientes con catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clientes con catálogo": {
+      "main": [
+        [
+          {
+            "node": "Con sitemap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Con sitemap": {
+      "main": [
+        [
+          {
+            "node": "Lanzar ingesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

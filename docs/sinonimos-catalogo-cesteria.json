@@ -1,0 +1,53 @@
+{
+  "_que_es": "Sinónimos del catálogo de Cestería Aparici para la búsqueda de productos del bot. Cada clave es una palabra que dice la gente y no está en los nombres de la tienda; los valores, las que sí están. Se cargan en client_modules.config.catalog_sinonimos (módulo social) con scripts/cargar-sinonimos.js. Las claves que empiezan por _ no se cargan.",
+
+  "leña": ["leñero"],
+  "chimenea": ["leñero"],
+  "tronco": ["leñero"],
+  "llenya": ["leñero"],
+
+  "_ropa": "Lo que Cestería tiene en su categoría «Cestos para ropa»: los roperos, el cesto calado con forro, el de jacinto y el baúl.",
+  "ropa": ["ropero", "calado con forro", "cesto jacinto", "baúl"],
+  "colada": ["ropero", "calado con forro", "cesto jacinto", "baúl"],
+  "roba": ["ropero", "calado con forro", "cesto jacinto", "baúl"],
+
+  "cistell": ["cesto", "cesta"],
+  "cistella": ["cesta"],
+  "canasto": ["cesto", "cesta"],
+  "canasta": ["cesta"],
+
+  "cadira": ["silla"],
+  "tamboret": ["taburete"],
+  "llum": ["lámpara"],
+  "làmpada": ["lámpara"],
+  "catifa": ["alfombra"],
+  "espart": ["esparto"],
+  "vimet": ["mimbre"],
+  "capaç": ["capazo"],
+  "cabàs": ["capazo"],
+
+  "playa": ["capazo"],
+  "platja": ["capazo"],
+  "bolso": ["capazo", "bolso"],
+
+  "_clasico": "El capazo Clásico no lleva «Clásico» en el nombre: son estos dos modelos (con asa larga de bandolera y con asa corta). Y en Cestería «asa larga» es la de bandolera.",
+  "clásico": ["capazo de palma con asas de cuero bandolera", "capazo de palma con asas cortas"],
+  "larga": ["bandolera"],
+  "básico": ["basic"],
+
+  "garrafón": ["garrafa"],
+  "damajuana": ["garrafa"],
+
+  "bebé": ["moisés", "infantil"],
+  "cuna": ["moisés"],
+  "niño": ["infantil"],
+
+  "planta": ["macetero"],
+  "maceta": ["macetero"],
+
+  "ratán": ["rattan"],
+  "rattan": ["ratán"],
+
+  "estora": ["estera"],
+  "pantalla": ["lámpara"]
+}

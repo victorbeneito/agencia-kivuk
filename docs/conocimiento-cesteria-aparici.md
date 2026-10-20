@@ -92,7 +92,9 @@ Los envíos de Cestería Aparici para clientes particulares cuestan 4,99 € en 
 
 Si el pedido se hace antes de las 11:00 y lo que se ha elegido está en stock, se prepara y sale ese mismo día.
 
-En la Península, los paquetes pequeños, de hasta 10 kg y con medidas de hasta 70x45x40 cm, llegan en 24 a 48 horas laborables. Los lleva CTT Express. Los grandes, de más de 10 kg o que superen esas medidas, tardan entre 2 y 14 días laborables, según el tamaño. Los lleva CBL Logística. Si es una pieza que se fabrica para el cliente, el plazo es otro: el de fabricación más el envío.
+En la Península, los paquetes pequeños, de hasta 10 kg y con medidas de hasta 70x45x40 cm, llegan en 24 a 48 horas laborables. Los lleva CTT Express. Los grandes, de más de 10 kg o que superen esas medidas, tardan entre 2 y 14 días laborables, según el tamaño. Los lleva CBL Logística. Casi todos los muebles (sillas, tronas, sillones, mesas, bancos) pasan de esas medidas, así que van como envío grande. Si es una pieza que se fabrica para el cliente, el plazo es otro: el de fabricación más el envío.
+
+Si alguien necesita el pedido para un día concreto («¿me llega el miércoles?»), no se le garantiza una fecha: se le dan estos plazos y, si es urgente, se pasa a una persona del equipo, que mira si hay forma de enviarlo antes.
 
 A Baleares el envío cuesta 25 €, IVA incluido, para particulares. Los paquetes de menos de 10 kg o de menos de 150 cm sumando sus medidas van con TIPSA y tardan 48 a 72 horas. Los más voluminosos van con Rhenus o CBL y tardan entre 4 y 14 días laborables.
 
@@ -113,20 +115,33 @@ Cuando el pedido sale, se envía un correo electrónico con el seguimiento para 
 ```
 Quiero devolver algo. ¿Cómo hago un cambio? Me ha llegado roto. Ha llegado con un defecto. Está dañado. Quiero cancelar mi pedido. ¿Puedo cambiar mi pedido?
 
-Un cliente particular tiene 14 días naturales desde que recibe el pedido para devolverlo sin coste de recogida. Pasados esos 14 días, todavía se admite la devolución hasta un máximo de 30 días naturales desde la recepción, pero entonces el cliente asume 11 € de transporte si es Península o 25 € si es Baleares. Más allá de los 30 días ya no se aceptan devoluciones.
+Un cliente particular tiene 14 días naturales desde que recibe el pedido para devolverlo sin coste de recogida. Pasados esos 14 días, todavía se admite la devolución o el cambio hasta un máximo de 30 días naturales desde la recepción, pero entonces se cobra la recogida: 11 € en la Península y 25 € en Baleares. Un cambio, además, paga el nuevo envío (4,99 € en la Península, 25 € en Baleares). Más allá de los 30 días ya no se aceptan devoluciones ni cambios.
 
-En Baleares el coste de recogida es de 25 € en todos los casos, también dentro de los primeros 14 días.
+La devolución gratuita es solo en la Península. En Baleares la recogida cuesta 25 € en todos los casos, también dentro de los primeros 14 días.
 
-En cualquier devolución, el importe del envío original de 4,99 € no se reembolsa.
+Los productos voluminosos (los que pasan de 0,45 x 0,40 x 0,70 m) tienen otro coste de recogida en la Península: 25 € IVA incluido hasta 0,46 x 1,19 x 0,79 m, y 50 € por bulto a partir de 0,47 x 1,2 x 0,80 m (el ancho de un palet europeo). En Baleares, el de un voluminoso se consulta con el equipo. Fuera de España, el transporte de la devolución lo paga entero el cliente.
 
-Para que se acepte, el producto tiene que estar en perfectas condiciones y en su embalaje original.
+En cualquier devolución, el importe del envío original (4,99 € o lo que se pagara de envío) no se reembolsa. Solo se admite una devolución por pedido.
 
-Para tramitarla hay que rellenar el formulario de cambios y devoluciones de la web, indicando nombre, correo electrónico, número de pedido, una descripción del problema y la dirección donde hay que recoger el paquete:
+Para que se acepte, el producto tiene que estar en perfectas condiciones y en su embalaje original. Si la recogida no se puede hacer al primer intento, los siguientes intentos los paga el cliente. Si prefiere mandarlo por su cuenta también puede, avisando antes al equipo.
+
+Para tramitarla hay que rellenar el formulario de cambios y devoluciones de la web, indicando nombre, el correo con el que hizo el pedido, número de pedido, el motivo (con fotos si hace falta) y la dirección y el horario de recogida que prefiera:
 https://www.cesteriaaparici.es/cambios-y-devoluciones
 
-Una vez el producto llega a las instalaciones y se comprueba su estado, se hace el reembolso descontando los gastos que correspondan.
+Cuándo se devuelve el dinero: el equipo revisa el caso, y una vez el producto llega al taller y se comprueba que está en buen estado, se hace el reembolso, descontando el envío original y, si se ha usado su agencia, el coste de la recogida. No hay un número de días fijo: no se le promete ninguno. Si pregunta por un reembolso que ya debería haberle llegado, se le pide el número de pedido y se pasa al equipo.
 
-Si una pieza llega rota o con un defecto: se pide disculpas y, en ese mismo mensaje, se le pide una foto o un vídeo y el número de pedido (el que empieza por S), y se pasa al equipo para solucionarlo enseguida. Por ejemplo: «¡Vaya, cuánto lo siento! Mándanos una foto o un vídeo y el número de pedido, y lo solucionamos enseguida.» No se le promete una pieza nueva ni un reembolso concreto: eso lo decide una persona del equipo, que en estos casos suele ser generosa.
+Garantía: los productos tienen la garantía legal que marca la ley para consumidores, que en España es de tres años desde la entrega. Si algo falla, se trata como un defecto (ver abajo).
+
+Defectos o errores en el pedido: si el producto tiene un defecto de fabricación o se envió algo equivocado, la devolución o el cambio son gratuitos siempre que se avise en los 30 días siguientes a recibirlo.
+
+No se consideran defectos, porque son propios de una pieza artesanal hecha con fibras naturales (conviene explicarlo con cariño, como algo que hace única la pieza, nunca como una excusa):
+- las variaciones de color y de tono de la fibra;
+- unos centímetros de diferencia con las medidas de la ficha;
+- los remates y cierres a mano del trenzado, que forman parte de la técnica;
+- los nudos, orificios y vetas de la madera.
+Las piezas de madera natural sin tratamiento protector necesitan cuidado: los desperfectos que aparezcan después por la propia naturaleza del material no se cubren.
+
+Si una pieza llega rota o con un defecto: se pide disculpas y, en ese mismo mensaje, se le pide una foto o un vídeo y el número de pedido (el que empieza por S), y se pasa al equipo para solucionarlo enseguida. Por ejemplo: «¡Vaya, cuánto lo siento! Mándanos una foto o un vídeo y el número de pedido, y lo solucionamos enseguida.» Si ahora el equipo no está (fuera del horario de atención, o en fin de semana), dile también cuándo lo verán: «El equipo lo verá el lunes a partir de las 9» o «mañana a partir de las 9». No se le promete una pieza nueva ni un reembolso concreto: eso lo decide una persona del equipo, que en estos casos suele ser generosa.
 
 Para modificar o cancelar un pedido: si todavía no se ha empaquetado ni enviado, se puede cambiar sin problema. Se le pide el número de pedido y se pasa al equipo.
 ```
@@ -141,11 +156,11 @@ Para modificar o cancelar un pedido: si todavía no se ha empaquetado ni enviado
 ```
 Hay productos de Cestería Aparici que no se pueden devolver ni cambiar en ningún caso:
 
-- Los productos personalizados, es decir, cualquier pieza hecha a medida o con iniciales, logotipo o acabado propio del cliente.
-- La materia prima.
-- Los productos con acabados especiales.
+- Los productos hechos a medida por encargo, como los capazos personalizados o las alfombras a medida.
+- La materia prima, como la rejilla y la pleita.
+- Los productos con acabados especiales pedidos por el cliente (barnices, logotipos…).
 - Los productos de OUTLET.
-- Los productos comprados en promociones como Black Friday.
+- Los productos de promociones con condiciones especiales, como Black Friday: cada promoción tiene las suyas.
 
 Esto no afecta a los casos de defecto de fabricación, error en el envío o daño durante el transporte, que se resuelven igualmente.
 ```
@@ -162,7 +177,9 @@ Para clientes profesionales, es decir, compras B2B con cuenta PRO, no se aceptan
 
 Sí se resuelven los casos de defecto de fabricación, error en el envío o daño durante el transporte. Estas incidencias hay que notificarlas en las primeras 24 a 48 horas desde que se recibe la mercancía.
 
-El plazo máximo para cualquier reclamación de este tipo es de 7 días naturales desde la recepción del pedido.
+El plazo máximo para cualquier reclamación de este tipo es de 7 días naturales desde la recepción del pedido. En los daños de transporte, además, el daño tiene que quedar anotado en el albarán del transportista.
+
+No se aceptan devoluciones por desistimiento (cambio de opinión, ya no lo necesita) una vez el pedido se ha procesado y enviado. Si excepcionalmente se aceptara una devolución que no es por un error de Cestería Aparici, el transporte de ida y vuelta y la gestión los paga el cliente profesional. Si la recogida falla al primer intento, a partir de ahí la devolución la hace el cliente con su propia agencia.
 
 Los productos excluidos son los mismos que para particulares: personalizados, materia prima, acabados especiales y outlet.
 ```
@@ -175,15 +192,19 @@ Los productos excluidos son los mismos que para particulares: personalizados, ma
 - **URL de origen:** https://www.cesteriaaparici.es/envios
 
 ```
+¿Cuánto cuesta el envío para profesionales? ¿Qué portes tengo como tienda? ¿Enviáis a Baleares a profesionales? ¿Y a Europa?
+
 Cestería Aparici vende también a profesionales: tiendas, hoteles, restaurantes, decoradores y empresas. Para ello hay que crear una cuenta PRO a través del formulario de profesionales de la web.
 
 Las condiciones para profesionales son distintas a las de particulares:
 
 El pedido mínimo es de 99 €.
 
-En la Península, el envío es gratis a partir de 170 € sin IVA.
+Envío en la Península: gratis a partir de 170 € sin IVA. Por debajo de 170 €, los portes son 20 €.
 
-PENDIENTE: el resto de condiciones de envío para profesionales (los portes por debajo de 170 €, las islas, Europa y los envíos voluminosos) no se dan por aquí. Las islas y Europa no tienen el envío gratis. Si un profesional pregunta por cualquiera de esas cosas, se pasa a una persona del equipo.
+Baleares: 35 € de portes siempre, sea cual sea el importe del pedido.
+
+Canarias, Europa y los envíos voluminosos: el coste depende del volumen del pedido, así que no se da una cifra: se le prepara un presupuesto. Se recogen sus datos como en cualquier presupuesto (qué productos y cuántas unidades, dirección de entrega con código postal, email) y se pasa al equipo.
 ```
 
 ---
@@ -311,9 +332,9 @@ Asientos de enea: se tienen en las medidas estándar de la web, https://www.cest
 
 Capazo con logo en pocas unidades: para personalizarlo hay que fabricar un cliché, que cuesta 220 €, así que con muy pocas unidades (por ejemplo, 5) no le sale a cuenta. Se le pregunta cuántas unidades necesita y qué tipo de asa le gusta, se le deja el formulario de capazos personalizados (https://www.cesteriaaparici.es/capazos-personalizados) y se revisa qué opción le encaja mejor.
 
-Personalización en cuero: los colores son marrón oscuro, marrón claro, beige y negro, con grabado directo en la piel o bicolor. PENDIENTE: en qué productos se puede hacer y cuánto cuesta. Se le dan los colores y se pasa a una persona.
+Personalización en cuero: los colores son marrón oscuro, marrón claro, beige y negro, con grabado directo en la piel o bicolor. En qué productos se puede y cuánto cuesta depende de cada proyecto, que es único: se le dan los colores, se le pregunta qué producto y cuántas unidades, y se pasa a una persona del equipo.
 
-PENDIENTE: si el cliente pone su propia tela. Esa excepción la decide una persona: se pasa al equipo.
+Si el cliente quiere poner su propia tela: también depende de cada proyecto. No se le dice ni que sí ni que no; se le pregunta para qué producto y cuántas unidades, y se pasa al equipo.
 
 Un producto personalizado no admite devolución ni cambio una vez hecho, porque se fabrica expresamente para ese cliente. Las condiciones de pago de un encargo (anticipos, porcentajes) no se dan por aquí: las pone la persona que hace el presupuesto.
 
@@ -325,12 +346,17 @@ Si prefiere hablar con la empresa directamente, el WhatsApp y teléfono de Ceste
 ## 13. Horario de atención
 
 - **Categoría:** La empresa
-- **URL de origen:** *(confirmado por el cliente, 03/08/2026)*
+- **URL de origen:** *(confirmado por el cliente, 20/10/2026)*
 
 ```
-El horario de atención de Cestería Aparici es de 9:00 a 13:00.
+¿Qué horario tenéis? ¿A qué hora abrís? ¿Cuándo me podéis llamar? ¿Trabajáis el sábado? ¿Cuándo me contestaréis?
 
-Fuera de ese horario se puede escribir igualmente por WhatsApp o al correo gestion@cesteriaaparici.es, y se responde en cuanto se abre.
+El horario de atención de Cestería Aparici es:
+- de lunes a miércoles, de 9:00 a 16:30;
+- jueves y viernes, de 9:00 a 14:00.
+Sábados, domingos y festivos no se atiende. En verano el horario cambia a 9:00-13:00.
+
+Fuera de ese horario se puede escribir igualmente por aquí o al correo gestion@cesteriaaparici.es, y el equipo contesta en cuanto abre: lo que llega el fin de semana, el lunes.
 
 La tienda online está disponible las 24 horas para hacer pedidos.
 ```
@@ -465,7 +491,7 @@ Busco algo para la leña. Quiero un cesto para la ropa. ¿Qué me llevo a la pla
 
 La gente llama "cesto" o "cesta" a casi todo, y cada uso tiene su pieza con su nombre propio. Esta es la correspondencia:
 
-- Para la leña, junto a la chimenea: los leñeros de esparto. Los hay redondos, ovalados, con una o dos asas, con asa transversal y forrados de arpillera o yute. Van de unos 19 € a unos 103 €.
+- Para la leña, junto a la chimenea: los leñeros de esparto. Los hay redondos, ovalados, con una o dos asas, con asa transversal y forrados de arpillera o yute. Para leña, los ovalados (o rectangulares) son los más prácticos, porque los troncos son alargados y caben mejor; aun así, es cuestión de gusto. Al recomendar, enséñale uno ovalado y uno redondo, para que elija.
 - Para la playa: los capazos de palma. Los tamaños que se llevan a la playa son el N°7, el N°8 y el N°9; el N°8 es el familiar y el N°9 el más grande.
 - Para la compra o el mercado: capazos del N°6 al N°9, según lo que se quiera cargar.
 - Como bolso de mano o de diario: capazos N°4, N°5 y N°6, y los bolsos de palma y de fibras naturales.
@@ -476,6 +502,27 @@ La gente llama "cesto" o "cesta" a casi todo, y cada uso tiene su pieza con su n
 - Para regalo gourmet o de Navidad: las cestas de Navidad, que las hay de uno, dos y tres pisos.
 
 Si lo que busca no encaja en ninguna de estas, o quiere una medida que no existe, se puede hacer a medida.
+
+Cada familia tiene su página en la tienda, con todos sus productos. Sirven cuando no tienes delante productos concretos de lo que busca, o cuando quiere ver más:
+- Leñeros: https://www.cesteriaaparici.es/shop/category/leneros-96
+- Capazos: https://www.cesteriaaparici.es/shop/category/capazos-todos-los-capazos-76
+- Cestos para la ropa: https://www.cesteriaaparici.es/shop/category/cestos-para-ropa-102
+- Todos los cestos: https://www.cesteriaaparici.es/shop/category/cestos-todos-los-cestos-57
+- Bandejas: https://www.cesteriaaparici.es/shop/category/cestos-bandejas-100
+- Cestas de Navidad: https://www.cesteriaaparici.es/shop/category/cestos-cestas-de-navidad-11
+- Alfombras: https://www.cesteriaaparici.es/shop/category/decoracion-alfombras-23
+- Maceteros: https://www.cesteriaaparici.es/shop/category/decoracion-maceteros-fibras-vegetales-25
+- Espejos: https://www.cesteriaaparici.es/shop/category/decoracion-espejos-de-fibras-naturales-31
+- Menaje: https://www.cesteriaaparici.es/shop/category/decoracion-menaje-natural-32
+- Garrafas: https://www.cesteriaaparici.es/shop/category/decoracion-garrafas-95
+- Salvamanteles: https://www.cesteriaaparici.es/shop/category/decoracion-salvamanteles-106
+- Lámparas: https://www.cesteriaaparici.es/shop/category/iluminacion-65
+- Sillas: https://www.cesteriaaparici.es/shop/category/muebles-sillas-13
+- Taburetes: https://www.cesteriaaparici.es/shop/category/muebles-taburetes-15
+- Sillones: https://www.cesteriaaparici.es/shop/category/muebles-sillones-17
+- Mesas: https://www.cesteriaaparici.es/shop/category/muebles-mesas-88
+- Kids (moisés, sillas y muebles infantiles): https://www.cesteriaaparici.es/shop/category/kids-7
+- Materia prima (rejilla, pleita, enea…): https://www.cesteriaaparici.es/shop/category/materia-prima-60
 ```
 
 ---
@@ -539,7 +586,7 @@ https://www.cesteriaaparici.es/formulario-b2b
 
 Quien se registra recibe además un cupón del 5% adicional en su correo electrónico. Es el gancho para darse de alta: no es un descuento que el cliente ya tenga, es un cupón que le llega al correo después de registrarse. Por eso la forma de cerrar cualquier conversación con un profesional es siempre esta, con el enlace debajo: «Regístrate ahora y obtén en tu correo electrónico un cupón del 5% adicional».
 
-El pedido mínimo para clientes profesionales es de 99 €, y en la Península el envío es gratis a partir de 170 € sin IVA. Las islas y Europa no tienen el envío gratis: si pregunta por ellas, se pasa a una persona.
+El pedido mínimo para clientes profesionales es de 99 €. En la Península el envío es gratis a partir de 170 € sin IVA, y por debajo cuesta 20 €. A Baleares, 35 € siempre. Canarias, Europa y los envíos voluminosos dependen del volumen: se les prepara presupuesto.
 ```
 
 ---
@@ -638,7 +685,8 @@ Cada pieza se hace a mano desde cero, así que el plazo depende del producto. A 
 - Capazos personalizados: de 6 a 8 semanas.
 - Persianas y alfombras: de 4 a 6 semanas.
 - Muebles a medida: hasta 5 meses.
-- Cualquier otro producto (lámparas, cestas de Navidad, cestas, cajones, asientos y todo lo que no está en esta lista): PENDIENTE. No se da un plazo de memoria ni se pregunta nada más para darlo: se le dice que se lo confirma una persona del equipo y se pasa.
+
+El resto de productos de la tienda (lámparas, cestas de Navidad, cestas, cajones, asientos…) no se fabrican por encargo: se venden hechos, así que no tienen plazo de fabricación. Si lo que quiere está disponible, sale con los plazos normales de envío. Si está agotado, o si quiere una pieza de esas personalizada o a medida, cada proyecto es distinto: se pasa a una persona del equipo.
 
 Si no ha dicho qué producto le interesa, primero se le pregunta. Las unidades no hacen falta para darle el plazo de esta lista.
 ```
@@ -705,7 +753,9 @@ La rejilla se vende por metros lineales. Vale para las cuatro de la tienda: Reji
 
 En la ficha se elige el ancho, que aparece como «Talla» (de 36 cm a 90 cm), y la cantidad son los metros de largo: 1 unidad es 1 metro del ancho elegido; 3 unidades, 3 metros. El precio que marca la ficha es el de un metro del ancho elegido.
 
-El rollo completo son 15 metros.
+El rollo completo son 15 metros. Si pide varios metros, pueden llegarle en una sola pieza seguida o en trozos, según el stock que haya en ese momento: si lo necesita de una pieza, se pasa al equipo para que lo confirme.
+
+A los profesionales se les puede hacer descuento por el rollo entero: se le propone darse de alta como profesional o, si ya lo es, se recogen sus datos como en cualquier presupuesto y se pasa al equipo.
 
 Por eso en la ficha sale el ancho y no el largo: el largo lo pone el cliente con la cantidad.
 ```
@@ -714,92 +764,50 @@ Por eso en la ficha sale el ancho y no el largo: el largo lo pone el cliente con
 
 # Pendiente de confirmar con el cliente
 
-Resueltos el 03/08/2026 por el cliente: **horario** (9:00-13:00), **formas de
-pago** (tarjeta, Bizum, PayPal y transferencia) e **IVA** (incluido para
-particulares, excluido en la tarifa profesional). Están ya en los documentos 13
-y 14.
+**Casi todo resuelto el 20/10/2026**, con el Word «Lo que sabe el asistente» que
+Cestería devolvió respondido (`docs/Cesteria-Aparici-lo-que-sabe-el-asistente.docx`).
+Lo que contestaron y dónde está ahora:
 
-Resueltos el 10/09/2026: **el fondo del capazo N°5** (18 cm, era una errata del
-blog que se comió el 1), **el estado del pedido** (área de cliente → Mis
-pedidos, y el correo de expedición para el seguimiento) y **Amazon** (sí venden,
-pero sin dirigir a nadie allí). Están en los documentos 16, 17 y 18.
+| Tema | Respuesta | Dónde |
+|---|---|---|
+| Correo de presupuestos | comunicacion@ | `email_presupuestos` |
+| Horario | L-X 9:00-16:30, J-V 9:00-14:00 (el de 9-13 era el de verano) | doc. 13 y prompt |
+| Respuesta fuera de horario | sí: «el lunes» si es fin de semana | prompt |
+| Plazos del resto de productos | no se hacen por encargo | doc. 26 |
+| Cuero y tela propia | cada proyecto es único: a una persona | doc. 12 |
+| Portes de profesionales | < 170 € sin IVA: 20 €; Baleares 35 € siempre; Canarias, Europa y voluminosos según volumen | docs. 7 y 21 |
+| Correo de contacto | gestion@, correcto | doc. 2 |
+| Plazo de reembolso | «está en la página de devoluciones», que no da días: se dice cómo funciona, sin plazo | doc. 4 |
+| Garantía | lo mínimo que marque la ley (3 años) | doc. 4 |
+| Año de fundación | 1950 | doc. 1 |
+| Rejilla | seguida o en trozos según stock; descuento por rollo a profesionales | doc. 30 |
+| Qué recomendar | leñeros: ovalado o rectangular cabe mejor la leña, pero a gusto, enseñar uno de cada; el resto, indiferente, «lo ideal lo que haya en stock» | doc. 19 y prompt |
 
-Resueltos el 01/10/2026 por la **guía del bot** del cliente (José): **Canarias**
-(cotización a medida, documento 3), **si se puede visitar el taller** (no: tienda
-online, recogida coordinada por una persona, documentos 2 y 27) y **cuándo pasar a
-una persona** (la lista está ahora en el prompt). Abajo quedan tachados.
-
-La misma guía deja marcados como **PENDIENTE** estos temas, y mientras lo estén el
-bot los pasa a una persona:
-
-- El horario que se promete al pasar a una persona («te escribimos en cuanto
-  podamos», sin franja).
-- El plazo de fabricación de lo que no son capazos, persianas, alfombras ni
-  muebles (documento 26).
-- La personalización en cuero: en qué productos y cuánto cuesta (documento 12).
-- La excepción cuando el cliente pone su propia tela (documento 12).
-- Los envíos de profesionales y los voluminosos: portes por debajo de 170 €,
-  islas y Europa (documento 7).
-
-Y deja dos contradicciones con su propia web que conviene que miren:
-
-- **Portes de profesionales.** La página de envíos dice 20 € de gestión y portes,
-  35 € a Baleares y 10 € por recoger en el almacén. La guía lo deja pendiente. Se
-  ha hecho caso a la guía y esas cifras ya no las da el bot, pero si son las
-  buenas, conviene recuperarlas.
-- **El 5% del registro profesional.** La guía dice «5% extra en tu primera
-  compra»; el 24/09 nos pidieron cerrar con «obtén en tu correo electrónico un
-  cupón del 5% adicional». Las dos cosas encajan (el cupón es para la primera
-  compra) y el bot usa la segunda frase, que es la que pidieron literal.
+Lo del stock tenía arreglo aunque ellos pensaban que no: Odoo da el precio y las
+existencias de cada tamaño, y desde el 20/10 la ingesta los lee
+(`n8n/workflows/README.md`, «Ingesta de catálogo»).
 
 Queda esto:
 
-1. **Qué días cubre el horario de 9 a 13.** El cliente ha dado la franja pero no
-   los días. Si abren sábados, o si el horario cambia fuera de verano, el bot lo
-   dirá mal. Es una pregunta de treinta segundos.
+1. **Cuándo empieza y acaba el horario de verano** (9:00-13:00). Sabemos que
+   existe, no las fechas.
 
-2. **Qué correo debe dar el bot.** En la web aparecen `gestion@cesteriaaparici.es`
-   y `comunicacion@cesteriaaparici.es`. Se ha usado `gestion@` por ser el de
-   gestión de pedidos; conviene confirmarlo.
+2. **El blog viejo contradice a la guía nueva en dos medidas.** El documento 16
+   toma las medidas de `cesteriaaparici.es/tamanos-de-capazos` (la guía de
+   2026, la oficial), pero el post del blog de 2025 sigue publicado: N°5
+   32 x 8 x 17 (son 32 x 18 x 14) y N°9 55 de ancho (son 52). Conviene que lo
+   borren o lo actualicen.
 
-3. ~~**Canarias.**~~ Resuelto por la guía: cotización a medida con referencias,
-   cantidades y dirección completa.
+3. **El texto del botón de WhatsApp de la web** dice «Hola, quiero hablar
+   contigo». El prompt ya sabe que no es pedir una persona, pero un texto neutro
+   en Odoo («Hola, tengo una consulta») lo evita del todo.
 
-4. **Plazo de reembolso.** Se dice que se reembolsa tras comprobar el producto,
-   pero no en cuántos días. Es lo primero que pregunta quien ha devuelto algo.
+4. **Su página de devoluciones tiene un hueco sin rellenar**: «se acepta como
+   norma un margen de ± [X] cm (especificado en cada ficha de producto)». El bot
+   no da ninguna cifra de margen; conviene que pongan la suya.
 
-5. **Garantía.** No aparece en las condiciones. Se aplica la legal de 3 años del
-   Real Decreto 7/2021, pero conviene que lo confirmen antes de que el bot lo diga.
+5. **Espejo de teca Savina Grande**: el resumen de la ficha dice «madera de
+   teca» y el texto, «elaborado con rattan».
 
-6. ~~**¿Se puede visitar el taller?**~~ Resuelto por la guía: no hay tienda al
-   público, y la recogida la coordina una persona sin que el bot dé la dirección.
-
-7. ~~**Cuándo pasar a una persona.**~~ Resuelto por la guía: la lista está en el
-   prompt, bloque de escalado.
-
-8. **El blog viejo contradice a la guía nueva en dos medidas.** El documento 16
-   toma ya las medidas de `cesteriaaparici.es/tamanos-de-capazos` (la guía de
-   2026, que es la oficial). Pero el post del blog de 2025 sigue publicado y dice
-   otra cosa en dos de los seis tamaños:
-
-   | | Blog 2025 | Guía 2026 |
-   |---|---|---|
-   | N°5 | 32 x **8** x **17** | 32 x **18** x **14** |
-   | N°9 | **55** x 28 x 35 | **52** x 28 x 35 |
-
-   El 8 del N°5 es claramente una errata (se comieron el 1), pero el alto (17 vs
-   14) y el ancho del N°9 (55 vs 52) son diferencias de verdad. Conviene que
-   borren o actualicen el post viejo: mientras los dos estén en Google, un
-   cliente puede leer una medida y que el bot le diga otra.
-
-9. **Rejilla (documento 30, 13/10/2026).** Sabemos que va por metros y que el
-   rollo son 15 m. Falta: si varios metros llegan en una sola pieza seguida, y
-   si el rollo entero tiene otro precio. Mientras no lo confirmen, el bot no lo
-   dice y lo pasa a una persona.
-
-10. **El texto del botón de WhatsApp de la web.** Dice «Hola, quiero hablar
-    contigo», y el bot lo tomaba como «quiero hablar con una persona»: hasta el
-    13/10, las conversaciones que llegaban por el botón empezaban pasándose al
-    equipo, con su aviso. El prompt ya lo distingue, pero un texto neutro en
-    Odoo («Hola, tengo una consulta») lo evita del todo. El «Enviado desde» con
-    la página conviene dejarlo: dice qué producto miraba.
+6. **21 fichas siguen sin descripción** (anexo del Word): de esas solo se sabe el
+   nombre, el precio y, ahora, los tamaños y el stock.

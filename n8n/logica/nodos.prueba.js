@@ -1039,9 +1039,140 @@ ok("a la IA le llega la ficha del producto, con la frase de la funda de plastico
 ok("sin la cabecera de pestañas de Odoo", !/Ficha: Descripción Material/.test(texto));
 ok("y recortada: una ficha larga no se manda entera", !/Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés/.test(texto));
 ok("un producto sin descripcion sale como antes, sin linea de ficha", /Producto sin ficha: [^\n]*-> https:\/\/x\/9(\n-|\n\n|$)/.test(texto));
+
+// Tamaños con su precio y su stock (migracion 0031). Los datos son los reales de
+// la garrafa el 20/10/2026: el bot la daba «desde 50,38 €», que era la mas cara,
+// y la de 16 litros estaba agotada.
+texto = contextoTienda([
+  Object.assign(prod("Garrafa de boca ancha completa", "https://x/1330", "Garrafa forrada con funda de plástico."), {
+    price: 36.99,
+    variantes: [
+      { nombre: "4 litros", precio: 36.99, stock: 10, se_puede_pedir: true },
+      { nombre: "8 litros", precio: 45.24, stock: 11, se_puede_pedir: true },
+      { nombre: "16 litros", precio: 50.38, stock: 0, se_puede_pedir: false },
+    ],
+  }),
+  Object.assign(prod("Escoba decorativa de mijo", "https://x/1691", "Escoba pequeña."), { price: 3.05, available: false, variantes: [] }),
+], pbq);
+ok("con varias opciones, el precio va con «desde»", /Garrafa de boca ancha completa: desde 36,99 €/.test(texto), texto.slice(0, 300));
+ok("y debajo cada opcion con su precio, y la agotada marcada",
+  /\n  Opciones: 4 litros: 36,99 € \| 8 litros: 45,24 € \| 16 litros: 50,38 € \(agotado\)/.test(texto));
+ok("un producto de una sola opcion no lleva linea de opciones ni «desde»",
+  /Escoba decorativa de mijo: 3,05 € \(agotado\) -> https:\/\/x\/1691\n  Ficha:/.test(texto));
+ok("las reglas explican que cada opcion tiene su precio", /cada opcion \(tamaño, capacidad, tela…\) lleva SU precio/.test(texto));
+ok("todos los clientes, tambien las tiendas, saben que dia y hora es", /=== AHORA ===\nHoy es .* y son las /.test(texto));
+
+const muchas = Array.from({ length: 15 }, (_, i) => ({ nombre: "Talla " + i, precio: 10 + i, stock: 1, se_puede_pedir: true }));
+texto = contextoTienda([Object.assign(prod("Rejilla", "https://x/r", "Rejilla."), { variantes: muchas })], pbq);
+ok("con muchas opciones se enseñan doce y se dice cuantas faltan", /Talla 11: 21,00 € \| y 3 opciones más en la ficha/.test(texto));
 ok("Recoger conocimiento -> Separar busquedas de productos -> Buscar productos",
   cx["Recoger conocimiento"].main[0][0].node === "Separar búsquedas de productos" &&
   cx["Separar búsquedas de productos"].main[0][0].node === "Buscar productos");
+
+// === Sinonimos, producto de la conversacion y formato (20/10/2026) ==============
+console.log("\n=== El bot: sinonimos y formato ===");
+const SINONIMOS = { "leña": ["leñero"], "cistells": ["cesto", "cesta"], "roba": ["ropero"], "clásico": ["bandolera"] };
+function prepararCon(mensaje, recientes) {
+  const entradas = { "Extraer mensaje": { message_text: mensaje } };
+  if (recientes !== undefined) entradas["Mensajes recientes"] = recientes;
+  return ejecutarItems(nodoBot("Preparar búsqueda"), entradas, [{ module: "whatsapp", sinonimos: null }, { module: "social", sinonimos: SINONIMOS }])[0].json;
+}
+let ps = prepararCon("Busco algo para guardar la leña");
+ok("«leña» busca tambien «lenero» (el sinonimo va justo detras)", ps.terminos.join(",").includes("lena,lenero"), ps.terminos.join(","));
+ps = prepararCon("Bon dia, teniu cistells per a la roba bruta?");
+ok("en valenciano tambien encuentra: cistell -> cesto, cesta; roba -> ropero",
+  ["cesto", "cesta", "ropero"].every((t) => ps.terminos.includes(t)), ps.terminos.join(","));
+ok("sin sinonimos configurados, nada cambia", preparar("Busco algo para guardar la leña").terminos.join(",") === "guardar,lena", preparar("Busco algo para guardar la leña").terminos.join(","));
+ok("el modulo de agenda no se confunde con los sinonimos", prepararCon("hola").modulos.join(",") === "whatsapp,social");
+ps = ejecutarItems(nodoBot("Preparar búsqueda"), { "Extraer mensaje": { message_text: "¿Cuánto cuesta el capazo clásico?" } },
+  [{ module: "social", sinonimos: { "clásico": ["Capazo de palma con asas cortas", "bandolera"] } }])[0].json;
+ok("un sinonimo puede ser una frase, con sus espacios, para apuntar a un producto concreto",
+  ps.terminos.includes("capazo de palma con asas cortas") && ps.terminos.includes("bandolera"), ps.terminos.join(","));
+
+ps = prepararCon("vale, y la de 61 cm la tenéis?", [
+  { sender: "bot", content: "La rejilla se vende por metros lineales." },
+  { sender: "contact", content: "hola, aparece el ancho pero no veo por ninguna parte el largo" },
+  { sender: "bot", content: "Veo que estabas mirando la Rejilla tupida natural." },
+  { sender: "contact", content: "Hola, quiero hablar contigo \n\n*Enviado desde: https://www.cesteriaaparici.es /shop/rejilla-tupida-natural-1532*" },
+]);
+ok("el producto desde el que llego sigue en la busqueda aunque la ultima respuesta no lo enlace",
+  ps.terminos_contexto.includes("rejilla") && ps.terminos.includes("rejilla"), ps.terminos.join(",") + " / " + ps.terminos_contexto.join(","));
+
+const respuestaFinal = (reply) => ejecutar(nodoBot("Respuesta final"), {
+  "Preparar contexto": { presentarse: false },
+}, { reply })[0].json.reply;
+ok("los enlaces en Markdown quedan sueltos, que WhatsApp los hace pulsables",
+  respuestaFinal("- *Garrafa*: 36,99 €  [Ver más detalles](https://x.es/1330)") === "- *Garrafa*: 36,99 €  Ver más detalles: https://x.es/1330");
+ok("un enlace cuyo texto es la propia direccion queda solo la direccion",
+  respuestaFinal("Mira [https://x.es/1](https://x.es/1)") === "Mira https://x.es/1");
+ok("la negrita de Markdown pasa a la de WhatsApp", respuestaFinal("Es la **Garrafa de boca ancha**.") === "Es la *Garrafa de boca ancha*.");
+ok("el texto normal no se toca", respuestaFinal("Hola, 4 * 2 son 8 y [esto] no es un enlace.") === "Hola, 4 * 2 son 8 y [esto] no es un enlace.");
+
+// === Plan B si OpenAI falla (20/10/2026: la cuenta se quedo sin saldo) =========
+console.log("\n=== El bot: si OpenAI falla ===");
+const parsear = (json) => ejecutar(nodoBot("Parsear respuesta IA"), {}, json)[0].json;
+let pr = parsear({ choices: [{ message: { content: '{"reply": "Hola", "escalar": false}' } }] });
+ok("con respuesta buena, la deja tal cual", pr.reply === "Hola" && pr.escalar === false && !pr.fallo_ia);
+pr = parsear({ error: { message: "You have no credits remaining.", code: "credit_balance_exhausted" } });
+ok("sin saldo: contesta el aviso fijo y lo pasa a una persona", /ahora mismo no puedo responderte/.test(pr.reply) && pr.escalar === true && /credits/.test(pr.fallo_ia));
+pr = parsear({ choices: [{ message: { content: "esto no es json" } }] });
+ok("con una respuesta que no es JSON, lo mismo", pr.escalar === true && /no puedo responderte/.test(pr.reply));
+pr = parsear({ choices: [{ message: { content: '{"reply": "", "escalar": false}' } }] });
+ok("con la respuesta vacia, lo mismo", pr.escalar === true);
+const llamarIA = bot.nodes.find((x) => x.name === "Llamar a OpenAI");
+ok("«Llamar a OpenAI» reintenta y no tumba la ejecucion", llamarIA.retryOnFail === true && llamarIA.maxTries >= 2 && llamarIA.onError === "continueRegularOutput");
+
+// === Ingesta: tamaños, precios y stock de Odoo (migracion 0031) ===============
+console.log("\n=== La ingesta: variantes de Odoo ===");
+const ingesta = JSON.parse(fs.readFileSync(path.join(RAIZ, "n8n", "workflows", "catalogo-ingesta.json"), "utf8"));
+const nodoIng = (n) => {
+  const x = ingesta.nodes.find((y) => y.name === n);
+  if (!x) throw new Error("no existe el nodo " + n + " en catalogo-ingesta.json");
+  return x.parameters.jsCode;
+};
+const conPar = (lista) => lista.map((json, i) => ({ json, pairedItem: { item: i } }));
+function ejecutarIng(nombre, refs, entrada) {
+  const $ = (n) => ({ all: () => refs[n], first: () => refs[n][0] });
+  const $input = { all: () => entrada, first: () => entrada[0] };
+  return new Function("$", "$json", "$input", nodoIng(nombre))($, entrada[0] && entrada[0].json, $input);
+}
+
+const combis = ejecutarIng("Combinaciones", {}, conPar([
+  { url: "https://tienda.es/shop/bandeja-1482", odoo: { template_id: 1482, lineas: [
+    { atributo: "Tela", valores: [{ id: 1, nombre: "Azul" }, { id: 2, nombre: "Gris" }] },
+    { atributo: "Tamaño", valores: [{ id: 3, nombre: "31 cm" }, { id: 4, nombre: "37 cm" }] },
+  ] } },
+  { url: "https://tienda.es/shop/escoba-1691", odoo: { template_id: 1691, lineas: [] } },
+  { url: "https://tienda.es/shop/otra", odoo: null },
+])).map((i) => i.json);
+ok("Combinaciones: todas las de dos atributos (2 x 2) y una vacia para el producto sin opciones",
+  combis.length === 5 && combis[0].nombre === "Azul, 31 cm" && combis[3].nombre === "Gris, 37 cm" &&
+  combis[4].combinacion.length === 0 && combis[4].nombre === "");
+ok("con la raiz de la tienda sacada a mano (sin URL)", combis[0].raiz === "https://tienda.es");
+
+const respuesta = (price, free_qty, extra) => ({ jsonrpc: "2.0", result: Object.assign({ price, free_qty, product_type: "product", allow_out_of_stock_order: false }, extra) });
+const agrup = ejecutarIng("Agrupar variantes", { "Combinaciones": conPar(combis) }, conPar([
+  respuesta(15.49, 0), respuesta(21.300000000000001, 10), respuesta(15.49, 3), { error: { message: "timeout" } },
+  respuesta(3.05, 0),
+])).map((i) => i.json);
+const bandeja = agrup.find((a) => a.url.includes("bandeja"));
+const escoba = agrup.find((a) => a.url.includes("escoba"));
+ok("Agrupar: una fila por producto, ignorando la combinacion que fallo", agrup.length === 2 && bandeja.variantes.length === 3);
+ok("el «desde» es el mas barato que se puede pedir", bandeja.price === 15.49 && bandeja.available === true);
+ok("y lo agotado queda marcado", bandeja.variantes[0].se_puede_pedir === false && bandeja.variantes[1].se_puede_pedir === true);
+ok("los precios redondeados al centimo", bandeja.variantes[1].precio === 21.3);
+ok("un producto sin opciones: sin lista, pero con su stock", escoba.variantes.length === 0 && escoba.available === false);
+const sinStock = ejecutarIng("Agrupar variantes", { "Combinaciones": conPar([combis[4]]) }, conPar([
+  respuesta(9, 0, { allow_out_of_stock_order: true }),
+])).map((i) => i.json);
+ok("si la tienda admite pedidos sin stock, se puede pedir", sinStock[0].available === true);
+const cxIng = ingesta.connections;
+ok("el tramo de variantes va despues de Resumen, en cadena",
+  cxIng["Resumen"].main[0][0].node === "Productos de Odoo" && cxIng["Combinaciones"].main[0][0].node === "Precio y stock" &&
+  cxIng["Agrupar variantes"].main[0][0].node === "Guardar variantes");
+ok('"Precio y stock" va despacio y no tumba nada si falla',
+  ingesta.nodes.find((x) => x.name === "Precio y stock").onError === "continueRegularOutput" &&
+  ingesta.nodes.find((x) => x.name === "Precio y stock").parameters.options.batching.batch.batchSize <= 5);
 
 console.log("\n" + (fallos === 0 ? "TODO OK" : fallos + " FALLOS"));
 process.exit(fallos === 0 ? 0 : 1);
