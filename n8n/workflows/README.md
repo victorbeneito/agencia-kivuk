@@ -297,6 +297,33 @@ Lo que hace ahora:
 Al revés, `Preparar contexto` no rompe (sin `descripcion` no pone la línea),
 pero el bot iría sin fichas hasta aplicarla.
 
+**Con todo eso desplegado, siguió fallando** (prueba del 20/10/2026). La
+búsqueda trajo la garrafa con su ficha, y aun así gpt-4o contestó «en lo que
+tengo ahora no encuentro garrafas con forro de plástico». Repitiendo la misma
+llamada con OpenAI se vio por qué, y eran tres cosas:
+
+1. **El orden de la lista.** Llegaban primero los leñeros «con forro» (búsqueda
+   del mensaje) y detrás las garrafas. Así acertaba 2 de cada 6 veces; con las
+   garrafas delante, casi siempre. `Recoger productos` pone ahora primero lo que
+   encaja con lo que se pregunta **y** con la conversación, después el resto de
+   productos de la conversación y al final lo demás. Solo cuando algo encaja con
+   las dos cosas: si cambia de tema («¿y lámparas?»), no se toca el orden. Para
+   saber qué pregunta *ahora* se usa `terminos_mensaje`, porque `terminos` puede
+   venir completado con lo anterior.
+2. **Palabras distintas.** La ficha decía «funda» y el cliente «forro», y el
+   modelo los trataba como cosas diferentes («no veo ninguna con forro… pero
+   esta va en funda»). Regla nueva en el bloque de reglas de `Preparar
+   contexto`: comparar por lo que significan, no letra a letra.
+3. **La ficha no era la de verdad**, y esta fue la que lo resolvió del todo. La
+   ingesta guardaba la meta description («introducidas en una funda de
+   plástico») porque en las fichas sin pestañas no encontraba otra cosa. El
+   texto de la página decía «forrada con una funda de plástico de color negro»
+   y las capacidades (4, 8 y 16 litros). Ver «Ingesta de catálogo»: ahora se lee
+   también `product_full_description`. Con ese texto, 12 de 12.
+
+El trozo de ficha que llega a la IA es de unos 450 caracteres: con 320 se
+quedaba fuera la tercera capacidad y el bot decía «de 4 y 8 litros».
+
 ### Un matiz que el modelo no puede resumir hay que subirlo de rango
 
 Caso real (Kivuk, 04/09/2026). El documento decía que la web incluye un dominio
@@ -500,6 +527,21 @@ microdatos hay que contarlos y descartar la página si no hay exactamente uno, o
 la primera tarjeta se guarda como un producto cuya URL es la del listado: basura
 que además parece correcta de un vistazo. Con JSON-LD el problema no existe
 porque los listados no lo emiten.
+
+**De dónde sale la descripción en Odoo, por orden** (`Extraer producto`):
+
+1. El bloque de pestañas (`s_tabs_main`: Descripción, Material, Medidas…), si
+   lo hay y es más largo que el resumen.
+2. Si no, el texto escrito a mano en `product_full_description`, cortado donde
+   empieza lo que Odoo repite en todas las páginas («Su fragmento dinámico…»,
+   la newsletter, «Te puede interesar»). Si el resumen dice algo que este texto
+   no («Pedido mínimo 50 und.»), se añade detrás.
+3. Si tampoco, la meta description.
+
+El paso 2 se añadió el 20/10/2026. Hasta entonces, en las fichas sin pestañas se
+guardaba la meta description, que es un resumen para Google y a veces dice otra
+cosa: en Cestería, de las 61 fichas con descripción corta, 42 tenían un texto
+de verdad que no se leía. Las fichas con pestañas no cambian.
 
 **Odoo casi nunca dice la categoría en la ficha.** Solo aparece en la miga de
 pan si se llegó navegando desde la categoría, así que al entrar por el sitemap

@@ -996,6 +996,29 @@ const recP = ejecutarItems(nodoBot("Recoger productos"), {}, [
 ])[0].json.productos;
 ok("Recoger productos junta las dos busquedas sin repetir", recP.map((p) => p.url).join(",") === "u1,u2");
 
+// El orden: con los lenos delante, gpt-4o contestaba «no encuentro» 4 de 6 veces.
+const LISTA_GARRAFAS = [
+  prod("Leñero de Esparto redondo con Forro Arpillera/Yute", "l1", "Elegancia Clásica Un leñero de diseño clásico."),
+  prod("Cesto redondo de mimbre, calado con forro", "c1", "Cesto con forro de tela."),
+  prod("Garrafa de vidrio forrada boca ancha de caña y mimbre", "g1", "Garrafa de vidrio reciclado con revestimiento de caña."),
+  prod("Garrafa de boca ancha completa", "g2", "Garrafas de vidrio hechas en España. Introducidas en una funda de plástico."),
+];
+let ord = ejecutarItems(nodoBot("Recoger productos"), { "Preparar búsqueda": pbq }, LISTA_GARRAFAS)[0].json.productos;
+ok("sube delante lo que encaja con la conversacion Y con la pregunta (la garrafa con funda de plastico)",
+  ord[0].url === "g2", ord.map((p) => p.url).join(","));
+ok("detras, las demas garrafas de la conversacion, y al final lo que solo comparte la palabra «forro»",
+  ord.map((p) => p.url).join(",") === "g2,g1,l1,c1", ord.map((p) => p.url).join(","));
+
+const cambioDeTema = preparar("¿y tenéis lámparas?", GARRAFAS);
+ord = ejecutarItems(nodoBot("Recoger productos"), { "Preparar búsqueda": cambioDeTema }, [
+  prod("Lámpara colgante de rafia", "la1", "Lámpara de rafia natural."),
+  prod("Garrafa de boca ancha completa", "g2", "Introducidas en una funda de plástico."),
+])[0].json.productos;
+ok("si cambia de tema, lo de antes no se cuela delante", ord[0].url === "la1", ord.map((p) => p.url).join(","));
+
+ord = ejecutarItems(nodoBot("Recoger productos"), {}, LISTA_GARRAFAS)[0].json.productos;
+ok("sin la busqueda, se quedan como llegaron", ord.map((p) => p.url).join(",") === "l1,c1,g1,g2");
+
 function contextoTienda(productos, busqueda) {
   const r = ejecutar(nodoBot("Preparar contexto"), {
     "Buscar prompt del cliente": { system_prompt: "Eres la tienda.", knowledge_base: "" },
