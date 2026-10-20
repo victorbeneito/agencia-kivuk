@@ -261,6 +261,42 @@ el contexto se comía la pregunta y el documento de envíos ni salía entre los
 cinco. Con dos, el cambio de tema lo sigue encontrando la búsqueda del mensaje
 solo, y la continuidad la pone la otra.
 
+### Los productos, igual, y con su ficha (20/10/2026)
+
+Caso de Cestería: conversación de garrafas de boca ancha y, después, «¿Tenéis
+con forro de plástico?». Fallaron dos cosas a la vez:
+
+- **La búsqueda en el catálogo solo usaba el mensaje.** Con `forro, plastico`
+  salen tres leñeros y un cesto «con forro» (la palabra está en el nombre, y
+  cuando algún nombre acierta ya no se mira la descripción, 0017). La garrafa
+  con funda de plástico no salía.
+- **La IA no veía las fichas.** `buscar_productos` buscaba en la descripción
+  pero devolvía solo nombre, precio y enlace. Aunque la garrafa hubiera salido,
+  el bot no podía saber que va «introducida en una funda de plástico».
+
+El bot ofreció los leñeros, propuso consultarlo con el equipo y, al «sí, dime
+precio», contestó que no había garrafas así.
+
+Lo que hace ahora:
+
+- **`Preparar búsqueda`** calcula también `terminos_contexto`: los del mensaje
+  delante y detrás los de lo último que dijo el contacto y los de los productos
+  que le enseñamos en la última respuesta, **sacados de sus enlaces** (el texto
+  de la respuesta es casi todo ruido: «veo que estás interesado…»). Hasta ocho.
+- **`Separar búsquedas de productos`** hace dos items: el mensaje solo, con 6
+  productos como siempre, y el contexto, con 4. **`Recoger productos`** los junta
+  sin repetir, los del mensaje primero. Con la conversación real, la segunda
+  búsqueda trae la garrafa de boca ancha completa.
+- **`buscar_productos` devuelve `descripcion`** (migración `0030`, hasta 1.500
+  caracteres) y **`Preparar contexto`** pone debajo de cada producto una línea
+  `Ficha:` con la primera frase y las que contienen algún término de la
+  búsqueda, hasta unos 320 caracteres, sin la cabecera de pestañas de Odoo
+  («Descripción Material Medidas Usos…»).
+
+**El orden de despliegue**: primero la migración `0030`, después el workflow.
+Al revés, `Preparar contexto` no rompe (sin `descripcion` no pone la línea),
+pero el bot iría sin fichas hasta aplicarla.
+
 ### Un matiz que el modelo no puede resumir hay que subirlo de rango
 
 Caso real (Kivuk, 04/09/2026). El documento decía que la web incluye un dominio

@@ -962,5 +962,63 @@ ok("el embedding pasa por Separar busquedas antes de Buscar conocimiento",
   cx["Generar embedding"].main[0][0].node === "Separar búsquedas" &&
   cx["Separar búsquedas"].main[0][0].node === "Buscar conocimiento");
 
+// === Productos con contexto y con su ficha (20/10/2026) =========================
+// Conversacion real de Cesteria: garrafas de boca ancha y despues «¿Tenéis con
+// forro de plástico?». Salieron leñeros «con forro» y la garrafa con funda de
+// plastico no, y aunque hubiera salido, la IA no veia la ficha.
+
+console.log("\n=== El bot: productos con contexto y con ficha ===");
+
+const GARRAFAS = [
+  { sender: "bot", content: "Veo que estás interesado en garrafas de boca ancha:\n\n- *Garrafa de vidrio de boca ancha*: 54,34 €\n  https://cesteriaaparici.es/shop/1335-garrafa-de-vidrio-de-boca-ancha-1335\n\n- *Garrafa de boca ancha completa*: 50,38 €\n  https://cesteriaaparici.es/shop/1330-garrafa-de-boca-ancha-completa-1330" },
+  { sender: "contact", content: "Quiero saber si disponéis de garrafones de boca ancha de 16 o  20  los" },
+];
+pbq = preparar("Tenéis  con forro de plástico?", GARRAFAS);
+ok("la busqueda del mensaje solo sigue siendo la de siempre", pbq.terminos.join(",") === "forro,plastico", pbq.terminos.join(","));
+ok("la de contexto lleva delante el mensaje y detras lo que se hablaba",
+  pbq.terminos_contexto.slice(0, 2).join(",") === "forro,plastico" &&
+  ["garrafa", "boca", "ancha"].every((t) => pbq.terminos_contexto.includes(t)), pbq.terminos_contexto.join(","));
+ok("de nuestra respuesta solo cuentan los productos enlazados, no el texto",
+  !pbq.terminos_contexto.includes("interesado") && !pbq.terminos_contexto.includes("veo"), pbq.terminos_contexto.join(","));
+ok("como mucho ocho terminos", pbq.terminos_contexto.length <= 8);
+
+let sbp = ejecutarItems(nodoBot("Separar búsquedas de productos"), { "Preparar búsqueda": pbq }, [{}]);
+ok("Separar busquedas de productos: la del mensaje con 6 y la de contexto con 4",
+  sbp.length === 2 && sbp[0].json.limite === 6 && sbp[1].json.limite === 4 && sbp[1].json.terminos.includes("garrafa"));
+sbp = ejecutarItems(nodoBot("Separar búsquedas de productos"), { "Preparar búsqueda": preparar("tenéis leñeros?") }, [{}]);
+ok("sin conversacion previa, una sola busqueda", sbp.length === 1 && sbp[0].json.terminos.includes("lenero"));
+sbp = ejecutarItems(nodoBot("Separar búsquedas de productos"), { "Preparar búsqueda": preparar("?") }, [{}]);
+ok("sin terminos, la de siempre con limite cero (no se busca nada)", sbp.length === 1 && sbp[0].json.limite === 0);
+
+const prod = (name, url, descripcion) => ({ name, url, price: 10, currency: "EUR", available: true, descripcion });
+const recP = ejecutarItems(nodoBot("Recoger productos"), {}, [
+  prod("Leñero con forro", "u1"), prod("Garrafa de boca ancha completa", "u2"), {}, prod("Garrafa de boca ancha completa", "u2"),
+])[0].json.productos;
+ok("Recoger productos junta las dos busquedas sin repetir", recP.map((p) => p.url).join(",") === "u1,u2");
+
+function contextoTienda(productos, busqueda) {
+  const r = ejecutar(nodoBot("Preparar contexto"), {
+    "Buscar prompt del cliente": { system_prompt: "Eres la tienda.", knowledge_base: "" },
+    "Preparar búsqueda": Object.assign({ tiene_agenda: false }, busqueda),
+    "Recoger conocimiento": { fragmentos: [] },
+    "Recoger productos": { productos },
+    "Extraer mensaje": { message_text: "Tenéis con forro de plástico?", adjunto: null },
+  }, {})[0].json;
+  return r.messages.map((x) => x.content).join("\n");
+}
+texto = contextoTienda([
+  prod("Garrafa de boca ancha completa", "https://x/1330", "Garrafas de vidrio hechas en España. Introducidas en una funda de plástico, boca ancha y bien acabadas. Descúbrelas!"),
+  prod("Garrafa de vidrio de boca ancha", "https://x/1335", "Descripción Material Medidas Usos Colecciones Envíos Meticulosamente moldeado Esta aceitera de vidrio reciclado es una obra maestra. " + "Relleno sin interés. ".repeat(40) + "Ideal para guardar aceite."),
+  prod("Producto sin ficha", "https://x/9", null),
+], pbq);
+ok("a la IA le llega la ficha del producto, con la frase de la funda de plastico",
+  /Garrafa de boca ancha completa[^\n]*\n  Ficha: Garrafas de vidrio hechas en España\. Introducidas en una funda de plástico/.test(texto), texto.slice(0, 400));
+ok("sin la cabecera de pestañas de Odoo", !/Ficha: Descripción Material/.test(texto));
+ok("y recortada: una ficha larga no se manda entera", !/Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés\. Relleno sin interés/.test(texto));
+ok("un producto sin descripcion sale como antes, sin linea de ficha", /Producto sin ficha: [^\n]*-> https:\/\/x\/9(\n-|\n\n|$)/.test(texto));
+ok("Recoger conocimiento -> Separar busquedas de productos -> Buscar productos",
+  cx["Recoger conocimiento"].main[0][0].node === "Separar búsquedas de productos" &&
+  cx["Separar búsquedas de productos"].main[0][0].node === "Buscar productos");
+
 console.log("\n" + (fallos === 0 ? "TODO OK" : fallos + " FALLOS"));
 process.exit(fallos === 0 ? 0 : 1);
