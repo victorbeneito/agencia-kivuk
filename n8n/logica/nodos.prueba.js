@@ -1108,6 +1108,25 @@ ok("un enlace cuyo texto es la propia direccion queda solo la direccion",
 ok("la negrita de Markdown pasa a la de WhatsApp", respuestaFinal("Es la **Garrafa de boca ancha**.") === "Es la *Garrafa de boca ancha*.");
 ok("el texto normal no se toca", respuestaFinal("Hola, 4 * 2 son 8 y [esto] no es un enlace.") === "Hola, 4 * 2 son 8 y [esto] no es un enlace.");
 
+// === Documentos enteros (22/10/2026, migracion 0032) ============================
+console.log("\n=== El bot: documentos enteros ===");
+const trozo = (title, content, documento) => ({ title, content, documento, similarity: 0.5 });
+const ENVIOS = "Particulares: 4,99 € en la Península, gratis desde 80 €. Baleares 25 €. Canarias, cotización.";
+let docs = ejecutarItems(nodoBot("Recoger conocimiento"), {}, [
+  trozo("Envíos", "[Envíos] Baleares 25 €. Canarias, cotización.", ENVIOS),
+  trozo("Envíos", "[Envíos] Ceuta y Melilla no.", ENVIOS),
+  trozo("Pagos", "[Pagos] Tarjeta, Bizum…", "Tarjeta, Bizum, PayPal y transferencia."),
+])[0].json.fragmentos;
+ok("de un documento que sale en la busqueda llega el documento entero, aunque salieran otros trozos",
+  docs.length === 2 && docs[0].content === "[Envíos]\n\n" + ENVIOS && /gratis desde 80/.test(docs[0].content), JSON.stringify(docs.map((d) => d.content)));
+ok("y cada documento una sola vez, en el orden en que salio", docs.map((d) => d.title).join(",") === "Envíos,Pagos");
+docs = ejecutarItems(nodoBot("Recoger conocimiento"), {}, Array.from({ length: 9 }, (_, i) => trozo("Doc " + i, "trozo " + i, "texto " + i))) [0].json.fragmentos;
+ok("como mucho seis documentos", docs.length === 6);
+docs = ejecutarItems(nodoBot("Recoger conocimiento"), {}, [trozo("Largo", "t", "x".repeat(15000)), trozo("Otro", "t", "y".repeat(3000))])[0].json.fragmentos;
+ok("y sin pasarse de unos 16.000 caracteres (el primero siempre entra)", docs.length === 1 && docs[0].title === "Largo");
+docs = ejecutarItems(nodoBot("Recoger conocimiento"), {}, [{ title: "Viejo", content: "[Viejo] trozo" }])[0].json.fragmentos;
+ok("si la base aun no devuelve el documento, se usan los trozos como antes", docs.length === 1 && docs[0].content === "[Viejo] trozo");
+
 // === Plan B si OpenAI falla (20/10/2026: la cuenta se quedo sin saldo) =========
 console.log("\n=== El bot: si OpenAI falla ===");
 const parsear = (json) => ejecutar(nodoBot("Parsear respuesta IA"), {}, json)[0].json;

@@ -362,6 +362,23 @@ conversaciones de prueba con el código real de los nodos (pasó de 19 bien a 28
   cuenta se quedó sin saldo y el bot dejó de contestar a todo el mundo sin que
   nadie se enterara.
 
+### Al modelo le llegan documentos enteros, no trozos (22/10/2026)
+
+La búsqueda sigue siendo por trozos de unos 1.000 caracteres, que es lo que
+encuentra bien. Pero enseñarle al modelo solo el trozo que más se parece a la
+pregunta le deja la información a medias. Caso de Cestería: a «¿y me lo enviáis
+a domicilio?» llegaron los trozos 2 y 3 del documento de envíos (Baleares,
+Canarias, Ceuta) y no el 1, el de «4,99 € en la Península, gratis desde 80 €».
+El modelo rellenó el hueco: «6,50 €», «gratis a partir de 99 €», «con TIPSA»;
+tres pruebas, tres cifras inventadas distintas.
+
+Desde la migración `0032`, `match_knowledge` devuelve también `documento` (el
+texto entero), y `Recoger conocimiento` pone cada documento una sola vez,
+entero, en el orden en que salió: como mucho seis documentos y unos 16.000
+caracteres. Los documentos de los clientes son cortos (en Cestería, 1.400
+caracteres de media), así que el contexto crece poco. Si la base no devuelve
+`documento`, se usan los trozos como antes.
+
 ### Un matiz que el modelo no puede resumir hay que subirlo de rango
 
 Caso real (Kivuk, 04/09/2026). El documento decía que la web incluye un dominio
