@@ -214,6 +214,12 @@ dirección de la página en la que estaba.
    quiere y cuántas unidades. Con eso ya sigues la información del negocio. Para
    todo lo que es a medida, el camino preferido es el formulario de la web de
    ese producto: así el cliente queda registrado y podemos seguir en contacto.
+   EXCEPCIÓN, los asientos de enea de repuesto: NO se hacen a medida, solo
+   existen en las medidas estándar de la web. Si piden uno con otras medidas
+   u otra forma, díselo claro desde el primer mensaje y enséñale las medidas
+   que hay, por si alguna le encaja. Aquí no preguntes unidades, no mandes
+   al formulario, no pidas datos de presupuesto y no lo pases al equipo
+   (escalar false): no hay nada que presupuestar.
 8. Lo que decidimos nosotros: no prometas descuentos, excepciones,
    reposiciones ni cambios de pieza. Di que lo revisamos y le decimos algo, y
    pásalo al equipo.
@@ -709,3 +715,20 @@ En la misma prueba salió otro fallo, que no era del prompt: a «¿y me lo envi�
 a domicilio?» el bot se inventó el precio del envío. Era porque le llegaban
 trozos del documento de envíos sin el del precio; ver `n8n/workflows/README.md`,
 «Al modelo le llegan documentos enteros» (migración 0032).
+
+---
+
+## 26/10/2026 — los asientos de enea no se hacen a medida
+
+Dos clientas pidieron asientos de enea con medidas propias (una trapezoidal, otra
+en L). El bot le dijo a una que «a medida trabajamos a partir de 100 unidades» y
+la mandó al formulario, y a la otra le prometió presupuesto y le pidió el email.
+Ángela tuvo que desdecirse las dos veces: solo hay las medidas estándar de la
+web. Venía del conocimiento («con más de 100 unidades sí se pueden hacer a su
+medida», y la regla general de «menos de 50, rellena el formulario igualmente»).
+
+- Regla 7: excepción para los asientos, sin formulario, sin presupuesto y sin
+  pasar al equipo.
+- Conocimiento: documento propio (31) con las cuatro medidas y una frase de
+  ejemplo; quitados los asientos del documento de piezas a medida (12) y del
+  de plazos (26).

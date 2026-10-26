@@ -312,7 +312,7 @@ Trabajan para hoteles y alojamientos, restaurantes, marcas de moda y retail, arq
 
 ¿Hacéis piezas a medida? ¿Me podéis personalizar un capazo con mi logo? Quiero algo personalizado. ¿Cuál es el pedido mínimo para algo a medida?
 
-Antes de dar ningún pedido mínimo, primero se pregunta qué producto quiere (cesta, cajón, asiento, capazo, lámpara...) y cuántas unidades necesita. Por ejemplo: «¡Qué bien que hayas pensado en nosotros para algo hecho a tu medida! Para orientarte bien, ¿me cuentas qué producto tienes en mente y cuántas unidades necesitarías?»
+Antes de dar ningún pedido mínimo, primero se pregunta qué producto quiere (cesta, cajón, capazo, lámpara...) y cuántas unidades necesita. Por ejemplo: «¡Qué bien que hayas pensado en nosotros para algo hecho a tu medida! Para orientarte bien, ¿me cuentas qué producto tienes en mente y cuántas unidades necesitarías?»
 
 Si quiere 50 unidades o más: para piezas a medida o personalizadas se trabaja normalmente a partir de 50 unidades, porque cada pieza se hace a mano desde cero. Se le da el formulario de su producto para que cuente todos los detalles, y en cuanto llega, el equipo lo revisa con calma y le contacta.
 
@@ -324,11 +324,11 @@ El formulario de cada producto es este:
 - Alfombras: https://www.cesteriaaparici.es/shop/category/decoracion-alfombras-y-persianas-a-medida-26
 - Lámparas: https://www.cesteriaaparici.es/lamparas-personalizadas
 - Cestas de Navidad: https://www.cesteriaaparici.es/cestas-de-navidad-personalizadas
-- Todo lo demás (cestas, cajones, asientos): https://www.cesteriaaparici.es/contactus
+- Todo lo demás (cestas, cajones): https://www.cesteriaaparici.es/contactus
 
 Los formularios son el camino preferido para todo lo que es a medida: así el cliente queda registrado y se puede seguir en contacto con él.
 
-Asientos de enea: se tienen en las medidas estándar de la web, https://www.cesteriaaparici.es/shop/asiento-de-enea-de-repuesto-1465. Si necesita más de 100 unidades y puede esperar un poco, sí se pueden hacer a su medida, rellenando https://www.cesteriaaparici.es/contactus.
+Asientos de enea de repuesto: NO se hacen a medida. Solo están en las medidas estándar de la web (https://www.cesteriaaparici.es/shop/asiento-de-enea-de-repuesto-1465). A quien pide un asiento con otras medidas o con otra forma se le dice así, con amabilidad, y se le enseñan las medidas que hay; no se le manda al formulario, no se le pide presupuesto ni email y no se pasa al equipo. Lo explica el documento «Asientos de enea de repuesto: solo en las medidas de la web».
 
 Capazo con logo en pocas unidades: para personalizarlo hay que fabricar un cliché, que cuesta 220 €, así que con muy pocas unidades (por ejemplo, 5) no le sale a cuenta. Se le pregunta cuántas unidades necesita y qué tipo de asa le gusta, se le deja el formulario de capazos personalizados (https://www.cesteriaaparici.es/capazos-personalizados) y se revisa qué opción le encaja mejor.
 
@@ -686,7 +686,7 @@ Cada pieza se hace a mano desde cero, así que el plazo depende del producto. A 
 - Persianas y alfombras: de 4 a 6 semanas.
 - Muebles a medida: hasta 5 meses.
 
-El resto de productos de la tienda (lámparas, cestas de Navidad, cestas, cajones, asientos…) no se fabrican por encargo: se venden hechos, así que no tienen plazo de fabricación. Si lo que quiere está disponible, sale con los plazos normales de envío. Si está agotado, o si quiere una pieza de esas personalizada o a medida, cada proyecto es distinto: se pasa a una persona del equipo.
+El resto de productos de la tienda (lámparas, cestas de Navidad, cestas, cajones, asientos…) no se fabrican por encargo: se venden hechos, así que no tienen plazo de fabricación. Si lo que quiere está disponible, sale con los plazos normales de envío. Si está agotado, o si quiere una pieza de esas personalizada o a medida, cada proyecto es distinto: se pasa a una persona del equipo. Salvo los asientos de enea de repuesto, que no se hacen a medida: solo las medidas de la web.
 
 Si no ha dicho qué producto le interesa, primero se le pregunta. Las unidades no hacen falta para darle el plazo de esta lista.
 ```
@@ -758,6 +758,29 @@ El rollo completo son 15 metros. Si pide varios metros, pueden llegarle en una s
 A los profesionales se les puede hacer descuento por el rollo entero: se le propone darse de alta como profesional o, si ya lo es, se recogen sus datos como en cualquier presupuesto y se pasa al equipo.
 
 Por eso en la ficha sale el ancho y no el largo: el largo lo pone el cliente con la cantidad.
+```
+
+---
+
+## 31. Asientos de enea de repuesto: solo en las medidas de la web
+
+- **Categoría:** Productos
+- **URL de origen:** https://www.cesteriaaparici.es/shop/asiento-de-enea-de-repuesto-1465
+
+Lo pidió Cestería el 26/10/2026, después de que el bot prometiera asientos a
+medida a dos clientas (21/10 y 25/10) y Ángela tuviera que desdecirle. Antes
+decía que con más de 100 unidades sí se hacían a medida; ahora no se ofrece.
+
+```
+¿Hacéis asientos de enea a medida? Necesito un asiento de enea con estas medidas. Mi silla tiene el hueco trapezoidal. ¿Me podéis hacer el asiento de mi silla? Necesito un asiento de 31 x 35 cm. ¿Tenéis asientos de enea de recambio? ¿Qué medidas tienen los asientos de enea? Presupuesto para asientos de enea a medida. Asiento de anea, asiento de enea para silla, recambio de asiento, asiento de repuesto.
+
+Los asientos de enea de repuesto NO se hacen a medida: solo están en las medidas estándar de la web, que son cuadradas. Ahora mismo hay cuatro: 28 x 28 cm, 30 x 30 cm, 35 x 35 cm y 37 x 37 cm. El precio y el stock de cada una son los de la ficha: https://www.cesteriaaparici.es/shop/asiento-de-enea-de-repuesto-1465
+
+Si pide un asiento con otras medidas o con otra forma (trapezoidal, en L, con esquinas recortadas...), se le dice con amabilidad y sin rodeos que no se hacen a medida, y se le enseñan las medidas que hay por si alguna le encaja con su silla. Por ejemplo: «Te lo digo con sinceridad: los asientos de enea no los hacemos a medida, solo los tenemos en las medidas estándar de la web, que son cuadrados: 28 x 28, 30 x 30, 35 x 35 y 37 x 37 cm. Si alguna te encaja con tu silla, aquí los tienes: https://www.cesteriaaparici.es/shop/asiento-de-enea-de-repuesto-1465»
+
+No se le manda al formulario de contacto, no se le pide email ni dirección para un presupuesto y no se pasa al equipo: no hay nada que presupuestar. Tampoco se le dice que «se puede mirar», que «depende de las unidades» o que «igual podemos hacer algo».
+
+Si pregunta cuál le va mejor a su silla, se le dan las cuatro medidas para que las compare con su hueco; no se le asegura que una le vaya a encajar, porque eso solo lo puede ver él con su silla delante.
 ```
 
 ---
