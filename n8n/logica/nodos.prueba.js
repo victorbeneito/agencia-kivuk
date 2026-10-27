@@ -1082,7 +1082,7 @@ ok("«leña» busca tambien «lenero» (el sinonimo va justo detras)", ps.termin
 ps = prepararCon("Bon dia, teniu cistells per a la roba bruta?");
 ok("en valenciano tambien encuentra: cistell -> cesto, cesta; roba -> ropero",
   ["cesto", "cesta", "ropero"].every((t) => ps.terminos.includes(t)), ps.terminos.join(","));
-ok("sin sinonimos configurados, nada cambia", preparar("Busco algo para guardar la leña").terminos.join(",") === "guardar,lena", preparar("Busco algo para guardar la leña").terminos.join(","));
+ok("sin sinonimos configurados, nada cambia", preparar("Busco algo para guardar la leña").terminos.join(",") === "lena", preparar("Busco algo para guardar la leña").terminos.join(","));
 ok("el modulo de agenda no se confunde con los sinonimos", prepararCon("hola").modulos.join(",") === "whatsapp,social");
 ps = ejecutarItems(nodoBot("Preparar búsqueda"), { "Extraer mensaje": { message_text: "¿Cuánto cuesta el capazo clásico?" } },
   [{ module: "social", sinonimos: { "clásico": ["Capazo de palma con asas cortas", "bandolera"] } }])[0].json;
@@ -1097,6 +1097,19 @@ ps = prepararCon("vale, y la de 61 cm la tenéis?", [
 ]);
 ok("el producto desde el que llego sigue en la busqueda aunque la ultima respuesta no lo enlace",
   ps.terminos_contexto.includes("rejilla") && ps.terminos.includes("rejilla"), ps.terminos.join(",") + " / " + ps.terminos_contexto.join(","));
+
+// Cestería, 26/10/2026: «solo» pesaba más que «mesa» por ser rara en el
+// catálogo, y la mesa infantil suelta no salía.
+ps = prepararCon("Hola, estoy buscando una mesa así pero solo la mesa, tenéis?", [
+  { sender: "bot", content: "Veo que estabas mirando el Pack ahorro: Mesa + sillas de madera infantil." },
+  { sender: "contact", content: "Hola, tengo una consulta \n\n*Enviado desde: https://www.cesteriaaparici.es /shop/1489-pack-ahorro-mesa-sillas-1-2-3-o-4-de-madera-infantil-color-madera-natural-1489*" },
+]);
+ok("el relleno de conversacion (estoy, buscando, pero, solo) no entra en la busqueda",
+  ps.terminos_mensaje.join(",") === "mesa", ps.terminos_mensaje.join(","));
+ok("ni el texto del boton (tengo, consulta)",
+  !ps.terminos_contexto.includes("tengo") && !ps.terminos_contexto.includes("consulta"), ps.terminos_contexto.join(","));
+ok("y la mesa se busca con el producto de la pagina",
+  ["mesa", "infantil", "madera"].every((t) => ps.terminos.includes(t)), ps.terminos.join(","));
 
 const respuestaFinal = (reply) => ejecutar(nodoBot("Respuesta final"), {
   "Preparar contexto": { presentarse: false },
