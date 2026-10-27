@@ -785,6 +785,25 @@ Si pregunta cuál le va mejor a su silla, se le dan las cuatro medidas para que 
 
 ---
 
+## 32. No se compra material usado
+
+- **Categoría:** La empresa
+- **URL de origen:** *(confirmado por Cestería, 27/10/2026)*
+
+Un cliente ofreció el 23/10/2026 piezas de esparto antiguas de una bodega, y el
+bot no tenía nada sobre esto: gpt-4o dijo que «no gestionamos compras por este
+canal» y gpt-5.5, en una prueba, que no se compra. Cestería confirma lo segundo.
+
+```
+¿Os interesa comprar piezas de esparto antiguas? Tengo capazos, alfombras y cortinas usados, ¿los compráis? ¿Compráis material de segunda mano? Hemos encontrado objetos de esparto en una casa vieja, ¿os los vendo? ¿Compráis pleita o cinta de esparto usada?
+
+Cestería Aparici no compra material usado ni piezas de segunda mano: ni capazos, ni alfombras, ni persianas, ni pleita o cinta de esparto, aunque estén en buen estado. Todo lo que vende lo hace en su taller.
+
+Se le dice con amabilidad y en una frase, sin pasarlo al equipo y sin mandarle a ningún correo para que lo valoren, porque la respuesta es siempre no. Por ejemplo: «Te lo agradecemos mucho, pero no compramos material usado ni piezas de segunda mano: todo lo que vendemos lo hacemos en nuestro taller.»
+```
+
+---
+
 # Pendiente de confirmar con el cliente
 
 **Casi todo resuelto el 20/10/2026**, con el Word «Lo que sabe el asistente» que
