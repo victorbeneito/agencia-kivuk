@@ -113,7 +113,7 @@ Cuando el pedido sale, se envía un correo electrónico con el seguimiento para 
 - **URL de origen:** https://www.cesteriaaparici.es/cambios-y-devoluciones
 
 ```
-Quiero devolver algo. ¿Cómo hago un cambio? Me ha llegado roto. Ha llegado con un defecto. Está dañado. Quiero cancelar mi pedido. ¿Puedo cambiar mi pedido?
+Quiero devolver algo. ¿Cómo hago un cambio? Me ha llegado roto. Ha llegado con un defecto. Está dañado. Quiero cancelar mi pedido. ¿Puedo cambiar mi pedido? ¿Qué garantía tiene? ¿Cuántos años de garantía tienen las sillas, los muebles, los capazos? ¿Cuándo me devolvéis el dinero? ¿Cuánto tarda el reembolso?
 
 Un cliente particular tiene 14 días naturales desde que recibe el pedido para devolverlo sin coste de recogida. Pasados esos 14 días, todavía se admite la devolución o el cambio hasta un máximo de 30 días naturales desde la recepción, pero entonces se cobra la recogida: 11 € en la Península y 25 € en Baleares. Un cambio, además, paga el nuevo envío (4,99 € en la Península, 25 € en Baleares). Más allá de los 30 días ya no se aceptan devoluciones ni cambios.
 

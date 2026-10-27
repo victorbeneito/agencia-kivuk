@@ -937,10 +937,10 @@ pbq = preparar("¿y el largo?", [{ sender: "bot", content: largo }]);
 ok("de una respuesta larga solo entra el principio", pbq.textos_busqueda[1].length < 600);
 
 let sep = ejecutarItems(nodoBot("Separar búsquedas"), {}, [{ data: [{ embedding: [1] }, { embedding: [2] }] }]);
-ok("Separar busquedas da un item por embedding: 5 fragmentos del mensaje y 3 del contexto",
-  sep.length === 2 && sep[0].json.cuantos === 5 && sep[1].json.cuantos === 3 && sep[1].json.embedding[0] === 2);
+ok("Separar busquedas da un item por embedding: 10 fragmentos del mensaje y 4 del contexto",
+  sep.length === 2 && sep[0].json.cuantos === 10 && sep[1].json.cuantos === 4 && sep[1].json.embedding[0] === 2);
 sep = ejecutarItems(nodoBot("Separar búsquedas"), {}, [{ data: [{ embedding: [1] }] }]);
-ok("con un solo texto, una sola busqueda", sep.length === 1 && sep[0].json.cuantos === 5);
+ok("con un solo texto, una sola busqueda", sep.length === 1 && sep[0].json.cuantos === 10);
 let revienta = false;
 try { ejecutarItems(nodoBot("Separar búsquedas"), {}, [{}]); } catch (e) { revienta = /embedding/.test(e.message); }
 ok("sin embedding falla diciendo por que, no se para en silencio", revienta);
@@ -1107,6 +1107,34 @@ ok("un enlace cuyo texto es la propia direccion queda solo la direccion",
   respuestaFinal("Mira [https://x.es/1](https://x.es/1)") === "Mira https://x.es/1");
 ok("la negrita de Markdown pasa a la de WhatsApp", respuestaFinal("Es la **Garrafa de boca ancha**.") === "Es la *Garrafa de boca ancha*.");
 ok("el texto normal no se toca", respuestaFinal("Hola, 4 * 2 son 8 y [esto] no es un enlace.") === "Hola, 4 * 2 son 8 y [esto] no es un enlace.");
+ok("fuera el numero suelto detras del punto final (gpt-4o, 26/10/2026)",
+  respuestaFinal("Lo revisarán mañana a partir de las 9. 642") === "Lo revisarán mañana a partir de las 9.");
+ok("pero un telefono al final se queda", respuestaFinal("Llámanos al 96 236 03 33") === "Llámanos al 96 236 03 33");
+
+// === El modelo de cada cliente (27/10/2026, migracion 0033) =====================
+console.log("\n=== El bot: el modelo de cada cliente ===");
+const modeloDe = (cfg) => ejecutar(nodoBot("Preparar contexto"), {
+  "Buscar prompt del cliente": Object.assign({ system_prompt: "Eres la tienda.", knowledge_base: "" }, cfg),
+  "Preparar búsqueda": { tiene_agenda: false },
+  "Recoger conocimiento": { fragmentos: [] },
+  "Recoger productos": { productos: [] },
+  "Extraer mensaje": { message_text: "hola", adjunto: null },
+}, {})[0].json.modelo;
+ok("sin modelo en su configuracion, gpt-4o, el de siempre", modeloDe({}) === "gpt-4o");
+ok("y una columna vacia, igual", modeloDe({ modelo: " " }) === "gpt-4o");
+ok("con modelo, el suyo", modeloDe({ modelo: "gpt-5.5" }) === "gpt-5.5");
+
+const cuerpoOpenAI = (modelo) => {
+  const expr = bot.nodes.find((x) => x.name === "Llamar a OpenAI").parameters.jsonBody.replace(/^=\{\{|\}\}$/g, "");
+  return JSON.parse(new Function("$json", "return " + expr)({ modelo, messages: [{ role: "user", content: "hola" }] }));
+};
+ok("a gpt-4o no se le manda reasoning_effort, que no lo entiende",
+  cuerpoOpenAI("gpt-4o").model === "gpt-4o" && !("reasoning_effort" in cuerpoOpenAI("gpt-4o")));
+ok("a un gpt-5, razonamiento bajo, que la respuesta no tarde",
+  cuerpoOpenAI("gpt-5.5").model === "gpt-5.5" && cuerpoOpenAI("gpt-5.5").reasoning_effort === "low");
+ok("siempre en JSON y con los mensajes", cuerpoOpenAI("gpt-5.5").response_format.type === "json_object" && cuerpoOpenAI("gpt-5.5").messages.length === 1);
+ok("la configuracion se pide entera, para que el bot no caiga si falta la columna modelo",
+  /select=\*/.test(bot.nodes.find((x) => x.name === "Buscar prompt del cliente").parameters.url));
 
 // === Documentos enteros (22/10/2026, migracion 0032) ============================
 console.log("\n=== El bot: documentos enteros ===");

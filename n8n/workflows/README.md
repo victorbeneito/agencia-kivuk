@@ -849,6 +849,36 @@ nada más. Desde el 02/10/2026 la instrucción prohíbe repetir el saludo y la
 presentación, pero deja explícitamente en `reply` lo que el prompt pida para el
 primer mensaje.
 
+## El modelo de cada cliente
+
+`agent_configs.modelo` (migración 0033) dice qué modelo de OpenAI usa el bot de
+cada cliente. Vacío, gpt-4o, el de siempre. «Preparar contexto» lo pasa en
+`modelo` y «Llamar a OpenAI» lo usa; a los `gpt-5*` les añade
+`reasoning_effort: low` (razonan lo justo y contestan en unos 3 segundos), y a
+gpt-4o no, que no lo entiende. «Buscar prompt del cliente» pide `select=*` y no
+la lista de columnas para que el bot no se caiga si el workflow llega al
+servidor antes que la migración.
+
+Se cambia cliente a cliente, después de probar su prompt con el modelo nuevo.
+Cestería pasó a gpt-5.5 el 27/10/2026: sus clientes no entendían respuestas
+correctas pero largas y volvían a preguntar. Con sus conversaciones reales,
+gpt-4o daba 48 palabras de media y no bajaba de 42 ni con el prompt reescrito;
+gpt-5.5, 28 de mediana, sin coletillas («si necesitas algo más, aquí estoy»),
+sin la basura que a veces dejaba gpt-4o al final («…a las 9. 642») y siguiendo
+mejor sus reglas (la respuesta a profesionales, una sola vez). Cuesta algo más
+(unos 3 céntimos por respuesta frente a 2) y tarda el doble (3 s frente a 1,5).
+
+Con un modelo más obediente salen a la luz instrucciones generales que chocan
+con las del cliente. La de escalar decía «pregunte por un pedido» → escalar, y
+gpt-5.5 le hacía caso por encima del prompt de Cestería, que dice que a la
+primera pregunta normal no. Ahora la instrucción general cede ante el prompt.
+
+Y desde que al modelo le llegan documentos enteros, la búsqueda trae 10 + 4
+trozos y no 5 + 3: lo que cuenta es cuántos documentos distintos salen, y un
+documento con varios trozos parecidos se quedaba todos los huecos (a «¿qué
+garantía tienen las sillas de enea?» solo llegaban el de los asientos de enea y
+el de piezas a medida).
+
 ## Solicitudes de presupuesto por correo
 
 Un cliente puede querer que las peticiones de precio que recoge el bot le
