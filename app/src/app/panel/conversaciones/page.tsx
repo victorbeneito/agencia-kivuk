@@ -33,7 +33,13 @@ export default async function PanelConversacionesPage() {
     // lista scrollea como una página normal —más fluido y sin pelearse con la
     // barra del navegador, que aparece y desaparece— y el hilo, al abrirse, se
     // pone encima a pantalla completa.
-    <div className="flex min-h-0 flex-1 flex-col md:h-[calc(100svh-3.5rem)]">
+    //
+    // El `md:flex-none` no sobra: en una columna flex, `flex-1` le gana a la
+    // altura, y la bandeja crecía con la lista. Mientras hubo pocas
+    // conversaciones no se notaba; con muchas (Cestería, 27/10/2026), el hilo se
+    // estiraba al alto de toda la lista y la casilla de contestar acababa muy
+    // por debajo de la conversación.
+    <div className="flex min-h-0 flex-1 flex-col md:h-[calc(100svh-3.5rem)] md:flex-none">
       <Bandeja
         clientId={perfil.clientId}
         conversacionesIniciales={(data ?? []).map(desdeFila)}

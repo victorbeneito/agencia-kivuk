@@ -157,7 +157,7 @@ export function Hilo({
   const [texto, setTexto] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, empezar] = useTransition();
-  const finRef = useRef<HTMLDivElement>(null);
+  const mensajesRef = useRef<HTMLDivElement>(null);
 
   // Los mensajes se piden desde el navegador, no desde el servidor: así abrir
   // una conversación no recarga la página y el hilo puede quedarse escuchando
@@ -300,7 +300,10 @@ export function Hilo({
   }, [conversacion.id, conversacion.sinLeer]);
 
   useEffect(() => {
-    finRef.current?.scrollIntoView({ block: "end" });
+    // Se baja la caja de los mensajes y nada más. Con `scrollIntoView` se movían
+    // también la página y la lista de conversaciones, que no tienen por qué.
+    const caja = mensajesRef.current;
+    if (caja) caja.scrollTop = caja.scrollHeight;
   }, [mensajes.length]);
 
   const abierta = ventanaAbierta(conversacion.ultimoEntrante);
@@ -433,7 +436,10 @@ export function Hilo({
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-muted/40 px-4 py-4">
+      <div
+        ref={mensajesRef}
+        className="min-h-0 flex-1 overflow-y-auto bg-muted/40 px-4 py-4"
+      >
         {cargando ? (
           <p className="text-sm text-muted-foreground">Cargando…</p>
         ) : mensajes.length === 0 ? (
@@ -457,7 +463,6 @@ export function Hilo({
                 />
               </div>
             ))}
-            <div ref={finRef} />
           </div>
         )}
       </div>
