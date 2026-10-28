@@ -248,6 +248,8 @@ El bambú son tallos de la planta del mismo nombre. Combina rigidez con poco pes
 Sobre el exterior, conviene ser claro: el mimbre, el ratán y el bambú naturales no están pensados para estar a la intemperie de forma permanente. Aguantan bien en porches, galerías o zonas cubiertas, pero la humedad y los cambios bruscos de temperatura los acaban castigando. El ratán sintético sí resiste mejor estar fuera.
 
 Aparici trabaja también el esparto y la palma. El esparto es la fibra de los leñeros, alfombras y persianas. La palma trenzada a mano es la de los capazos.
+
+Esto es cómo es cada fibra en general, no de qué se hace cada pieza. De qué fibra está hecha una pieza, o en qué fibras se puede hacer un encargo, lo dice su ficha o su propio apartado de esta información; si no lo dice, se pregunta al equipo. Nunca se recomienda una fibra para una pieza a partir de esta explicación general.
 ```
 
 ---
@@ -800,6 +802,27 @@ canal» y gpt-5.5, en una prueba, que no se compra. Cestería confirma lo segund
 Cestería Aparici no compra material usado ni piezas de segunda mano: ni capazos, ni alfombras, ni persianas, ni pleita o cinta de esparto, aunque estén en buen estado. Todo lo que vende lo hace en su taller.
 
 Se le dice con amabilidad y en una frase, sin pasarlo al equipo y sin mandarle a ningún correo para que lo valoren, porque la respuesta es siempre no. Por ejemplo: «Te lo agradecemos mucho, pero no compramos material usado ni piezas de segunda mano: todo lo que vendemos lo hacemos en nuestro taller.»
+```
+
+---
+
+## 33. Cabeceros de cama: se hacen en esparto
+
+- **Categoría:** Productos
+- **URL de origen:** *(Ángela a una clienta, 28/10/2026)*
+
+El 28/10/2026 el bot, sin nada sobre cabeceros, le explicó a una clienta que
+el ratán, el mimbre o el bambú irían mejor (lo sacó del documento general de
+las fibras). Ángela tuvo que corregirlo: los cabeceros se hacen en esparto.
+
+```
+¿Hacéis cabeceros de cama? ¿Tenéis cabeceros? Quiero un cabecero para una cama de 1,50 / 1,80. ¿De qué material son los cabeceros? ¿Se puede hacer un cabecero a medida? Cabecero de fibra natural, cabezal de cama, cabecero de esparto.
+
+Los cabeceros de cama no están en la tienda online: se hacen por encargo, y solo en esparto. No se hacen en ratán, mimbre, bambú ni otras fibras.
+
+Cuando alguien pregunta por un cabecero, se le dice que se hacen en esparto y se recogen los datos como en cualquier presupuesto: la medida de la cama (1,35, 1,50, 1,80…), su email, la dirección de envío con el código postal y su nombre. Con eso se pasa al equipo, que le prepara el presupuesto y le puede mandar fotos de cabeceros hechos. Por ejemplo: «¡Sí! Los cabeceros los hacemos por encargo, en esparto. Para prepararte el presupuesto, ¿me dices la medida de la cama, tu email y la dirección de envío con el código postal?»
+
+Precio, plazo, diseño y fotos de muestras: los da el equipo con el presupuesto. No se dan de memoria.
 ```
 
 ---
