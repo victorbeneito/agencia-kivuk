@@ -24,7 +24,8 @@ export type MensajeBandeja = {
   quien: "contact" | "bot" | "human";
   fecha: string;
   /**
-   * Archivo que mandó el contacto: foto, nota de voz, vídeo o documento.
+   * Archivo del mensaje: foto, nota de voz, vídeo o documento. Lo manda el
+   * contacto o, desde el 28/10/2026, una persona del negocio desde el panel.
    *
    * Es la ruta dentro del bucket `adjuntos`, no una URL. El bucket es privado
    * —son conversaciones de clientes— y el enlace se firma al mirarlo, con la
@@ -134,6 +135,46 @@ export function telefonoLegible(c: ConversacionResumen): string | null {
 export function enlaceWhatsApp(c: ConversacionResumen): string | null {
   const t = telefonoContacto(c);
   return t ? `https://wa.me/${t}` : null;
+}
+
+/**
+ * Lo que una persona puede mandar desde el panel, con los límites de WhatsApp.
+ *
+ * Meta solo acepta como foto JPG y PNG de hasta 5 MB, y como vídeo MP4 o 3GPP
+ * de hasta 16 MB. Las fotos de otro formato o más grandes (las del móvil suelen
+ * pasar de 5 MB) se convierten a JPG en el navegador antes de subirlas, así que
+ * aquí solo llegan esos dos. Los documentos admiten hasta 100 MB; se ponen 25
+ * para no llenar el almacenamiento con un vídeo enviado como documento.
+ */
+export const ADJUNTOS_PERMITIDOS: Record<
+  string,
+  { clase: "foto" | "video" | "documento"; extension: string; maximo: number }
+> = {
+  "image/jpeg": { clase: "foto", extension: "jpg", maximo: 5 * 1024 * 1024 },
+  "image/png": { clase: "foto", extension: "png", maximo: 5 * 1024 * 1024 },
+  "video/mp4": { clase: "video", extension: "mp4", maximo: 16 * 1024 * 1024 },
+  "video/3gpp": { clase: "video", extension: "3gp", maximo: 16 * 1024 * 1024 },
+  "application/pdf": { clase: "documento", extension: "pdf", maximo: 25 * 1024 * 1024 },
+  "application/msword": { clase: "documento", extension: "doc", maximo: 25 * 1024 * 1024 },
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+    clase: "documento",
+    extension: "docx",
+    maximo: 25 * 1024 * 1024,
+  },
+  "application/vnd.ms-excel": { clase: "documento", extension: "xls", maximo: 25 * 1024 * 1024 },
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+    clase: "documento",
+    extension: "xlsx",
+    maximo: 25 * 1024 * 1024,
+  },
+};
+
+/** El pie de una foto o un vídeo: WhatsApp no admite más. */
+export const MAXIMO_PIE = 1024;
+
+export function tamanoLegible(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
 }
 
 /**

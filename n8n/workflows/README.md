@@ -1053,6 +1053,33 @@ sin respuesta y dejar al panel esperando. Se guarda con `role: assistant` (para
 que el bot lo entienda como un turno suyo si retoma el hilo) y `sender: human`
 (para que la bandeja lo pinte distinto y se sepa quién lo escribió).
 
+### Fotos, vídeos y documentos (28/10/2026)
+
+Cestería necesitaba enseñar a un cliente la foto de una muestra. Desde el panel
+se adjunta con el clip (o pegando con Ctrl+V) y el texto va de pie de foto:
+
+```
+{ "conversation_id": "...", "texto": "pie, puede ir vacío",
+  "adjunto": { "url": "<enlace firmado, 1 h>", "path": "<cliente>/enviados/<uuid>.jpg",
+               "tipo": "image/jpeg", "nombre": "...", "tamano": 123456 },
+  "sent_by_user_id": "..." }
+```
+
+- **El archivo no pasa por el servidor del panel**: una server action no admite
+  más de 1 MB. El panel pide un permiso de subida firmado (`prepararSubida`), el
+  navegador sube directo al bucket privado `adjuntos`, en
+  `<client_id>/enviados/`, y luego pide el envío (`enviarAdjunto`), que
+  comprueba que la ruta es de ese cliente y firma un enlace de una hora.
+- **Meta descarga el archivo de ese enlace**: no se le sube nada. En el mensaje
+  se guarda la ruta (`media_path`), nunca el enlace, que caduca; la bandeja lo
+  enseña igual que los adjuntos del contacto (0012).
+- **Tipo de mensaje según el archivo**: `image` solo JPG y PNG (5 MB), `video`
+  solo MP4 y 3GPP (16 MB), el resto `document` con su nombre. Las fotos que no
+  valen tal cual —más de 5 MB, WebP— se reducen y pasan a JPG en el navegador
+  (`preparar-archivo.ts`). Límites en `ADJUNTOS_PERMITIDOS` (`tipos.ts`).
+- Una foto sin pie se guarda con el texto vacío; el avance de la lista dice
+  «📷 Foto» (migración 0034).
+
 ## ⚠️ Desplegar sin navegador
 
 `scripts/desplegar-workflow.js` actualiza un workflow que ya existe **y lo

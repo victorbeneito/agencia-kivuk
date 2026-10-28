@@ -46,7 +46,7 @@ export function Adjunto({
             firmado y caduca; el optimizador de Next necesitaría un dominio fijo */}
         <img
           src={url}
-          alt="Foto enviada por el contacto"
+          alt={mensaje.quien === "contact" ? "Foto enviada por el contacto" : "Foto enviada"}
           className="max-h-72 w-auto max-w-full rounded-lg"
         />
       </a>

@@ -21,7 +21,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Este webhook envía WhatsApp en nombre de un negocio. Sin secreto\n// compartido, cualquiera que adivine la URL puede escribir a sus clientes: es\n// la diferencia entre un endpoint interno y un buzón de spam abierto.\nconst cabeceras = $json.headers || {};\nconst cuerpo = $json.body || {};\nconst esperado = $env.PANEL_WEBHOOK_TOKEN || '';\n\nconst autorizado = Boolean(esperado) && cabeceras['x-kivuk-token'] === esperado;\n\nreturn [{\n  json: {\n    autorizado,\n    // Falta el secreto en el servidor: se distingue del token equivocado para\n    // no volverse loco buscando por qué no envía.\n    sin_configurar: !esperado,\n    conversation_id: cuerpo.conversation_id || null,\n    texto: String(cuerpo.texto || '').trim(),\n    sent_by_user_id: cuerpo.sent_by_user_id || null,\n  },\n}];"
+        "jsCode": "// Este webhook envía WhatsApp en nombre de un negocio. Sin secreto\n// compartido, cualquiera que adivine la URL puede escribir a sus clientes: es\n// la diferencia entre un endpoint interno y un buzón de spam abierto.\nconst cabeceras = $json.headers || {};\nconst cuerpo = $json.body || {};\nconst esperado = $env.PANEL_WEBHOOK_TOKEN || '';\n\nconst autorizado = Boolean(esperado) && cabeceras['x-kivuk-token'] === esperado;\nconst texto = String(cuerpo.texto || '').trim();\n\n// === Adjunto (28/10/2026) ===\n// Una foto, un vídeo o un documento que manda una persona desde el panel. El\n// panel ya lo ha subido al bucket privado «adjuntos» y manda un enlace firmado\n// que caduca en una hora: Meta descarga el archivo de ahí al enviarlo. La ruta\n// va aparte porque es lo que se guarda en el mensaje; el enlace no se guarda\n// nunca, que caduca.\n//\n// Meta pide el tipo de mensaje según el archivo: image solo admite JPG y PNG,\n// video solo MP4 y 3GPP; lo demás va como documento, que admite cualquier cosa\n// y llega con su nombre.\nlet adjunto = null;\nconst a = cuerpo.adjunto;\nif (a && typeof a.url === 'string' && /^https:\\/\\//.test(a.url) && typeof a.path === 'string' && a.path) {\n  const tipo = String(a.tipo || '').toLowerCase();\n  const clase = /^image\\/(jpeg|png)$/.test(tipo)\n    ? 'image'\n    : /^video\\/(mp4|3gpp)$/.test(tipo)\n      ? 'video'\n      : /^audio\\//.test(tipo)\n        ? 'audio'\n        : 'document';\n  adjunto = {\n    url: a.url,\n    path: a.path,\n    tipo: tipo || 'application/octet-stream',\n    nombre: a.nombre ? String(a.nombre).slice(0, 200) : null,\n    tamano: Number.isFinite(Number(a.tamano)) ? Math.round(Number(a.tamano)) : null,\n    clase,\n  };\n}\n\n// Lo que se le manda a Meta, menos el destinatario, que aún no se sabe: sale de\n// la conversación, más abajo. El texto va de pie de foto, salvo en los audios,\n// que no lo admiten.\nlet mensaje_meta = null;\nif (adjunto) {\n  const media = { link: adjunto.url };\n  if (texto && adjunto.clase !== 'audio') media.caption = texto;\n  if (adjunto.clase === 'document') media.filename = adjunto.nombre || 'documento';\n  mensaje_meta = { type: adjunto.clase, [adjunto.clase]: media };\n} else if (texto) {\n  mensaje_meta = { type: 'text', text: { body: texto } };\n}\n\nreturn [{\n  json: {\n    autorizado,\n    // Falta el secreto en el servidor: se distingue del token equivocado para\n    // no volverse loco buscando por qué no envía.\n    sin_configurar: !esperado,\n    conversation_id: cuerpo.conversation_id || null,\n    texto,\n    adjunto,\n    mensaje_meta,\n    sent_by_user_id: cuerpo.sent_by_user_id || null,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -44,7 +44,7 @@
           "conditions": [
             {
               "id": "cond-ew000003",
-              "leftValue": "={{ $json.autorizado && $json.conversation_id && $json.texto }}",
+              "leftValue": "={{ Boolean($json.autorizado && $json.conversation_id && $json.mensaje_meta) }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -68,7 +68,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const p = $('Leer petición').first().json;\n\nreturn [{\n  json: {\n    ok: false,\n    mensaje: p.sin_configurar\n      ? 'Falta PANEL_WEBHOOK_TOKEN en el .env del servidor de n8n.'\n      : !p.autorizado\n        ? 'Petición no autorizada.'\n        : 'Faltan la conversación o el texto.',\n  },\n}];"
+        "jsCode": "const p = $('Leer petición').first().json;\n\nreturn [{\n  json: {\n    ok: false,\n    mensaje: p.sin_configurar\n      ? 'Falta PANEL_WEBHOOK_TOKEN en el .env del servidor de n8n.'\n      : !p.autorizado\n        ? 'Petición no autorizada.'\n        : 'Faltan la conversación o lo que hay que enviar.',\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -221,7 +221,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": {{ JSON.stringify($('Comprobar ventana').first().json.para) }},\n  \"type\": \"text\",\n  \"text\": { \"body\": {{ JSON.stringify($('Leer petición').first().json.texto) }} }\n}",
+        "jsonBody": "={{ JSON.stringify(Object.assign({ messaging_product: 'whatsapp', to: $('Comprobar ventana').first().json.para }, $('Leer petición').first().json.mensaje_meta)) }}",
         "options": {
           "response": {
             "response": {
@@ -315,7 +315,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"conversation_id\": {{ JSON.stringify($('Comprobar ventana').first().json.conversation_id) }},\n  \"role\": \"assistant\",\n  \"sender\": \"human\",\n  \"sent_by_user_id\": {{ JSON.stringify($('Leer petición').first().json.sent_by_user_id) }},\n  \"content\": {{ JSON.stringify($('Leer petición').first().json.texto) }},\n  \"created_at\": \"{{ $now.toISO() }}\"\n}",
+        "jsonBody": "={{ JSON.stringify((() => {\n  const p = $('Leer petición').first().json;\n  const a = p.adjunto;\n  return {\n    conversation_id: $('Comprobar ventana').first().json.conversation_id,\n    role: 'assistant',\n    sender: 'human',\n    sent_by_user_id: p.sent_by_user_id,\n    content: p.texto,\n    media_path: a ? a.path : null,\n    media_type: a ? a.tipo : null,\n    media_name: a ? a.nombre : null,\n    media_size: a ? a.tamano : null,\n    created_at: $now.toISO(),\n  };\n})()) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",

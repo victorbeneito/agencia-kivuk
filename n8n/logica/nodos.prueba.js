@@ -1234,5 +1234,52 @@ ok('"Precio y stock" va despacio y no tumba nada si falla',
   ingesta.nodes.find((x) => x.name === "Precio y stock").onError === "continueRegularOutput" &&
   ingesta.nodes.find((x) => x.name === "Precio y stock").parameters.options.batching.batch.batchSize <= 5);
 
+// === Enviar desde el panel: fotos, vídeos y documentos (28/10/2026) ============
+console.log("\n=== Enviar desde el panel: adjuntos ===");
+const enviarWf = JSON.parse(fs.readFileSync(path.join(RAIZ, "n8n", "workflows", "enviar-whatsapp.json"), "utf8"));
+const nodoEnv = (n) => enviarWf.nodes.find((x) => x.name === n);
+const leerEnvio = (body, token) =>
+  new Function("$json", "$env", nodoEnv("Leer petición").parameters.jsCode)(
+    { headers: { "x-kivuk-token": token === undefined ? "secreto" : token }, body },
+    { PANEL_WEBHOOK_TOKEN: "secreto" }
+  )[0].json;
+const URL_FIRMADA = "https://x.supabase.co/storage/v1/object/sign/adjuntos/c1/enviados/a.jpg?token=t";
+
+let lp = leerEnvio({ conversation_id: "c", texto: "hola" });
+ok("el texto de siempre sigue saliendo como texto",
+  lp.mensaje_meta.type === "text" && lp.mensaje_meta.text.body === "hola" && lp.adjunto === null);
+lp = leerEnvio({ conversation_id: "c", texto: "Esta es la muestra", adjunto: { url: URL_FIRMADA, path: "c1/enviados/a.jpg", tipo: "image/jpeg", tamano: 1234 } });
+ok("una foto va como image, con el texto de pie de foto",
+  lp.mensaje_meta.type === "image" && lp.mensaje_meta.image.link === URL_FIRMADA && lp.mensaje_meta.image.caption === "Esta es la muestra");
+ok("y se guarda la ruta del bucket, no el enlace firmado, que caduca",
+  lp.adjunto.path === "c1/enviados/a.jpg" && lp.adjunto.tipo === "image/jpeg" && lp.adjunto.tamano === 1234);
+lp = leerEnvio({ conversation_id: "c", texto: "", adjunto: { url: URL_FIRMADA, path: "c1/enviados/a.jpg", tipo: "image/jpeg" } });
+ok("una foto sin texto se puede enviar, y sin pie", lp.mensaje_meta.type === "image" && !("caption" in lp.mensaje_meta.image));
+lp = leerEnvio({ conversation_id: "c", adjunto: { url: URL_FIRMADA, path: "c1/enviados/f.pdf", tipo: "application/pdf", nombre: "Presupuesto.pdf" } });
+ok("un PDF va como documento, con su nombre", lp.mensaje_meta.type === "document" && lp.mensaje_meta.document.filename === "Presupuesto.pdf");
+lp = leerEnvio({ conversation_id: "c", adjunto: { url: URL_FIRMADA, path: "c1/enviados/v.mp4", tipo: "video/mp4" } });
+ok("un MP4 va como video", lp.mensaje_meta.type === "video");
+lp = leerEnvio({ conversation_id: "c", adjunto: { url: URL_FIRMADA, path: "c1/enviados/i.webp", tipo: "image/webp", nombre: "i.webp" } });
+ok("una imagen que Meta no acepta como foto (webp) va como documento, y no la rechaza Meta", lp.mensaje_meta.type === "document");
+lp = leerEnvio({ conversation_id: "c", adjunto: { url: "http://inseguro/a.jpg", path: "c1/enviados/a.jpg", tipo: "image/jpeg" } });
+ok("un enlace que no es https no se envia", lp.adjunto === null && lp.mensaje_meta === null);
+ok("sin token, no autorizado", leerEnvio({ conversation_id: "c", texto: "hola" }, "otro").autorizado === false);
+ok("la puerta deja pasar texto o adjunto, y nada vacio",
+  nodoEnv("¿Petición legítima?").parameters.conditions.conditions[0].leftValue.includes("mensaje_meta"));
+
+const cuerpoMeta = JSON.parse(new Function("$", "return " + nodoEnv("Enviar por Whatsapp").parameters.jsonBody.replace(/^=\{\{|\}\}$/g, ""))(
+  (n) => ({ first: () => ({ json: n === "Comprobar ventana" ? { para: "34600000000" } : leerEnvio({ conversation_id: "c", texto: "mira", adjunto: { url: URL_FIRMADA, path: "p", tipo: "image/png" } }) }) })
+));
+ok("a Meta le llega el destinatario y la foto",
+  cuerpoMeta.messaging_product === "whatsapp" && cuerpoMeta.to === "34600000000" && cuerpoMeta.type === "image" && cuerpoMeta.image.caption === "mira");
+
+const filaGuardada = JSON.parse(new Function("$", "$now", "return " + nodoEnv("Guardar mensaje").parameters.jsonBody.replace(/^=\{\{|\}\}$/g, ""))(
+  (n) => ({ first: () => ({ json: n === "Comprobar ventana" ? { conversation_id: "c" } : leerEnvio({ conversation_id: "c", texto: "", adjunto: { url: URL_FIRMADA, path: "c1/enviados/a.jpg", tipo: "image/jpeg", tamano: 99 } }) }) }),
+  { toISO: () => "2026-10-28T10:00:00Z" }
+));
+ok("el mensaje se guarda con su archivo, como los del contacto",
+  filaGuardada.sender === "human" && filaGuardada.content === "" && filaGuardada.media_path === "c1/enviados/a.jpg" &&
+  filaGuardada.media_type === "image/jpeg" && filaGuardada.media_size === 99, JSON.stringify(filaGuardada));
+
 console.log("\n" + (fallos === 0 ? "TODO OK" : fallos + " FALLOS"));
 process.exit(fallos === 0 ? 0 : 1);

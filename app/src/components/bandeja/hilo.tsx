@@ -7,9 +7,12 @@ import {
   Check,
   Clock,
   Copy,
+  FileText,
   MessageCircle,
+  Paperclip,
   Send,
   UserRound,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -17,13 +20,18 @@ import { Button } from "@/components/ui/button";
 import { Adjunto } from "./adjunto";
 import {
   devolverAlBot,
+  enviarAdjunto,
   enviarMensaje,
   marcarLeida,
+  prepararSubida,
   tomarElMando,
 } from "./acciones";
+import { prepararArchivo } from "./preparar-archivo";
 import {
+  MAXIMO_PIE,
   enlaceWhatsApp,
   etiquetaContacto,
+  tamanoLegible,
   telefonoContacto,
   telefonoLegible,
   tiempoRestanteVentana,
@@ -95,7 +103,10 @@ function Burbuja({
         )}
       >
         <Adjunto mensaje={mensaje} url={urlAdjunto} />
-        <p className="whitespace-pre-wrap break-words">{mensaje.contenido}</p>
+        {/* Una foto enviada sin pie no lleva texto: sin esto quedaba un hueco. */}
+        {mensaje.contenido && (
+          <p className="whitespace-pre-wrap break-words">{mensaje.contenido}</p>
+        )}
         <div
           className={cn(
             "mt-1 flex items-center justify-end gap-1 text-xs",
@@ -158,6 +169,19 @@ export function Hilo({
   const [error, setError] = useState<string | null>(null);
   const [pendiente, empezar] = useTransition();
   const mensajesRef = useRef<HTMLDivElement>(null);
+  /** El archivo elegido para mandar, ya preparado para WhatsApp. */
+  const [archivo, setArchivo] = useState<File | null>(null);
+  /** Enlace local (blob:) del archivo elegido, para verlo antes de mandarlo. */
+  const [previa, setPrevia] = useState<string | null>(null);
+  const [preparando, setPreparando] = useState(false);
+  const selectorRef = useRef<HTMLInputElement>(null);
+  /** Los enlaces blob: creados aquí, para soltarlos al cerrar el hilo. */
+  const enlacesLocales = useRef<string[]>([]);
+
+  useEffect(() => {
+    const enlaces = enlacesLocales.current;
+    return () => enlaces.forEach((u) => URL.revokeObjectURL(u));
+  }, []);
 
   // Los mensajes se piden desde el navegador, no desde el servidor: así abrir
   // una conversación no recarga la página y el hilo puede quedarse escuchando
@@ -312,9 +336,116 @@ export function Hilo({
   const telefono = telefonoContacto(conversacion);
   const enlace = enlaceWhatsApp(conversacion);
 
+  async function elegir(elegido: File) {
+    setError(null);
+    setPreparando(true);
+    try {
+      const listo = await prepararArchivo(elegido);
+      const enlace = URL.createObjectURL(listo);
+      enlacesLocales.current.push(enlace);
+      setArchivo(listo);
+      setPrevia(enlace);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo preparar el archivo.");
+    } finally {
+      setPreparando(false);
+    }
+  }
+
+  function quitarArchivo() {
+    setArchivo(null);
+    setPrevia(null);
+  }
+
+  /**
+   * Manda el archivo elegido, con el texto escrito como pie.
+   *
+   * Tres pasos, porque el archivo no cabe en una server action: pedir permiso
+   * para subirlo, subirlo directamente al bucket desde aquí, y pedir que se
+   * envíe. Mientras tanto la burbuja se ve ya, con la vista previa local, como
+   * en WhatsApp.
+   */
+  function enviarArchivo(adjunto: File) {
+    const pie = texto.trim();
+    if (pie.length > MAXIMO_PIE) {
+      setError(`El texto que acompaña al archivo no puede pasar de ${MAXIMO_PIE} caracteres.`);
+      return;
+    }
+
+    // La burbuja provisional enseña el archivo local: su «ruta» es una clave
+    // que no está en el bucket, así que se marca como ya firmada para que no
+    // se intente firmar.
+    const clave = `local-${Date.now()}`;
+    intentadas.current.add(clave);
+    if (previa) setFirmadas((p) => ({ ...p, [clave]: previa }));
+
+    setMensajes((p) => [
+      ...p,
+      {
+        id: clave,
+        contenido: pie,
+        quien: "human",
+        fecha: new Date().toISOString(),
+        enviando: true,
+        mediaPath: clave,
+        mediaType: adjunto.type,
+        mediaName: adjunto.name,
+      },
+    ]);
+    setTexto("");
+    setArchivo(null);
+    setPrevia(null);
+    setError(null);
+
+    const fallar = (mensaje: string) => {
+      setMensajes((p) =>
+        p.map((m) => (m.id === clave ? { ...m, enviando: false, fallo: "No se envió" } : m))
+      );
+      setError(mensaje);
+    };
+
+    empezar(async () => {
+      const datos = { tipo: adjunto.type, tamano: adjunto.size, nombre: adjunto.name };
+
+      const subida = await prepararSubida(conversacion.id, datos);
+      if (!subida.ok || !subida.path || !subida.token) {
+        fallar(subida.mensaje ?? "No se pudo preparar la subida.");
+        return;
+      }
+
+      const { error: errorSubida } = await createClient()
+        .storage.from("adjuntos")
+        .uploadToSignedUrl(subida.path, subida.token, adjunto, {
+          contentType: adjunto.type,
+        });
+      if (errorSubida) {
+        fallar(`No se pudo subir el archivo: ${errorSubida.message}`);
+        return;
+      }
+
+      const r = await enviarAdjunto(conversacion.id, { ...datos, path: subida.path }, pie);
+      if (!r.ok) {
+        fallar(r.mensaje ?? "No se pudo enviar.");
+        return;
+      }
+
+      // Como con el texto: con el id de verdad, la provisional pasa a ser la
+      // definitiva, y si Realtime la trae después se descarta por id repetido.
+      setMensajes((p) =>
+        p.map((m) => (m.id === clave ? { ...m, id: r.id ?? m.id, enviando: false } : m))
+      );
+    });
+  }
+
   function enviar() {
+    if (pendiente || preparando) return;
+    if (archivo) {
+      enviarArchivo(archivo);
+      return;
+    }
+
     const contenido = texto.trim();
-    if (!contenido || pendiente) return;
+    if (!contenido) return;
 
     const optimista: MensajeBandeja = {
       id: `pendiente-${Date.now()}`,
@@ -523,7 +654,62 @@ export function Hilo({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
+            {archivo && (
+              <div className="flex items-center gap-3 rounded-xl border bg-muted/50 p-2">
+                {archivo.type.startsWith("image/") && previa ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- es un blob: local
+                  <img
+                    src={previa}
+                    alt="Foto que vas a enviar"
+                    className="size-14 shrink-0 rounded-md object-cover"
+                  />
+                ) : (
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-md bg-background">
+                    <FileText className="size-6 text-muted-foreground" />
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{archivo.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {tamanoLegible(archivo.size)} · se envía al pulsar enviar
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-9 shrink-0"
+                  aria-label="Quitar el archivo"
+                  onClick={quitarArchivo}
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            )}
             <div className="flex items-end gap-2">
+              <input
+                ref={selectorRef}
+                type="file"
+                hidden
+                accept="image/*,video/mp4,video/3gpp,application/pdf,.doc,.docx,.xls,.xlsx"
+                onChange={(e) => {
+                  const elegido = e.target.files?.[0];
+                  // Se vacía para que elegir el mismo archivo otra vez vuelva a
+                  // disparar el cambio.
+                  e.target.value = "";
+                  if (elegido) elegir(elegido);
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-11 shrink-0 rounded-full"
+                aria-label="Adjuntar una foto o un archivo"
+                title="Adjuntar una foto o un archivo"
+                disabled={!puedeEscribir || pendiente || preparando}
+                onClick={() => selectorRef.current?.click()}
+              >
+                <Paperclip className="size-5" />
+              </Button>
               <textarea
                 value={texto}
                 onChange={(e) => setTexto(e.target.value)}
@@ -534,8 +720,23 @@ export function Hilo({
                     enviar();
                   }
                 }}
+                // Una foto copiada (de la galería, de una web, una captura) se
+                // pega con Ctrl+V, como en WhatsApp Web.
+                onPaste={(e) => {
+                  const pegado = Array.from(e.clipboardData.files)[0];
+                  if (pegado) {
+                    e.preventDefault();
+                    elegir(pegado);
+                  }
+                }}
                 rows={1}
-                placeholder="Escribe un mensaje…"
+                placeholder={
+                  preparando
+                    ? "Preparando el archivo…"
+                    : archivo
+                      ? "Añade un texto (opcional)…"
+                      : "Escribe un mensaje…"
+                }
                 // `text-base` (16px) no es estética: por debajo de 16px, Safari
                 // en iOS hace zoom automático al enfocar el campo y deja la
                 // pantalla descuadrada, con el botón de enviar fuera de vista.
@@ -545,7 +746,9 @@ export function Hilo({
                 size="icon"
                 className="size-11 shrink-0 rounded-full"
                 aria-label="Enviar mensaje"
-                disabled={!puedeEscribir || !texto.trim() || pendiente}
+                disabled={
+                  !puedeEscribir || (!texto.trim() && !archivo) || pendiente || preparando
+                }
                 onClick={enviar}
               >
                 <Send className="size-5" />
