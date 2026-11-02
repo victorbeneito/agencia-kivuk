@@ -1179,6 +1179,14 @@ pr = parsear({ choices: [{ message: { content: "esto no es json" } }] });
 ok("con una respuesta que no es JSON, lo mismo", pr.escalar === true && /no puedo responderte/.test(pr.reply));
 pr = parsear({ choices: [{ message: { content: '{"reply": "", "escalar": false}' } }] });
 ok("con la respuesta vacia, lo mismo", pr.escalar === true);
+// 02/11/2026: la demo inmobiliaria contestaba el aviso fijo a toda búsqueda.
+const BUSQUEDA = '{"inmuebles": {"operacion": "venta", "tipos": ["piso"], "municipios": ["Ontinyent"], "zonas": ["Sant Josep"], "precio_max": 200000, "refs": []}, "reply": "", "escalar": false}';
+pr = parsear({ choices: [{ message: { content: BUSQUEDA } }] });
+ok("una busqueda de inmuebles con reply vacio NO es un fallo", !pr.fallo_ia && pr.escalar === false && pr.inmuebles.precio_max === 200000 && pr.reply === "");
+pr = parsear({ choices: [{ message: { content: '{"inmuebles": {"refs": []}, "escalar": false}' } }] });
+ok("ni sin reply: se deja en cadena vacia", !pr.fallo_ia && pr.reply === "");
+pr = parsear({ choices: [{ message: { content: '{"inmuebles": null, "reply": "", "escalar": false}' } }] });
+ok("pero sin busqueda y sin texto, sigue siendo el aviso", pr.escalar === true && /no puedo responderte/.test(pr.reply));
 const llamarIA = bot.nodes.find((x) => x.name === "Llamar a OpenAI");
 ok("«Llamar a OpenAI» reintenta y no tumba la ejecucion", llamarIA.retryOnFail === true && llamarIA.maxTries >= 2 && llamarIA.onError === "continueRegularOutput");
 
