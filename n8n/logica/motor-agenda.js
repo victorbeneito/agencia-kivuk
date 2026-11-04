@@ -233,6 +233,43 @@ function emparejarServicio(texto, servicios) {
   return mejor;
 }
 
+/**
+ * Todos los servicios que nombra una frase: «necesito raíz y mechas» son dos.
+ *
+ * `emparejarServicio` se queda con UNO, y para la pista del bot eso no basta:
+ * con «raíz y mechas» enseñaba huecos de mechas solas (2 h 30) y la IA ofrecía
+ * las 11:30, donde las 4 h de las dos cosas ya no caben (04/11/2026).
+ *
+ * Se parte la frase por «y», «e», «más», «además», «también» y cada trozo se
+ * empareja por separado. Pero si la frase entera nombra un servicio que ya es
+ * una combinación («corte y barba», «revisión y limpieza», «lavar y peinar»),
+ * manda ese: partirlo daría dos servicios donde el negocio tiene uno.
+ */
+function serviciosDelTexto(texto, servicios) {
+  var entero = emparejarServicio(texto, servicios);
+  var t = normalizar(texto);
+  if (entero) {
+    var nombres = [entero.nombre].concat(entero.alias || []).map(normalizar);
+    var esCombinado = nombres.some(function (n) {
+      return / (y|e) /.test(n) && t.indexOf(n) !== -1;
+    });
+    if (esCombinado) return [entero];
+  }
+
+  var vistos = {};
+  var varios = [];
+  t.split(/ (?:y|e|mas|ademas|tambien) /).forEach(function (trozo) {
+    var s = emparejarServicio(trozo, servicios);
+    if (s && !vistos[s.id]) {
+      vistos[s.id] = true;
+      varios.push(s);
+    }
+  });
+
+  if (varios.length > 1) return varios;
+  return entero ? [entero] : [];
+}
+
 function emparejarServicios(textos, servicios) {
   var elegidos = [];
   var desconocidos = [];
@@ -655,9 +692,9 @@ function resolver(contexto, peticion, ahora) {
     var pistas = [peticion.texto].concat(Array.isArray(peticion.textos_previos) ? peticion.textos_previos : []);
     for (var ip = 0; ip < pistas.length; ip++) {
       if (!pistas[ip]) continue;
-      var pista = emparejarServicio(String(pistas[ip]), servicios);
-      if (pista) {
-        elegidos = [pista];
+      var pista = serviciosDelTexto(String(pistas[ip]), servicios);
+      if (pista.length) {
+        elegidos = pista;
         servicioDeAntes = ip > 0;
         break;
       }
@@ -1105,6 +1142,8 @@ if (typeof module !== 'undefined' && module.exports) {
     horaDelTexto: horaDelTexto,
     emparejarServicio: emparejarServicio,
     emparejarServicios: emparejarServicios,
+    serviciosDelTexto: serviciosDelTexto,
+    duracionLegible: duracionLegible,
     emparejarTrabajador: emparejarTrabajador,
     huecosDeTrabajador: huecosDeTrabajador,
     unirHuecos: unirHuecos,

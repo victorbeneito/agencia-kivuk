@@ -146,8 +146,9 @@ ok("no dice que sea un error", r[0].json.ok === true && r[0].json.reservada === 
 ok("pide otra hora", /Dime otra hora/.test(r[0].json.mensaje), r[0].json.mensaje);
 ok("y sobrevive si 'Reservar' no se ha ejecutado", r[0].json.motivo === "ocupado", r[0].json.motivo);
 
-// La otra forma de no reservar: quien escribe ya tenia una cita. El bot no sabe
-// cambiarlas, asi que en vez de ponerle otra encima avisa a una persona.
+// La otra forma de no reservar: quien escribe ya tenia una cita para lo mismo
+// (0035). Se le ofrece cambiarla a la hora que acaba de pedir; antes se pasaba
+// a una persona y la conversacion se quedaba parada (04/11/2026).
 r = ejecutar(nodo("Respuesta hueco perdido"), {
   Decidir: Object.assign({}, decision, { zona: "Europe/Madrid" }),
   Reservar: {
@@ -156,10 +157,12 @@ r = ejecutar(nodo("Respuesta hueco perdido"), {
     cita_id: "99999999-8888-7777-6666-555555555555",
     cita_inicio: "2026-09-29T15:00:00+00:00",
     cita_con: "Elena",
+    cita_servicios: ["Limpieza dental"],
   },
 }, {});
 ok("no reserva la segunda", r[0].json.reservada === false && r[0].json.motivo === "ya_tiene_cita", JSON.stringify(r[0].json));
-ok("avisa al equipo", r[0].json.escalar === true, JSON.stringify(r[0].json.escalar));
+ok("no la pasa al equipo: ofrece cambiarla", r[0].json.escalar === false && /¿Quieres que te la cambie al \S+ \d\d-\d\d-\d{4} a las \d\d:\d\d\?/.test(r[0].json.mensaje), r[0].json.mensaje);
+ok("dice para que es la que ya tiene", /para limpieza dental/.test(r[0].json.mensaje), r[0].json.mensaje);
 ok("dice cuando es la que ya tiene, en hora de Madrid",
   /martes 29-09-2026 a las 17:00/.test(r[0].json.mensaje), r[0].json.mensaje);
 ok("y con quien", /con Elena/.test(r[0].json.mensaje), r[0].json.mensaje);
@@ -551,6 +554,33 @@ texto = ctxIA.messages.map((x) => x.content).join("\n");
 ok("un servicio dicho antes se da por sabido",
    /ha dicho antes en la conversacion, quiere: Mechas medio casco/.test(texto) && /NO le vuelvas a preguntar/.test(texto));
 ok("se le pide que proponga horas concretas", /PROPON 2 o 3 horas CONCRETAS/.test(texto));
+ok("los huecos van partidos en manana y tarde",
+   /miércoles 2026-11-04: manana 10:00-10:15 \| tarde nada/.test(texto), String(texto.match(/.*2026-11-04:.*/)));
+// El $now de mentira dice que hoy es 2026-09-11.
+texto = prepararContexto({
+  dias: [{ dia: "viernes", fecha: "2026-09-11", horas: ["10:00", "16:00", "16:15"] }],
+  duracion_min: 60, paso_min: 15, catalogo: CATALOGO, servicios: [],
+}).messages.map((x) => x.content).join("\n");
+ok("y el dia de hoy lleva HOY", /viernes 2026-09-11 \(HOY\): manana 10:00 \| tarde 16:00-16:15/.test(texto), String(texto.match(/.*2026-09-11 \(HOY\).*/)));
+ok("y lo dicho antes (la tarde, el dia) sigue valiendo", /sigue valiendo hasta que lo cambie/.test(texto));
+
+// Varios servicios: la cabecera los nombra todos y da la duracion junta.
+ctxIA = prepararContexto({
+  dias: [], duracion_min: 240, paso_min: 15, catalogo: CATALOGO,
+  servicios: [{ nombre: "Retoque de raíz", duracion_min: 90 }, { nombre: "Mechas medio casco", duracion_min: 150 }],
+});
+texto = ctxIA.messages.map((x) => x.content).join("\n");
+ok("con varios servicios, la cabecera los lleva todos y la duracion total",
+   /HUECOS LIBRES PARA Retoque de raíz \+ Mechas medio casco \(4 h en total/.test(texto));
+
+// Lo que no cabe en un turno no se dice como «no hay huecos».
+ctxIA = prepararContexto({
+  estado: "no_cabe", duracion_min: 270, paso_min: 15, catalogo: CATALOGO,
+  servicios: [{ nombre: "Color completo", duracion_min: 120 }, { nombre: "Mechas medio casco", duracion_min: 150 }],
+});
+texto = ctxIA.messages.map((x) => x.content).join("\n");
+ok("lo que no cabe se explica, y antes se pregunta si es algo mas corto",
+   /NO CABE EN UNA CITA/.test(texto) && /4 h 30 min seguidas/.test(texto) && /PRIMERO/.test(texto) && !/No queda ningun hueco/.test(texto));
 ok("y que, si esta cerrado, ofrezca lo mas cercano", /Nunca contestes solo que esta cerrado/.test(texto));
 ok("y que varios servicios van en una lista", /pon servicio como lista/.test(texto));
 

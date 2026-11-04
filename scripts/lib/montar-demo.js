@@ -322,4 +322,4 @@ function lanzar(def) {
   });
 }
 
-module.exports = { montarDemo, lanzar, clienteSupabase, normalizar };
+module.exports = { montarDemo, lanzar, clienteSupabase, cargarEnv, normalizar };

@@ -179,6 +179,31 @@ Arreglado el 04/11/2026:
   turnos son de 4 h), el motor lo dice así y lo pasa al equipo, en vez de
   contestar que no queda ningún hueco en toda la semana.
 
+Y una segunda vuelta el mismo 04/11, después de probarlo desde el móvil con
+el primer arreglo ya desplegado («jueves por la tarde» → «otro día más
+pronto» → «raíz y mechas» → «a las 16h»). Salieron tres fallos más:
+
+- A «otro día más pronto», gpt-4o ofreció el jueves por la mañana y por la
+  tarde, cuando tenía libre el miércoles por la tarde. Ahora los huecos le
+  llegan partidos en mañana y tarde, con HOY y MAÑANA marcados, con reglas
+  para mantener la franja y el día ya dichos y para entender «más pronto»…
+  **y la peluquería pasa a `gpt-5.5`**: con gpt-4o y todo lo anterior seguía
+  fallando alguna vez; con gpt-5.5, las 12 pasadas del guion salieron bien.
+- «Raíz y mechas» enseñaba huecos de mechas solas. El motor detecta ya varios
+  servicios en la misma frase (`serviciosDelTexto`), sin partir los que ya son
+  combinados («corte y barba», «revisión y limpieza»).
+- «A las 16h me va bien» acabó en «Ya tienes una cita el miércoles a las 11:00
+  con Luisa»: el arreglo de barba que tenía ese móvil, que la regla de
+  `0020` (una cita futura por persona) no dejaba acompañar de otra. Con `0035`
+  solo se para si la cita que ya tiene es **del mismo servicio**, y entonces se
+  le ofrece cambiarla («¿quieres que te la cambie al jueves a las 16:00?») en
+  vez de pasarla al equipo.
+
+Antes de enseñar cambios del bot: `node scripts/simular-conversacion.js
+"Peluqueria Mechas" docs/pruebas-bot/peluqueria-mechas.txt --veces 3`. Ejecuta
+el código real de los nodos con los datos reales y el modelo real, sin mandar
+nada ni escribir en la base.
+
 ---
 
 ## Lo que hoy funciona y lo que todavía no

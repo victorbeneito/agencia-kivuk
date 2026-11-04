@@ -1,0 +1,55 @@
+# Guiones de prueba del bot de la Peluquería Mechas.
+#   node scripts/simular-conversacion.js "Peluqueria Mechas" docs/pruebas-bot/peluqueria-mechas.txt --veces 3
+# Cada conversación lleva escrito lo que tiene que pasar. Un fallo en una de
+# tres pasadas es un fallo: la peluquera que prueba la demo solo la prueba una vez.
+
+# 1. Ire (03/11/2026, martes 16:52): mechas, martes tarde, otro día antes, color y mechas
+@ahora 2026-11-03 16:52
+Hola, ¿cuánto cuestan unas mechas?
+De acuerdo y cuando podría acudir, podría ser el martes por la tarde?
+# Debe: horas concretas de MECHAS, sin volver a preguntar el servicio
+Quiero otro día más pronto
+# Debe: horas concretas, sin preguntar el servicio
+Necesito color y mechas
+# Debe: preguntar si el color es raíz o completo (o reservar), NO mandar a valorar ni avisar al equipo
+---
+# 2. VicBen (04/11/2026, miércoles 08:49): jueves tarde, más pronto, raíz y mechas, a las 16h
+@ahora 2026-11-04 08:49
+@cita 2026-11-04 11:00 Arreglo de barba
+Hola, cuanto cuestan las mechas?
+Podria ser el jueves por la tarde?
+# Debe: jueves por la tarde, horas concretas (16:00, 17:30...)
+Quiero otro dia más pronto
+# Debe: HOY miércoles por la TARDE (con Sonia), no el jueves por la mañana
+Necesito raiz y mechas
+# Debe: huecos de 4 h (raíz + mechas): por la tarde solo a las 16:00
+A las 16h me va bien
+# Debe: cita confirmada a las 16:00 con raíz y mechas. La barba de hoy NO lo impide
+---
+# 3. Noelia (03/11/2026, martes 17:29): mechas a mediodía
+@ahora 2026-11-03 17:29
+Hola, ¿cuánto cuestan unas mechas?
+Me gustaria ir a medio día, tienes cita disponible?
+# Debe: a mediodía cerramos, y en el mismo mensaje las horas más cercanas (11:30, 16:00)
+---
+# 4. Ya tiene cita de mechas el viernes y pide mechas el jueves: es un cambio
+@ahora 2026-11-04 10:00
+@cita 2026-11-06 10:00 Mechas medio casco
+Hola, quería cita para unas mechas el jueves por la tarde
+# Debe: horas concretas del jueves por la tarde
+a las 16:00
+# Debe: «ya tienes cita para mechas el viernes... ¿te la cambio al jueves a las 16:00?» (sin pasar al equipo)
+sí, cámbiamela
+# Debe: cita movida al jueves 05-11 a las 16:00
+---
+# 5. Un corte, sin más
+@ahora 2026-11-04 10:00
+buenas, quiero cortarme el pelo mañana por la mañana
+# Debe: horas concretas del jueves por la mañana
+a las 10 vale
+# Debe: cita confirmada el jueves a las 10:00 (Corte)
+---
+# 6. Una franja cerrada
+@ahora 2026-11-04 10:00
+teneis hueco el sabado por la tarde para un corte?
+# Debe: el sábado por la tarde no abrimos, y en el mismo mensaje horas concretas cercanas (sábado mañana o viernes tarde)

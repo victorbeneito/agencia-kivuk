@@ -216,4 +216,6 @@ preguntar qué se iba a hacer, y a «necesito color y mechas» la mandó a valor
 al salón y avisó al equipo. Lo gordo se arregló en el código (la agenda recuerda
 el servicio dicho antes, la IA propone horas concretas, acepta varios servicios
 y, si no caben juntos en un turno, lo dice y lo pasa al equipo); el prompt
-recoge lo mismo con las palabras del salón.
+recoge lo mismo con las palabras del salón. Ese mismo día, en la segunda
+prueba, gpt-4o seguía sin mantener «por la tarde» al pedir «más pronto», y la
+demo pasó a gpt-5.5 (`agent_configs.modelo`).

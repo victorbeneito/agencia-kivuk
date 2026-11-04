@@ -408,6 +408,33 @@ comprobar('y se pasa al equipo', r.escalar === true, String(r.escalar));
 r = m.resolver(turnos4h, { accion: 'comprobar', servicios: ['retoque de raiz', 'mechas'], fecha: '2026-09-17', hora: '10:00' }, MARTES);
 comprobar('lo que cabe justo (4 h en un turno de 4 h) sí se da', r.estado === 'libre', r.estado + ' ' + r.mensaje);
 
+// Varios servicios en la misma frase (04/11/2026): «raíz y mechas» son dos, y
+// los huecos tienen que ser de lo que duran juntos. Pero «corte y barba» es un
+// servicio que ya existe como tal, y no se parte.
+var CATALOGO_PELU = [
+  { id: 'rai', nombre: 'Retoque de raíz', alias: ['raiz'], duracion_min: 90 },
+  { id: 'mec', nombre: 'Mechas medio casco', alias: ['mechas'], duracion_min: 150 },
+  { id: 'cor', nombre: 'Corte', alias: ['cortar'], duracion_min: 45 },
+  { id: 'cyb', nombre: 'Corte caballero y barba', alias: ['corte y barba'], duracion_min: 45 },
+  { id: 'bar', nombre: 'Arreglo de barba', alias: ['barba'], duracion_min: 20 },
+];
+var nombres = function (lista) { return lista.map(function (s) { return s.nombre; }).join(' + '); };
+comprobar('«raíz y mechas» son dos servicios',
+  nombres(m.serviciosDelTexto('Necesito raiz y mechas', CATALOGO_PELU)) === 'Retoque de raíz + Mechas medio casco',
+  nombres(m.serviciosDelTexto('Necesito raiz y mechas', CATALOGO_PELU)));
+comprobar('«corte y barba» es el combinado, no dos',
+  nombres(m.serviciosDelTexto('quiero corte y barba', CATALOGO_PELU)) === 'Corte caballero y barba',
+  nombres(m.serviciosDelTexto('quiero corte y barba', CATALOGO_PELU)));
+comprobar('una «y» que no separa servicios no inventa un segundo',
+  nombres(m.serviciosDelTexto('quiero mechas y si puede ser el jueves', CATALOGO_PELU)) === 'Mechas medio casco');
+comprobar('sin servicio, nada', m.serviciosDelTexto('el jueves por la tarde y a las 5', CATALOGO_PELU).length === 0);
+
+// Y llega hasta los huecos: «raíz y mechas» busca 4 h, aunque lo dijera antes.
+r = m.resolver(contexto([trabajador('a', 'Ana')], CATALOGO_PELU.map(function (s) { return Object.assign({ staff: ['a'] }, s); })), {
+  accion: 'disponibilidad', texto: 'a las 16h me va bien', textos_previos: ['Necesito raiz y mechas'],
+}, MARTES);
+comprobar('la pista de antes con dos servicios da huecos de los dos', r.duracion_min === 240, String(r.duracion_min));
+
 // Un servicio explícito manda sobre la pista de la frase.
 r = m.resolver(CTX, { accion: 'disponibilidad', servicios: ['lavado'], texto: 'y unas mechas?' }, MARTES);
 comprobar('el servicio explícito gana a la pista', r.duracion_min === 15, String(r.duracion_min));
