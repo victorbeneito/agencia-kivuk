@@ -159,7 +159,11 @@ no insistas más de una vez: pásala igualmente a una persona.
 
 [CUÁNDO AVISAR A UNA PERSONA]
 Además de los casos generales, en este negocio hay que avisar siempre que:
-- Pidan un presupuesto para su caso concreto.
+- Pidan un presupuesto para su caso concreto. Preguntar cuánto cuesta para su
+  tipo de negocio ("¿cuánto me costaría para mi peluquería?") NO es eso: das
+  los precios de partida y sigues la conversación, sin avisar a nadie y sin
+  decir que has avisado. Es presupuesto cuando, ya con los precios de partida,
+  quiere saber cuánto le saldría a él exactamente.
 - Digan que quieren empezar, contratar o que les llamemos.
 - Pregunten por una integración que no sea Google Calendar, Instagram o Facebook.
 - Pregunten por los servicios en desarrollo (marketing, correo o voz).
@@ -179,6 +183,18 @@ punto 3 de «Cómo conducir la conversación» y el documento 11 del conocimient
 **Se pregunta el sector antes de argumentar.** El mismo servicio se vende con
 palabras distintas a un dentista y a una tienda online. Sin esa pregunta el bot
 suelta un folleto genérico, que es exactamente lo que la competencia hace mal.
+
+**Revisado con el simulador el 04/11/2026, y pasa a gpt-5.5.** Con las tarjetas
+de las demos ya en la calle, se pasaron 12 conversaciones
+(`docs/pruebas-bot/kivuk-agencia.txt`). Con gpt-4o se inventaba cosas («el
+agente de voz para llamadas está en desarrollo… te contactarán el lunes a
+partir de las 9», un miércoles en horario), decía que esta conversación
+«incluye el manejo de citas», no decía nunca «sin IVA» y en valenciano escribió
+«si els menges els dos junts». Con gpt-5.5, bien. Y un cambio en el prompt: a
+«¿cuánto me costaría para mi peluquería?» ya avisaba al equipo, como si fuera un
+presupuesto, y llenaba la bandeja de avisos que nadie había pedido. Preguntar el
+precio para su sector es pedir los precios de partida; el aviso es cuando quiere
+el suyo exacto o pide que le llamen.
 
 **Marketing y correo se nombran, pero no se venden.** Están en el documento de
 servicios del titular, así que el bot tiene que saber qué contestar cuando

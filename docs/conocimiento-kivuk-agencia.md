@@ -390,7 +390,7 @@ Básicamente, información sobre tu negocio: qué vendes o qué servicios das, p
 
 No hace falta que lo tengas ordenado ni bonito. Nos vale con lo que tengas, aunque sean notas sueltas, y nosotros lo preparamos.
 
-Para el agente de citas hace falta además tu calendario de Google, y para redes sociales, acceso a tus cuentas.
+Para el agente de citas, tus horarios, quién trabaja cada día y cuánto dura cada servicio. La agenda va en tu panel; si ya usáis Google Calendar, se puede conectar para que cada persona vea sus citas en el móvil, pero no hace falta. Para redes sociales, acceso a tus cuentas.
 
 Si contratas el agente de WhatsApp, hará falta un número de teléfono para él. Eso tiene sus condiciones y te lo explicamos aparte.
 ```
@@ -519,6 +519,14 @@ La estás usando ahora mismo. Esta conversación es exactamente el servicio que 
 
 Así que la mejor demostración es preguntarme lo que quieras y ver cómo respondo. Si en algo me quedo corto, me lo dices y eso mismo es lo que iríamos afinando en el tuyo.
 
+Este número no da citas. Para ver cómo funciona el agente de citas, hay tres demos de negocios de ejemplo, cada una en su propio WhatsApp. Escríbele como si fueras un cliente: pregunta precios, pide cita, cámbiala o anúlala.
+
+- Peluquería: +34 623 79 03 43 (wa.me/34623790343)
+- Clínica dental: +34 613 01 39 79 (wa.me/34613013979)
+- Fisioterapia: +34 623 81 47 87 (wa.me/34623814787)
+
+También están en agenciakivuk.com, con su código QR.
+
 Y si prefieres verlo con calma y con alguien que te lo enseñe aplicado a tu negocio, dínoslo y lo montamos.
 ```
 
@@ -589,3 +597,13 @@ está escrito el modelo acabará improvisándolo.
   nombre del cliente.
 - **Los 500 € + 60 €/mes de web son para una corporativa sencilla**, alojada en
   el mismo VPS. Una web más compleja va a su propio servidor y sube de precio.
+
+## Cambiado el 04/11/2026
+
+- **Las demos por sector, en el documento 25.** Con las tarjetas ya en la calle,
+  a «¿tenéis una demo de las citas?» el bot contestaba solo «la estás usando»,
+  y este número no da citas. Ahora da las tres líneas (peluquería, dental,
+  fisio), las mismas que `app/src/lib/web/demos.ts`. Si cambia una, cambian las
+  dos. La inmobiliaria no está hasta que se publique.
+- **Google Calendar ya no hace falta para las citas** (documento 18). Lo decía
+  desde antes de la agenda propia (migración 0014), y contradecía el documento 6.

@@ -1,0 +1,71 @@
+# Guiones de prueba del bot de Kivuk Agencia (+34 623 96 27 33).
+#   node scripts/simular-conversacion.js "Kivuk Agencia" docs/pruebas-bot/kivuk-agencia.txt --veces 2
+# Es el que se vende a sí mismo: quien escribe está evaluando si contratarlo.
+# Lo de siempre: precios como «desde», sin IVA; nunca inventar; al pedir una
+# persona, «ya he avisado» y NUNCA el correo ni el teléfono; recoger datos sin agobiar.
+
+# 1. Una peluquera que ha probado la demo con la tarjeta
+@ahora 2026-11-04 18:30
+Hola, he probado lo de la peluquería y me ha gustado. Cuánto me costaría para mi peluquería?
+# Debe: atención + citas desde 800 € y 80 €/mes, sin IVA, depende del caso; preguntar por su negocio
+yo uso el whatsapp business en el movil, tengo que cambiar de numero?
+# Debe: lo del número tal cual (no puede estar a la vez en la app; número nuevo o perder el historial; la bandeja del panel)
+vale me interesa, que me llame alguien
+# Debe: «ya he avisado a una persona» en pasado, sin correo ni teléfono, aviso al equipo; puede pedir UNA cosa (nombre del negocio)
+---
+# 2. Regateo del precio: no discutir
+@ahora 2026-11-04 18:30
+cuanto cuesta el bot de whatsapp?
+# Debe: precios de partida, sin IVA
+uf que caro, 60 euros al mes por un bot
+# Debe: entenderlo en una frase, qué incluye la cuota en una o dos, sin discutir ni insistir, y dejar la puerta abierta
+---
+# 3. Quiere ver una demo
+@ahora 2026-11-04 18:30
+tenéis alguna demo para ver cómo funciona con las citas?
+# Debe: esta conversación es el producto, y además las demos por sector (peluquería, dental, fisio) con su número
+---
+# 4. Pregunta lo que no hacemos
+@ahora 2026-11-04 18:30
+el bot puede contestar las llamadas de telefono? me llaman mucho
+# Debe: hoy no; hay que estudiarlo; aviso al equipo; sin prometer ni dar fechas
+---
+# 5. Su programa de citas
+@ahora 2026-11-04 18:30
+yo uso booksy para las citas, se puede conectar?
+# Debe: hay que estudiarlo (no decir que sí); explicar que hoy funciona con la agenda del panel y Google Calendar
+---
+# 6. Quiere cita con Kivuk por aquí
+@ahora 2026-11-04 18:30
+podemos quedar mañana a las 5 para que me lo expliquéis?
+# Debe: este número no da citas; avisa a una persona y le pide sus datos; NUNCA confirmar una cita a las 5
+---
+# 7. En valenciano
+@ahora 2026-11-04 18:30
+Bon dia, quant costa per a una clínica de fisioteràpia?
+# Debe: contestar en valenciano, precios de partida sin IVA, preguntar por su caso
+---
+# 8. Miedo a que se equivoque
+@ahora 2026-11-04 18:30
+y si el bot se equivoca y le da una cita mal a un cliente mío?
+# Debe: honesto: solo ofrece huecos reales de la agenda, no se inventa nada, y lo que no sabe lo pasa a una persona; sin prometer milagros
+---
+# 9. Permanencia y plazo
+@ahora 2026-11-04 18:30
+hay permanencia? y cuanto tardais en tenerlo funcionando?
+# Debe: sin permanencia; plazo: no se da por aquí, depende de la información y del trámite con Meta
+---
+# 10. Solo «hola»
+@ahora 2026-11-04 18:30
+hola
+# Debe: saludo corto y preguntar a qué se dedica / en qué puede ayudar
+---
+# 11. ¿Eres un bot?
+@ahora 2026-11-04 18:30
+eres una persona o un bot?
+# Debe: sí, el asistente automático de Kivuk, y esto mismo es lo que montamos
+---
+# 12. Pide el teléfono expresamente
+@ahora 2026-11-04 18:30
+me das vuestro telefono para llamaros?
+# Debe: 623962733 (es este mismo WhatsApp) e info@agenciakivuk.com, copiados tal cual
