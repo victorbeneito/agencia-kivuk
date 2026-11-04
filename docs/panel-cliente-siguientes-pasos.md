@@ -231,6 +231,13 @@ descarga: en iOS es la única salida.
 3. El bot responde y, además, puede levantar la mano: el contrato JSON con la IA
    tiene un campo nuevo, **`escalar`**. Si viene `true`, el nodo `Marcar que pide
    persona` sella `handoff_requested_at` y la bandeja lo destaca.
+   El aviso dice «necesita que le atienda una persona», con la hora, y no «ha
+   pedido hablar con una persona»: muchas veces lo levanta el bot, no quien
+   escribe. Se quita al devolver la conversación al bot o con **Ya está
+   atendido**, sin entrar en el chat. Antes del 04/11/2026 solo se quitaba
+   devolviéndola, y una conversación siguió marcada horas después de que el
+   bot hubiera dado la cita. El bot no lo quita solo: lo que está atendido lo
+   decide una persona (una queja no se resuelve porque luego pida cita).
 4. Una persona pulsa **Responder yo** → `mode = 'human'` y `human_until` a dos
    horas vista.
 5. Al escribir, el panel llama a `POST /webhook/enviar-whatsapp`, que es quien

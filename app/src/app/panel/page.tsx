@@ -68,8 +68,8 @@ export default async function PanelInicioPage() {
           <CardHeader>
             <CardTitle>
               {esperandoPersona === 1
-                ? "Una persona ha pedido hablar contigo"
-                : `${esperandoPersona} personas han pedido hablar contigo`}
+                ? "Una conversación necesita que entres tú"
+                : `${esperandoPersona} conversaciones necesitan que entres tú`}
             </CardTitle>
             <CardDescription>
               El asistente ha hecho lo que ha podido y toca que entres tú.

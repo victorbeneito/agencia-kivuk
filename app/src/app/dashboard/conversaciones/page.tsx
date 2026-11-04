@@ -152,7 +152,7 @@ export default async function ConversacionesPage() {
                         {conversation.handoff_requested_at &&
                           conversation.mode !== "human" && (
                             <Badge className="bg-[#B45831]/15 text-[#B45831]">
-                              Pide una persona
+                              Necesita una persona
                             </Badge>
                           )}
                         {conversation.mode === "human" && (

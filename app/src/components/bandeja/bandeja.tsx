@@ -202,7 +202,7 @@ export function Bandeja({
                       <span className="mt-1.5 flex flex-wrap gap-1">
                         {c.pidioPersona && c.modo !== "human" && (
                           <span className="rounded-full bg-[var(--kivuk-terracota)]/15 px-2 py-0.5 text-xs text-[var(--kivuk-terracota)]">
-                            Pide una persona
+                            Necesita una persona
                           </span>
                         )}
                         {c.modo === "human" && (

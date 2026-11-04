@@ -22,6 +22,7 @@ import {
   devolverAlBot,
   enviarAdjunto,
   enviarMensaje,
+  marcarAtendida,
   marcarLeida,
   prepararSubida,
   tomarElMando,
@@ -561,9 +562,32 @@ export function Hilo({
         )}
       </header>
 
+      {/*
+        No dice «ha pedido hablar con una persona»: muchas veces no lo ha pedido
+        él, sino que el bot ha levantado la mano (una pregunta que no sabe
+        contestar, una cita que no cabe). Con la hora se ve si es de ahora o de
+        hace horas, y se puede quitar sin entrar en el chat.
+      */}
       {conversacion.pidioPersona && !alMando && (
-        <div className="shrink-0 border-b bg-[var(--kivuk-terracota)]/10 px-4 py-2 text-sm text-[var(--kivuk-terracota)]">
-          Ha pedido hablar con una persona.
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b bg-[var(--kivuk-terracota)]/10 px-4 py-2 text-sm text-[var(--kivuk-terracota)]">
+          <span>
+            Necesita que le atienda una persona (
+            {etiquetaDia(conversacion.pidioPersona).toLowerCase()} a las{" "}
+            {new Date(conversacion.pidioPersona).toLocaleTimeString("es-ES", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+            ).
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => marcarAtendida(conversacion.id)}
+          >
+            <Check className="size-4" />
+            Ya está atendido
+          </Button>
         </div>
       )}
 

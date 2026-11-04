@@ -95,6 +95,30 @@ export async function devolverAlBot(conversationId: string): Promise<Resultado> 
   return { ok: true };
 }
 
+/**
+ * Quita el aviso de «necesita una persona» sin tomar el mando.
+ *
+ * Hasta ahora solo se quitaba al devolver la conversación al bot, así que si
+ * nadie entraba en el chat se quedaba para siempre, aunque el bot lo hubiera
+ * resuelto después: el 04/11/2026 una conversación siguió marcada horas
+ * después de que el bot diera la cita. Lo que está atendido lo decide una
+ * persona, no el bot: un aviso por una queja no se puede borrar solo porque
+ * luego pidiera cita.
+ */
+export async function marcarAtendida(conversationId: string): Promise<Resultado> {
+  const { admin, conversacion } = await conversacionAccesible(conversationId);
+
+  const { error } = await admin
+    .from("conversations")
+    .update({ handoff_requested_at: null })
+    .eq("id", conversationId);
+
+  if (error) return { ok: false, mensaje: error.message };
+
+  revalidarBandeja(conversacion.client_id);
+  return { ok: true };
+}
+
 export async function marcarLeida(conversationId: string): Promise<Resultado> {
   const { admin, conversacion } = await conversacionAccesible(conversationId);
 

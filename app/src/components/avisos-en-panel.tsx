@@ -175,7 +175,7 @@ export function AvisosEnPanel({
         // Que alguien pida hablar con una persona manda sobre «tienes un
         // mensaje»: es lo que hace falta atender ya.
         texto: nuevoEscalado
-          ? "ha pedido hablar con una persona"
+          ? "necesita que le atienda una persona"
           : "te ha escrito",
         urgente: nuevoEscalado,
       });
