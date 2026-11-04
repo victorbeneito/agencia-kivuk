@@ -157,6 +157,28 @@ Las fechas salían como `2026-09-19` en los mensajes; desde el 22/09/2026 se
 escriben `19-09-2026`, tanto las que redacta el motor como las de la IA. Por
 dentro siguen en ISO: con ellas se compara y se reserva.
 
+### Primera prueba de una peluquería de verdad (03/11/2026)
+
+Con las tarjetas ya repartidas, una peluquería probó la demo y no consiguió
+cita: preguntó por unas mechas y después por hueco «el martes por la tarde» y
+«otro día más pronto». La agenda solo leía el mensaje de ese momento, que no
+nombraba ningún servicio, así que le enseñaba a la IA huecos de una hora y le
+decía que aún no se sabía qué quería: la IA contestaba con vaguedades («a partir
+de las 17:00») y volvía a preguntar el servicio. A «necesito color y mechas» la
+mandó a valorar al salón y avisó al equipo.
+
+Arreglado el 04/11/2026:
+
+- La agenda recibe lo que la persona escribió en las últimas seis horas
+  (`textos_previos`) y, si el mensaje de ahora no nombra servicio, usa el último
+  que nombró. La IA lo recibe como sabido y no lo vuelve a preguntar.
+- Al preguntar por huecos, la IA propone dos o tres horas concretas, y si la
+  franja pedida está cerrada (a mediodía) ofrece las más cercanas.
+- Se pueden reservar varios servicios en la misma cita (`servicio` como lista).
+- Si juntos no caben en un turno (color completo + mechas son 4 h 30 y los
+  turnos son de 4 h), el motor lo dice así y lo pasa al equipo, en vez de
+  contestar que no queda ningún hueco en toda la semana.
+
 ---
 
 ## Lo que hoy funciona y lo que todavía no

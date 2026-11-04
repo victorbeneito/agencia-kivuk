@@ -325,6 +325,11 @@ const nueveDias = (new Date(cerca.hasta) - Date.now()) / 86400000;
 ok("sin fecha, se cargan unos nueve dias", nueveDias > 8.9 && nueveDias < 9.1, String(nueveDias));
 
 const lejos = leerPeticion({ client_id: PET.client_id, accion: "comprobar", fecha: "2026-12-20", hora: "10:00" });
+ok("textos_previos llega al motor, limpio y con tope",
+   JSON.stringify(leerPeticion({ textos_previos: [" mechas ", "", null, "a", "b", "c", "d", "e", "f", "g", "h"] }).textos_previos) ===
+   JSON.stringify(["mechas", "a", "b", "c", "d", "e", "f", "g"]));
+ok("y sin textos_previos, lista vacia", leerPeticion({}).textos_previos.length === 0);
+
 ok("con una fecha lejana, la ventana llega hasta ese dia",
    lejos.hasta.slice(0, 10) === "2026-12-20", lejos.hasta);
 
@@ -402,6 +407,13 @@ ok("sin `confirmar` tampoco reserva (ante la duda, se pregunta)", d.accion === "
 d = decidir(Object.assign({}, PIDE, { servicio: null, trabajador: null }), "dame cita el viernes a las 5");
 ok("sin servicio se manda igual: lo para el motor, no el bot", d.accion === "reservar", d.accion);
 ok("y el servicio va vacio, no con un null pegado", d.servicio === "", JSON.stringify(d.servicio));
+ok("y la lista de servicios, vacia", Array.isArray(d.servicios) && d.servicios.length === 0, JSON.stringify(d.servicios));
+
+// «Color y mechas»: dos cosas en la misma cita (peluqueria, 03/11/2026).
+d = decidir(Object.assign({}, PIDE, { servicio: ["Retoque de raíz", " Mechas medio casco ", null] }), "raiz y mechas el viernes a las 5");
+ok("varios servicios viajan todos en la lista", d.servicios.join("|") === "Retoque de raíz|Mechas medio casco", JSON.stringify(d.servicios));
+ok("y servicio sigue siendo una cadena", d.servicio === "Retoque de raíz", JSON.stringify(d.servicio));
+ok("uno solo como cadena tambien va en la lista", decidir(PIDE, "el viernes a las 5").servicios.join("|") === "Mechas medio casco");
 
 d = decidir(PIDE, "pues a las 17:30 mejor");
 ok("la hora que escribe la persona manda sobre la que extrae la IA", d.hora === "17:30", d.hora);
@@ -527,6 +539,20 @@ ctxIA = prepararContexto({
 texto = ctxIA.messages.map((x) => x.content).join("\n");
 ok("sin servicio entendido, avisa de que los huecos son de una cita estandar",
    /cita estandar de 60 min/.test(texto) && /preguntale primero que se va a hacer/.test(texto));
+
+// El servicio lo dijo en un mensaje anterior: no se le vuelve a preguntar.
+ctxIA = prepararContexto({
+  dias: [{ dia: "miércoles", fecha: "2026-11-04", horas: ["10:00", "10:15"] }],
+  duracion_min: 150, paso_min: 15, catalogo: CATALOGO,
+  servicios: [{ nombre: "Mechas medio casco", duracion_min: 150 }],
+  servicio_de_antes: true,
+});
+texto = ctxIA.messages.map((x) => x.content).join("\n");
+ok("un servicio dicho antes se da por sabido",
+   /ha dicho antes en la conversacion, quiere: Mechas medio casco/.test(texto) && /NO le vuelvas a preguntar/.test(texto));
+ok("se le pide que proponga horas concretas", /PROPON 2 o 3 horas CONCRETAS/.test(texto));
+ok("y que, si esta cerrado, ofrezca lo mas cercano", /Nunca contestes solo que esta cerrado/.test(texto));
+ok("y que varios servicios van en una lista", /pon servicio como lista/.test(texto));
 
 // Una tienda sin agenda no debe recibir ni una palabra de citas.
 ctxIA = prepararContexto({}, false);
@@ -950,6 +976,27 @@ const rec = ejecutarItems(nodoBot("Recoger conocimiento"), {},
   [frag("Envios", "a"), frag("Persianas", "b"), {}, frag("Persianas", "b"), frag("Plazos", "c")])[0].json.fragmentos;
 ok("Recoger conocimiento junta las dos busquedas sin repetir y en orden",
   rec.map((f) => f.title).join(",") === "Envios,Persianas,Plazos", rec.map((f) => f.title).join(","));
+
+// Lo que dijo antes la persona llega a la agenda, para que «¿el martes por la
+// tarde?» despues de «¿cuanto cuestan unas mechas?» siga siendo de mechas
+// (peluqueria, 03/11/2026). Solo lo suyo, del mas nuevo al mas viejo.
+const CHARLA = [
+  { sender: "bot", content: "Para el martes por la tarde tenemos hueco a partir de las 17:00." },
+  { sender: "contact", content: "De acuerdo, podria ser el martes por la tarde?" },
+  { sender: "bot", content: "Las mechas son 55 € y el balayage desde 85 €." },
+  { sender: "contact", content: "Hola, ¿cuánto cuestan unas mechas?" },
+  { sender: "bot", content: "uno" }, { sender: "contact", content: "dos" },
+];
+pbq = preparar("Quiero otro dia mas pronto", CHARLA);
+ok("Preparar busqueda pasa a la agenda lo que escribio la persona, sin lo del bot",
+  pbq.textos_previos.join("|") === "De acuerdo, podria ser el martes por la tarde?|Hola, ¿cuánto cuestan unas mechas?|dos",
+  JSON.stringify(pbq.textos_previos));
+ok("y sin mensajes recientes, una lista vacia", preparar("hola").textos_previos.length === 0);
+ok("la busqueda de conocimiento sigue mirando solo lo ultimo",
+  pbq.textos_busqueda[1] && !pbq.textos_busqueda[1].includes("dos"), JSON.stringify(pbq.textos_busqueda));
+ok("la agenda recibe textos_previos al consultar y al reservar",
+  ["Consultar agenda", "Comprobar o reservar"].every((n) =>
+    bot.nodes.find((x) => x.name === n).parameters.jsonBody.includes('"textos_previos"')));
 
 const mr = bot.nodes.find((x) => x.name === "Mensajes recientes");
 ok('"Mensajes recientes" no tumba nada si falla y se ejecuta una vez',

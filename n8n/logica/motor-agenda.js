@@ -136,6 +136,14 @@ var aMinutos = function (h) {
 var aTexto = function (m) {
   return dosCifras(Math.floor(m / 60)) + ':' + dosCifras(m % 60);
 };
+/** 270 -> "4 h 30", 240 -> "4 horas", 45 -> "45 minutos". Para leerlo una persona. */
+var duracionLegible = function (min) {
+  var h = Math.floor(min / 60);
+  var m = min % 60;
+  if (!h) return m + ' minutos';
+  if (!m) return h + (h === 1 ? ' hora' : ' horas');
+  return h + ' h ' + dosCifras(m);
+};
 
 /**
  * La hora escrita en el mensaje manda sobre la que extrae la IA.
@@ -635,9 +643,25 @@ function resolver(contexto, peticion, ahora) {
   // en ese momento lo único que hay es la frase. Sin esto, la única forma de
   // acertar la duración era pedirle antes a la IA que extrajera el servicio, y
   // eso es una llamada al modelo entera por cada mensaje.
-  if (!elegidos.length && !emparejados.desconocidos.length && peticion.texto) {
-    var pista = emparejarServicio(String(peticion.texto), servicios);
-    if (pista) elegidos = [pista];
+  //
+  // Si la frase de ahora no nombra ninguno, se mira lo que la persona dijo
+  // antes (`textos_previos`, del más nuevo al más viejo) y vale el primero que
+  // nombre uno. Sin esto, «¿cuánto cuestan unas mechas?» seguido de «¿podría
+  // ser el martes por la tarde?» enseñaba huecos de una hora y le decía a la IA
+  // que aún no se sabía qué quería hacerse: la IA volvía a preguntarlo y no
+  // llegaba a dar la cita (demo de la peluquería, 03/11/2026).
+  var servicioDeAntes = false;
+  if (!elegidos.length && !emparejados.desconocidos.length) {
+    var pistas = [peticion.texto].concat(Array.isArray(peticion.textos_previos) ? peticion.textos_previos : []);
+    for (var ip = 0; ip < pistas.length; ip++) {
+      if (!pistas[ip]) continue;
+      var pista = emparejarServicio(String(pistas[ip]), servicios);
+      if (pista) {
+        elegidos = [pista];
+        servicioDeAntes = ip > 0;
+        break;
+      }
+    }
   }
 
   // Al mover, lo que se hace no se vuelve a preguntar: ya está apuntado en la
@@ -805,6 +829,39 @@ function resolver(contexto, peticion, ahora) {
     };
   }
 
+  // --- 1b. ¿Cabe en algún turno? -------------------------------------------
+  //
+  // Varias cosas juntas pueden durar más que cualquier turno: color completo y
+  // mechas son 4 h 30, y en la peluquería ninguna trabaja más de 4 h seguidas.
+  // Sin esto se buscaban huecos, no salía ninguno y se contestaba «no me queda
+  // ningún hueco libre en los próximos días», que suena a agenda llena y es
+  // mentira. Eso lo tiene que repartir una persona (en dos días, o empezando
+  // antes), así que se dice y se pasa al equipo.
+  var turnoMasLargo = 0;
+  candidatos.forEach(function (t) {
+    (t.horario || []).forEach(function (tramo) {
+      var largo = aMinutos(tramo.fin) - aMinutos(tramo.inicio);
+      if (largo > turnoMasLargo) turnoMasLargo = largo;
+    });
+  });
+
+  if (!moviendo && turnoMasLargo > 0 && duracion > turnoMasLargo) {
+    return {
+      ok: true,
+      estado: 'no_cabe',
+      hay_hueco: false,
+      reservada: false,
+      escalar: true,
+      duracion_min: duracion,
+      servicios: elegidos.map(function (s) {
+        return { id: s.id, nombre: s.nombre, duracion_min: s.duracion_min };
+      }),
+      mensaje:
+        'Todo eso junto son ' + duracionLegible(duracion) + ' seguidas y no cabe en un mismo turno. ' +
+        'Te lo organiza una persona del equipo por aquí mismo.',
+    };
+  }
+
   // --- 2. Los huecos --------------------------------------------------------
   //
   // Hay DOS ventanas distintas, y confundirlas era el fallo de la primera
@@ -888,6 +945,9 @@ function resolver(contexto, peticion, ahora) {
       : elegidos.map(function (s) {
           return { id: s.id, nombre: s.nombre, duracion_min: s.duracion_min };
         }),
+    // El servicio no lo nombra este mensaje sino uno anterior. El bot se lo
+    // dice así a la IA para que no lo dé por recién pedido.
+    servicio_de_antes: servicioDeAntes,
     // La lista entera de lo que se puede reservar. El bot se la enseña a la IA
     // para que pregunte «¿corte o mechas?» con los nombres de verdad del
     // negocio, en vez de inventarse un catálogo plausible.

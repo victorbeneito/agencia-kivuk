@@ -362,6 +362,52 @@ r = m.resolver(CTX, { accion: 'disponibilidad', texto: 'que horario teneis los s
 comprobar('una frase sin servicio no es un error', r.estado === 'disponibilidad', r.estado);
 comprobar('y usa la duración por defecto', r.duracion_min === 60, String(r.duracion_min));
 
+// Lo dicho antes cuenta. «¿Cuánto cuestan unas mechas?» y luego «¿podría ser
+// el martes por la tarde?»: el segundo mensaje no nombra nada, pero los huecos
+// tienen que ser de mechas (demo de la peluquería, 03/11/2026).
+r = m.resolver(CTX, {
+  accion: 'disponibilidad',
+  texto: 'podria ser el martes por la tarde?',
+  textos_previos: ['hola, cuanto cuestan unas mechas?'],
+}, MARTES);
+comprobar('sin servicio en la frase, se usa el que dijo antes', r.duracion_min === 120, String(r.duracion_min));
+comprobar('y se marca que viene de antes', r.servicio_de_antes === true, String(r.servicio_de_antes));
+
+// Si la frase de ahora nombra uno, manda la de ahora aunque antes dijera otro.
+r = m.resolver(CTX, {
+  accion: 'disponibilidad',
+  texto: 'y un lavado?',
+  textos_previos: ['cuanto cuestan unas mechas?'],
+}, MARTES);
+comprobar('lo de ahora gana a lo de antes', r.duracion_min === 15, String(r.duracion_min));
+comprobar('y no se marca como de antes', r.servicio_de_antes === false, String(r.servicio_de_antes));
+
+// De lo de antes, vale lo más reciente.
+r = m.resolver(CTX, {
+  accion: 'disponibilidad',
+  texto: 'el viernes?',
+  textos_previos: ['mejor un lavado', 'cuanto cuestan unas mechas?'],
+}, MARTES);
+comprobar('de lo de antes, lo más reciente', r.duracion_min === 15, String(r.duracion_min));
+
+// Varias cosas juntas que no caben en ningún turno: no es «agenda llena», es
+// que hay que repartirlo, y eso lo hace una persona. Turnos de 4 h, como la
+// peluquería; color completo y mechas son 4 h 30 (03/11/2026).
+var turnos4h = contexto(
+  [trabajador('a', 'Ana', { horario: horario([2, 3, 4, 5], [['10:00', '14:00'], ['16:00', '20:00']]) })],
+  [
+    { id: 'col', nombre: 'Color completo', duracion_min: 120, staff: ['a'] },
+    { id: 'mec', nombre: 'Mechas medio casco', duracion_min: 150, staff: ['a'] },
+    { id: 'rai', nombre: 'Retoque de raíz', duracion_min: 90, staff: ['a'] },
+  ]
+);
+r = m.resolver(turnos4h, { accion: 'comprobar', servicios: ['color completo', 'mechas'], fecha: '2026-09-17', hora: '10:00' }, MARTES);
+comprobar('lo que no cabe en un turno se dice como tal', r.estado === 'no_cabe', r.estado);
+comprobar('con su duración legible', /4 h 30/.test(r.mensaje), r.mensaje);
+comprobar('y se pasa al equipo', r.escalar === true, String(r.escalar));
+r = m.resolver(turnos4h, { accion: 'comprobar', servicios: ['retoque de raiz', 'mechas'], fecha: '2026-09-17', hora: '10:00' }, MARTES);
+comprobar('lo que cabe justo (4 h en un turno de 4 h) sí se da', r.estado === 'libre', r.estado + ' ' + r.mensaje);
+
 // Un servicio explícito manda sobre la pista de la frase.
 r = m.resolver(CTX, { accion: 'disponibilidad', servicios: ['lavado'], texto: 'y unas mechas?' }, MARTES);
 comprobar('el servicio explícito gana a la pista', r.duracion_min === 15, String(r.duracion_min));
