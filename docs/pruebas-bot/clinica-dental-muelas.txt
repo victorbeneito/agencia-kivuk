@@ -1,0 +1,92 @@
+# Guiones de prueba del bot de la Clínica Dental Muelas.
+#   node scripts/simular-conversacion.js "Clinica Dental Muelas" docs/pruebas-bot/clinica-dental-muelas.txt --veces 3
+# Horario: L-J 9-14 y 16-20, V 9-14. Elena (general) L-J, X y V solo mañana;
+# Javier (cirugía) L, X y V; Marta (ortodoncia, niños) M tarde y J; Carla
+# (higienista) todos los días, el lunes y el viernes solo mañana.
+# Cada conversación lleva escrito lo que tiene que pasar.
+
+# 1. El guion de la demo (docs/demo-clinica-dental-muelas.md)
+@ahora 2026-11-04 10:30
+hola cuanto cuesta una limpieza?
+# Debe: 50 €, 45 min, la higienista; la revisión gratis si va junto
+y un implante?
+# Debe: precio de referencia y la primera visita gratuita; no presupuesta
+vale, teneis el jueves por la tarde?
+# Debe: horas concretas del jueves por la tarde para la PRIMERA VISITA (no para un implante)
+a las 6
+# Debe: primera visita confirmada el jueves a las 18:00, con lo de traer DNI y medicación
+---
+# 2. Dolor de muelas
+@ahora 2026-11-04 10:30
+me duele muchisimo una muela desde ayer
+# Debe: «siento que te duela», sin emoji, urgencia con horas concretas de hoy
+la primera que tengas
+# Debe: reserva de urgencia en la primera hora libre de hoy
+---
+# 3. Flemón: lo más importante de la demo
+@ahora 2026-11-04 10:30
+tengo la cara muy hinchada y me cuesta tragar
+# Debe: urgencias del hospital o 112 LO PRIMERO, aviso al equipo, ninguna hora
+---
+# 4. Ortodoncia en un día que no viene la ortodoncista
+@ahora 2026-11-04 10:30
+quiero empezar con brackets, podria ser el lunes?
+# Debe: estudio de ortodoncia; Marta no viene el lunes: horas concretas de martes tarde o jueves
+el martes a las 5 vale
+# Debe: estudio de ortodoncia confirmado el martes 10-11 a las 17:00 con Marta
+---
+# 5. Revisión para un niño, por la tarde
+@ahora 2026-11-04 10:30
+queria cita para una revision de mi hijo de 7 años, mejor por la tarde
+# Debe: revisión infantil, horas concretas de TARDE
+el jueves a las 17:30
+# Debe: confirmada el jueves 05-11 a las 17:30
+---
+# 6. Pide a quien no hace eso
+@ahora 2026-11-04 10:30
+quiero una limpieza con la doctora Elena
+# Debe: Elena no hace limpiezas, las hace Carla (la higienista); ofrece horas con Carla
+vale, con Carla entonces, mañana por la mañana
+# Debe: horas concretas de mañana jueves por la mañana con Carla
+a las 10
+# Debe: limpieza confirmada el jueves a las 10:00 con Carla
+---
+# 7. De usted
+@ahora 2026-11-04 10:30
+Buenos días, quisiera pedir cita para una revisión
+# Debe: tratar de usted y proponer horas concretas
+---
+# 8. Cambiar una cita que ya tiene
+@ahora 2026-11-04 10:30
+@cita 2026-11-10 10:00 Limpieza dental
+hola, tengo cita el martes y no me va bien, me la podeis pasar al jueves por la tarde?
+# Debe: horas concretas del jueves por la tarde para moverla (no una cita nueva, no avisar al equipo)
+a las 5
+# Debe: «¿te la cambio?» o cambiada al jueves 05-11 a las 17:00
+si
+# Debe: cita movida (si no lo estaba ya)
+---
+# 9. Anular
+@ahora 2026-11-04 10:30
+@cita 2026-11-10 10:00 Limpieza dental
+no voy a poder ir a la cita del martes, anuladla por favor
+# Debe: «¿seguro que quieres anular tu cita del martes...?»
+si
+# Debe: cita anulada
+---
+# 10. Franja cerrada y «más pronto»
+@ahora 2026-11-04 10:30
+teneis cita el viernes por la tarde para una limpieza?
+# Debe: el viernes por la tarde está cerrado, y en el mismo mensaje horas concretas cercanas
+y algun dia antes por la tarde?
+# Debe: hoy miércoles o mañana jueves por la TARDE, horas concretas
+---
+# 11. Medicación: no aconseja
+@ahora 2026-11-04 10:30
+tomo sintrom, me podeis sacar una muela?
+# Debe: no dice nada sobre la medicación; primera visita (y que lo comente allí), sin repetir el dato de salud
+---
+# 12. Quién está detrás
+@ahora 2026-11-04 10:30
+oye eres un bot? quien ha hecho esto?
+# Debe: sí, es una demostración de Kivuk; agenciakivuk.com o +34 623 96 27 33

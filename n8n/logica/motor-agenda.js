@@ -151,6 +151,12 @@ var duracionLegible = function (min) {
  * Se la ha visto devolver `time: null` con la hora delante, y coger la primera
  * opción de su propia lista de alternativas: le pides las 12:30 y reserva las
  * 12:15. El prompt pide que no falle; la red de seguridad va en el código.
+ *
+ * Y se lee como se habla en España: «a las 5» para una cita son las 17:00, no
+ * las 05:00. Hasta el 04/11/2026 «a las 6» reservaba (o intentaba) a las 06:00,
+ * y era justo el paso del guion de la demo dental. De 1 a 7 sin «de la mañana»
+ * es por la tarde; «de la tarde» o «de la noche» suma doce a lo que haga falta.
+ * «Y media», «y cuarto» y «menos cuarto» también cuentan.
  */
 function horaDelTexto(txt) {
   var t = String(txt == null ? '' : txt).toLowerCase();
@@ -167,7 +173,15 @@ function horaDelTexto(txt) {
     if (!m) continue;
     var h = Number(m[1]);
     var min = m[2] === undefined ? 0 : Number(m[2]);
-    if (h < 24 && min < 60) return dosCifras(h) + ':' + dosCifras(min);
+    var resto = t.slice(m.index + m[0].length);
+    if (m[2] === undefined) {
+      if (/^\s*y\s+media\b/.test(resto)) min = 30;
+      else if (/^\s*y\s+cuarto\b/.test(resto)) min = 15;
+      else if (/^\s*menos\s+cuarto\b/.test(resto)) { h = h - 1; min = 45; }
+    }
+    if (h < 12 && /^[^.?!]{0,20}\bde\s+la\s+(tarde|noche)\b/.test(resto)) h += 12;
+    else if (h >= 1 && h <= 7 && !/^[^.?!]{0,20}\bde\s+la\s+(manana|mañana|madrugada)\b/.test(resto)) h += 12;
+    if (h >= 0 && h < 24 && min < 60) return dosCifras(h) + ':' + dosCifras(min);
   }
   return null;
 }
@@ -539,12 +553,40 @@ function rangos(horas, paso) {
   return out.join(', ');
 }
 
+/** «por la tarde» → 'tarde'; «por la mañana» → 'mañana'; si no lo dice, null. */
+function franjaDelTexto(texto) {
+  var t = normalizar(texto);
+  if (/\b(por|de) la (tarde|noche)\b|\besta tarde\b/.test(t)) return 'tarde';
+  // «mañana» sola es el día de después: solo cuenta «por la mañana».
+  if (/\b(por|de) la manana\b|\besta manana\b/.test(t)) return 'mañana';
+  return null;
+}
+
+/**
+ * Dos o tres horas de un día para proponer, separadas entre sí (no «10:00,
+ * 10:15 o 10:30», que es la misma hora tres veces) y en la franja que pidió.
+ */
+function horasPropuestas(horas, texto) {
+  var franja = franjaDelTexto(texto);
+  var validas = horas.filter(function (h) {
+    if (franja === 'tarde') return aMinutos(h) >= 15 * 60;
+    if (franja === 'mañana') return aMinutos(h) < 15 * 60;
+    return true;
+  });
+  var salida = [];
+  for (var i = 0; i < validas.length && salida.length < 3; i++) {
+    var ultima = salida[salida.length - 1];
+    if (!ultima || aMinutos(validas[i]) - aMinutos(ultima) >= 60) salida.push(validas[i]);
+  }
+  return salida;
+}
+
 // === La decisión =============================================================
 
-function listaLegible(nombres) {
+function listaLegible(nombres, y) {
   if (!nombres.length) return '';
   if (nombres.length === 1) return nombres[0];
-  return nombres.slice(0, -1).join(', ') + ' y ' + nombres[nombres.length - 1];
+  return nombres.slice(0, -1).join(', ') + ' ' + (y || 'y') + ' ' + nombres[nombres.length - 1];
 }
 
 /**
@@ -1013,6 +1055,24 @@ function resolver(contexto, peticion, ahora) {
         ? 'No queda ningún hueco libre el ' + fechaLegible(fecha) + '.'
         : 'No queda ningún hueco libre en los próximos 7 días.';
 
+    // Con el día pero sin la hora («¿me la pasas al jueves por la tarde?») se
+    // le dan horas de ese día, no se le pregunta otra vez: «¿para qué día y a
+    // qué hora?» a quien acaba de decir el día es no haber escuchado
+    // (demo dental, 04/11/2026).
+    var faltaHora = moviendo
+      ? '¿Para qué día y a qué hora quieres cambiarla?'
+      : 'Para darte cita necesito el día y la hora.';
+    if (accion !== 'disponibilidad' && fecha) {
+      var propuestas = soloEseDia.length ? horasPropuestas(soloEseDia[0].horas, peticion.texto) : [];
+      var elDia = (soloEseDia[0] ? soloEseDia[0].dia + ' ' : '') + fechaLegible(fecha);
+      faltaHora = propuestas.length
+        ? (moviendo ? 'Para cambiarla, el ' : 'El ') + elDia + ' tengo libre a las ' +
+          listaLegible(propuestas, 'o') + '. ¿Cuál te va bien?'
+        : 'El ' + fechaLegible(fecha) + ' no me queda ningún hueco' +
+          (franjaDelTexto(peticion.texto) ? ' por la ' + franjaDelTexto(peticion.texto) : '') +
+          '. ¿Te miro otro día?';
+    }
+
     return Object.assign(base, {
       estado: accion === 'disponibilidad' ? 'disponibilidad' : 'faltan_datos',
       hay_hueco: soloEseDia.length > 0,
@@ -1020,11 +1080,22 @@ function resolver(contexto, peticion, ahora) {
       fecha: fecha,
       hora: hora,
       dias: soloEseDia,
-      mensaje: accion === 'disponibilidad'
-        ? mensaje
-        : moviendo
-          ? '¿Para qué día y a qué hora quieres cambiarla?'
-          : 'Para darte cita necesito el día y la hora.',
+      mensaje: accion === 'disponibilidad' ? mensaje : faltaHora,
+    });
+  }
+
+  // Moverla a donde ya está no es un cambio. A un «sí» de más, después de
+  // haberla movido ya, se contestaba «te he cambiado la cita de las 17:00 a
+  // las 17:00» (demo dental, 04/11/2026).
+  if (moviendo && Date.parse(cita.inicio) === instante(fecha, hora, zona)) {
+    return Object.assign(base, {
+      estado: 'sin_cambio',
+      hay_hueco: false,
+      reservada: false,
+      fecha: fecha,
+      hora: hora,
+      mensaje: 'Tu cita ya está el ' + NOMBRE_DIA[diaSemanaDe(fecha, zona)] + ' ' + fechaLegible(fecha) +
+        ' a las ' + hora + (cita.staff_nombre ? ' con ' + cita.staff_nombre : '') + '. No hace falta cambiar nada.',
     });
   }
 
@@ -1143,6 +1214,7 @@ if (typeof module !== 'undefined' && module.exports) {
     emparejarServicio: emparejarServicio,
     emparejarServicios: emparejarServicios,
     serviciosDelTexto: serviciosDelTexto,
+    horasPropuestas: horasPropuestas,
     duracionLegible: duracionLegible,
     emparejarTrabajador: emparejarTrabajador,
     huecosDeTrabajador: huecosDeTrabajador,

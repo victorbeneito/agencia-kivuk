@@ -613,6 +613,16 @@ rb = ejecutar(nodoBot("Respuesta con agenda"), {}, {
 })[0].json;
 ok("una cita ya hecha no pregunta nada", !/reservo/.test(rb.reply), rb.reply);
 
+// Lo que el prompt pide recordar al confirmar va debajo, y solo si se reservo.
+rb = ejecutar(nodoBot("Respuesta con agenda"), { "Parsear respuesta IA": { nota_cita: "Trae el DNI." } }, {
+  mensaje: "¡Listo! Tu cita queda confirmada para el jueves.", libre: true, reservada: true,
+})[0].json;
+ok("la nota de la cita va debajo de la confirmacion", rb.reply === "¡Listo! Tu cita queda confirmada para el jueves.\nTrae el DNI.", rb.reply);
+rb = ejecutar(nodoBot("Respuesta con agenda"), { "Parsear respuesta IA": { nota_cita: "Trae el DNI." } }, {
+  mensaje: "El jueves a las 18:00 está libre.", libre: true, reservada: false,
+})[0].json;
+ok("y no sale si todavia no se ha reservado", !/DNI/.test(rb.reply), rb.reply);
+
 // === Inmuebles ===============================================================
 // La cartera de una inmobiliaria (migracion 0025). `inmuebles-ejemplo.json` es
 // la salida REAL de `inmuebles_cartera` y `buscar_inmuebles` con la cartera de

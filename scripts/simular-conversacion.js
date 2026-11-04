@@ -28,6 +28,11 @@
  *
  * Los modelos no contestan siempre igual: `--veces 3` repite cada
  * conversación, y un fallo que sale una de tres veces es un fallo.
+ *
+ * Para probar un cambio antes de subirlo: `--prompt docs/prompt-x.md` usa el
+ * prompt del repositorio y `--servicios docs/servicios-x.csv` sus duraciones y
+ * alias, en vez de los que hay en la base. El código de los nodos ya es el del
+ * repositorio siempre.
  */
 const fs = require('fs');
 const path = require('path');
@@ -172,6 +177,7 @@ async function conversar(cliente, guion, opciones) {
     const respuesta = await openai('chat/completions', cuerpo);
     const ia = ejecutar(codigo(bot, 'Parsear respuesta IA'), nodos, respuesta, ahoraMs)[0];
     nodos['Parsear respuesta IA'] = ia;
+    if (opciones.verIa) console.log('\x1b[2m   IA: ' + JSON.stringify(ia) + '\x1b[0m');
     const decision = ejecutar(codigo(bot, 'Decidir acción'), nodos, ia, ahoraMs)[0];
     nodos['Decidir acción'] = decision;
 
@@ -274,12 +280,32 @@ async function main() {
   const c = clientes.find((x) => normalizar(x.name) === normalizar(nombre));
   if (!c) throw new Error('no hay ningún cliente que se llame "' + nombre + '"');
   const [cfg] = await supabase('agent_configs?client_id=eq.' + c.id + '&select=*');
+
+  // Probar antes de subir: el prompt y los alias del repositorio en vez de los
+  // que hay en la base. Sin esto, cambiar el prompt para probarlo era cambiarlo
+  // en producción.
+  const rutaPrompt = argumento('--prompt');
+  if (rutaPrompt) {
+    const md = fs.readFileSync(path.resolve(RAIZ, rutaPrompt), 'utf8').replace(/\r\n/g, '\n');
+    const bloque = [...md.matchAll(/^```[^\n]*\n([\s\S]*?)^```/gm)].map((b) => b[1].trim()).find((b) => b.startsWith('['));
+    if (!bloque) throw new Error('no encuentro el prompt en ' + rutaPrompt);
+    cfg.system_prompt = bloque;
+  }
+  const rutaServicios = argumento('--servicios');
+  const aliasDelCsv = new Map();
+  if (rutaServicios) {
+    for (const linea of fs.readFileSync(path.resolve(RAIZ, rutaServicios), 'utf8').trim().split(/\r?\n/).slice(1)) {
+      const campos = linea.split(',').map((x) => x.trim());
+      aliasDelCsv.set(normalizar(campos[0]), { duracion_min: Number(campos[1]), alias: campos.slice(2).filter(Boolean) });
+    }
+  }
   const modulos = await supabase('client_modules?client_id=eq.' + c.id + '&active=is.true&select=module,sinonimos:config->catalog_sinonimos');
 
   const cliente = {
     id: c.id, cfg, modulos,
     async contextoAgenda(ahoraMs, citas) {
       const ctx = await rpc('agenda_contexto', { p_client_id: c.id, p_desde: new Date(ahoraMs - 2 * 3600e3).toISOString(), p_hasta: new Date(ahoraMs + 9 * 86400e3).toISOString() });
+      for (const s of ctx.servicios || []) Object.assign(s, aliasDelCsv.get(normalizar(s.nombre)) || {});
       // Las citas de la prueba ocupan su hueco como cualquier otra.
       for (const cita of citas) {
         if (cita.fecha) {
@@ -305,6 +331,7 @@ async function main() {
     modelo: argumento('--modelo'),
     ahora: ahora ? m.instante(ahora.slice(0, 10), ahora.slice(11).padStart(5, '0'), ZONA) : null,
     verContexto: process.argv.includes('--contexto'),
+    verIa: process.argv.includes('--ia'),
   };
   const veces = Number(argumento('--veces') || 1);
 

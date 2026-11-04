@@ -872,7 +872,8 @@ La Peluquería Mechas (demo) pasó a gpt-5.5 el 04/11/2026. Con gpt-4o, a
 «jueves por la tarde» y luego «otro día más pronto», ofrecía el jueves por la
 mañana teniendo libre el miércoles por la tarde, y con las reglas ya escritas
 seguía fallando alguna de cada dos o tres veces. Con gpt-5.5 el guion de
-`docs/pruebas-bot/peluqueria-mechas.txt` salió bien las 12 pasadas.
+`docs/pruebas-bot/peluqueria-mechas.txt` salió bien las 12 pasadas. La Clínica
+Dental Muelas, el mismo día y por lo mismo (`docs/demo-clinica-dental-muelas.md`, §5).
 
 **Probar antes de desplegar**: `scripts/simular-conversacion.js` ejecuta el
 `jsCode` de estos nodos (y el motor de agenda) con los datos reales del cliente

@@ -118,9 +118,37 @@ estáis», «qué son los selladores», «habláis valenciano») o que tocan dos
 el de medicación). Las ocho sin respuesta no recuperan nada que permita
 inventarla.
 
-**Lo que no se ha probado todavía** es la conversación de punta a punta con el
-bot de n8n, porque la clínica aún no tiene número. Es lo primero que hay que
-hacer en cuanto lo tenga, con el guion de abajo.
+## 5. Probado de punta a punta con el simulador (04/11/2026)
+
+Con las tarjetas ya en la calle, el bot se pasó por
+`scripts/simular-conversacion.js` con 12 conversaciones (`docs/pruebas-bot/clinica-dental-muelas.txt`):
+el guion de la demo, dolor, flemón, ortodoncia en un día sin ortodoncista,
+niño, limpieza con quien no la hace, usted, cambiar y anular cita, franja
+cerrada, Sintrom y «¿eres un bot?». Lo que falló y cómo quedó:
+
+- **«a las 6» se leía como las 06:00**, y era el paso 4 del guion. La hora
+  escrita manda sobre la de la IA, y no sabía que «a las 5» para una cita son
+  las 17:00. Ahora de 1 a 7 es por la tarde salvo «de la mañana», y entiende
+  «y media», «y cuarto» y «menos cuarto» (motor y bot).
+- **«¿Y un implante?» llevaba a horas de cirugía** (Javier, 90 min) en vez de
+  a la primera visita. Las palabras de los tratamientos que pasan antes por
+  presupuesto (implante, carillas, corona, funda, endodoncia, dentadura,
+  prótesis) son ahora alias de **Primera visita** en el CSV; el tratamiento se
+  sigue reservando por su nombre exacto. «Se me ha caído una funda» va a
+  Urgencia.
+- **«Pásamela al jueves por la tarde» contestaba «¿para qué día y a qué
+  hora?»**. Con el día y sin la hora, el motor da ya 2 o 3 horas de ese día y
+  de esa franja.
+- **Al confirmar la primera visita no recordaba el DNI**: la confirmación la
+  escribe la agenda. La IA lo deja en `nota_cita` y va debajo.
+- **Avisaba al equipo al anular** por una contradicción del prompt («cambiar o
+  anular sí puedes» y, más abajo, «avisa si quieren cambiar o anular»).
+- **No trataba de usted** a «Buenos días, quisiera...»: el prompt nombra ya esas
+  fórmulas.
+- Y la demo pasa a **gpt-5.5**: con gpt-4o, aun con todo lo anterior, se
+  inventaba que una hora estaba ocupada o se equivocaba de día.
+
+Tras los cambios, las 12 conversaciones salen bien dos veces seguidas.
 
 ---
 
@@ -162,8 +190,9 @@ Lo que conviene tener preparado porque lo van a preguntar:
   escribirlos igualmente, y la conversación queda en el panel. Antes de un
   cliente real hay que cerrar con él el encargo de tratamiento y el aviso de
   privacidad del WhatsApp.
-- **No cambia ni anula citas por chat**, igual que en la peluquería: lo pasa a
-  recepción, que lo hace desde el panel.
+- **Cambia y anula citas por chat** (desde la migración `0021`): busca la que
+  tiene esa persona, la mueve a la hora nueva o pregunta si de verdad quiere
+  anularla, y avisa a la clínica. Lo que no toca es nada más de la cita.
 - **No se conecta con su software de gestión** (Gesden, Clinic Cloud y
   similares). La agenda es la del panel. Es la primera objeción seria que hará
   una clínica que ya tiene programa, y la respuesta honesta hoy es esa.
@@ -194,8 +223,13 @@ Cómo se da de alta una línea (para la próxima demo sectorial):
    `app/src/lib/web/demos.ts`): el 30/09/2026 Meta rechazó los tres
    `Kivuk Demo <sector>` porque no aparecían en `agenciakivuk.com`, y el
    15/10/2026 constaban rechazados también los `Agencia Kivuk Demo <sector>`,
-   ya publicados: a la marca solo se le puede añadir «Demo»/«Test», una región
-   o un departamento, y el sector es una palabra de más. El estado se ve con la
+   ya publicados. Se probó entonces `Agencia Kivuk Demo` a secas, también
+   publicado en la web, y el 26/10/2026 constaba **rechazado igual**: el sector
+   no era la causa, y Meta no dice cuál es. Se aprobó el 28/10/2026 tras
+   **apelar** en business.facebook.com/direct-support («Appeal Display Name
+   Rejection»). Un nombre aprobado no sale en WhatsApp hasta que se **vuelve a
+   registrar** el número: el paso 3 de abajo otra vez, con el mismo PIN (es
+   idempotente). El estado se ve con la
    API (`name_status`, `new_name_status`, `new_display_name` del número).
 3. `node scripts/activar-numero-demo.js "<cliente>" <phone_number_id> <pin> --aplicar`
    lo registra, suscribe la app a la WABA y lo pone en el cliente. El

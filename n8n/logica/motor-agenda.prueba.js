@@ -447,6 +447,23 @@ comprobar('un servicio que no existe se sigue diciendo', r.estado === 'servicio_
 r = m.resolver(CTX, { accion: 'comprobar', servicios: ['corte'], fecha: '2026-09-15', hora: "17h30" }, MARTES);
 comprobar('"17h30" se entiende como 17:30', r.hora === '17:30', r.hora);
 
+// Las horas como se dicen (04/11/2026): «a las 6» para una cita son las 18:00.
+[
+  ['a las 6', '18:00'], ['el martes a las 5 vale', '17:00'], ['a las 10', '10:00'],
+  ['a las 5 y media', '17:30'], ['a las 7 de la mañana', '07:00'], ['a las 8 de la tarde', '20:00'],
+  ['a las 6 menos cuarto', '17:45'], ['hoy a las 16h', '16:00'], ['a las 12', '12:00'], ['el 4.08', null],
+].forEach(function (c) {
+  comprobar('«' + c[0] + '» son las ' + c[1], m.horaDelTexto(c[0]) === c[1], String(m.horaDelTexto(c[0])));
+});
+
+// Con el día pero sin la hora, se le dan horas de ese día (y de su franja) en
+// vez de preguntarle otra vez «¿para qué día y a qué hora?».
+comprobar('horas propuestas separadas y de tarde',
+  m.horasPropuestas(['10:00', '10:15', '16:00', '16:15', '16:30', '17:00', '17:15', '18:30'], 'el jueves por la tarde').join(',') === '16:00,17:00,18:30',
+  m.horasPropuestas(['10:00', '10:15', '16:00', '16:15', '16:30', '17:00', '17:15', '18:30'], 'el jueves por la tarde').join(','));
+r = m.resolver(CTX, { accion: 'reservar', servicios: ['corte'], fecha: '2026-09-17', texto: 'el jueves por la tarde' }, MARTES);
+comprobar('reservar sin hora da horas de ese día', /^El jueves 17-09-2026 tengo libre a las 16:00, 17:00 o 18:00\. ¿Cuál te va bien\?$/.test(r.mensaje), r.mensaje);
+
 // Fuera de la ventana no es "ocupado": es que todavía no llega.
 r = m.resolver(CTX, { accion: 'comprobar', fecha: '2026-12-20', hora: '17:00' }, MARTES);
 comprobar('una fecha lejana no se dice como ocupada', r.estado === 'fuera_de_ventana', r.estado);
@@ -535,6 +552,10 @@ var CTXM = ctxConLaCita();
 
 r = m.resolver(CTXM, { accion: 'mover', citas: [], fecha: '2026-09-17', hora: '10:00' }, MARTES);
 comprobar('sin cita que mover, lo pasa a una persona', r.estado === 'sin_cita' && r.escalar === true, r.estado);
+
+// Moverla a donde ya está no es un cambio (04/11/2026).
+r = m.resolver(CTXM, { accion: 'mover', confirmar: true, citas: [LA_CITA], fecha: '2026-09-16', hora: '17:00' }, MARTES);
+comprobar('moverla a su misma hora no la cambia', r.estado === 'sin_cambio' && /ya está el miércoles 16-09-2026 a las 17:00 con Ana/.test(r.mensaje), r.estado + ' ' + r.mensaje);
 
 r = m.resolver(CTXM, {
   accion: 'mover',
