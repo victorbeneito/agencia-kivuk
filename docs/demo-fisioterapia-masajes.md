@@ -110,8 +110,23 @@ recibe el bot en todas. Las cinco que aciertan en segundo lugar son preguntas de
 precio cuyo tema tiene documento propio («¿cuánto vale la punción seca?» trae
 antes el de qué es la punción que el de precios).
 
-Como en la clínica dental, **falta probar la conversación de punta a punta**
-con el bot de n8n, cuando llegue su número.
+## 5. Probado de punta a punta con el simulador (05/11/2026)
+
+12 conversaciones en `docs/pruebas-bot/clinica-fisioterapia-masajes.txt`: el
+guion de la demo, la señal de alarma, masaje relajante el sábado, pilates en
+grupo, suelo pélvico tras el parto, masaje con un dolor de semanas, cambiar y
+anular, usted, el bono, las 20:30 y la punción seca. Con gpt-5.5 salen bien,
+después de esto:
+
+- **Tras reservar, ofrecía otra cita a la misma hora**: a «¿y los ejercicios
+  para la ciática?» contestó «el jueves a las 19:00 con Nuria está libre, ¿te
+  la reservo?». La IA arrastraba fecha y hora. Pasaba en todas las demos (un
+  «gracias» bastaba). Ahora una hora ya confirmada en la conversación no se
+  vuelve a comprobar ni a reservar (`Decidir acción`), y la IA lo sabe.
+- **Punción seca sin indicación**: una de cada dos veces la reservaba
+  directamente. El prompt dice ya que pregunte antes si está en tratamiento.
+- La contradicción de cambiar/anular y el usted, igual que en la dental.
+- Pasa a **gpt-5.5**, como las otras demos.
 
 ---
 

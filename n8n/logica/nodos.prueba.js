@@ -412,6 +412,19 @@ ok("sin servicio se manda igual: lo para el motor, no el bot", d.accion === "res
 ok("y el servicio va vacio, no con un null pegado", d.servicio === "", JSON.stringify(d.servicio));
 ok("y la lista de servicios, vacia", Array.isArray(d.servicios) && d.servicios.length === 0, JSON.stringify(d.servicios));
 
+// Una cita ya dada no se vuelve a comprobar: a «¿y los ejercicios?» justo
+// despues de reservar, la IA arrastraba fecha y hora y el bot ofrecia otra
+// cita a la misma hora con otra persona (demo fisio, 05/11/2026).
+const CONFIRMADA = "¡Listo! Tu cita queda confirmada para el viernes 18-09-2026 a las 17:00 con Ana (Mechas medio casco).";
+d = decidir(Object.assign({}, PIDE, { confirmar: false }), "y los ejercicios cuales son?", true, CONFIRMADA);
+ok("la cita ya confirmada no se vuelve a comprobar", d.accion === "ninguna", d.accion);
+d = decidir(PIDE, "gracias!", true, CONFIRMADA);
+ok("ni a reservar otra vez", d.accion === "ninguna", d.accion);
+d = decidir(Object.assign({}, PIDE, { date: "2026-09-19" }), "y otra el sabado a las 5 para mi hija", true, CONFIRMADA);
+ok("otra cita a otra hora si se da", d.accion === "reservar", d.accion);
+d = decidir(Object.assign({}, PIDE, { cambiar_cita: true }), "cambiamela a las 5", true, CONFIRMADA);
+ok("y cambiarla sigue siendo cambiarla", d.accion === "mover", d.accion);
+
 // «Color y mechas»: dos cosas en la misma cita (peluqueria, 03/11/2026).
 d = decidir(Object.assign({}, PIDE, { servicio: ["Retoque de raíz", " Mechas medio casco ", null] }), "raiz y mechas el viernes a las 5");
 ok("varios servicios viajan todos en la lista", d.servicios.join("|") === "Retoque de raíz|Mechas medio casco", JSON.stringify(d.servicios));

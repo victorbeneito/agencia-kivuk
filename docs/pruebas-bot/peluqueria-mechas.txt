@@ -48,6 +48,8 @@ buenas, quiero cortarme el pelo mañana por la mañana
 # Debe: horas concretas del jueves por la mañana
 a las 10 vale
 # Debe: cita confirmada el jueves a las 10:00 (Corte)
+genial, gracias!
+# Debe: de nada, y NADA de ofrecer otra cita ni «¿te la reservo?»
 ---
 # 6. Una franja cerrada
 @ahora 2026-11-04 10:00

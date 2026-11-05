@@ -50,6 +50,8 @@ vale, con Carla entonces, mañana por la mañana
 # Debe: horas concretas de mañana jueves por la mañana con Carla
 a las 10
 # Debe: limpieza confirmada el jueves a las 10:00 con Carla
+perfecto gracias
+# Debe: de nada, y NADA de ofrecer otra cita ni «¿te la reservo?»
 ---
 # 7. De usted
 @ahora 2026-11-04 10:30

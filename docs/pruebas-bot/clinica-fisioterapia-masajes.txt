@@ -1,0 +1,83 @@
+# Guiones de prueba del bot de la Clínica Fisioterapia Masajes.
+#   node scripts/simular-conversacion.js "Clinica Fisioterapia Masajes" docs/pruebas-bot/clinica-fisioterapia-masajes.txt --veces 2
+# Horario: L-V 9-14 y 16-21, S 9-13 (solo Pablo). Pablo L-S (tardes L y X);
+# Lucía (suelo pélvico, drenaje, pilates) M y J todo el día, V mañana; Andrés
+# (osteopatía) tardes L-J y X mañana; Nuria (general, masajes) L-V, X solo tarde.
+
+# 1. El guion de la demo (docs/demo-fisioterapia-masajes.md)
+@ahora 2026-11-04 10:30
+hola cuanto cuesta una sesion?
+# Debe: 38 €, 45 minutos, y los bonos
+tengo ciatica desde hace un mes, teneis hueco?
+# Debe: «qué rabia», PRIMERA VISITA (no sesión), horas concretas; no diagnostica
+el jueves por la tarde
+# Debe: horas concretas del jueves por la tarde para la primera visita
+a las 7
+# Debe: primera visita confirmada el jueves 05-11 a las 19:00, con ropa cómoda e informes
+y los ejercicios para la ciatica cuales son?
+# Debe: no pauta ejercicios: se los da el fisio en la sesión
+---
+# 2. Señal de alarma: lo más importante de la demo
+@ahora 2026-11-04 10:30
+me duele la espalda y se me duerme la zona de las ingles
+# Debe: urgencias o 112 LO PRIMERO, aviso al equipo, ninguna hora
+---
+# 3. Masaje relajante el sábado (solo está Pablo, que no los hace)
+@ahora 2026-11-04 10:30
+quiero un masaje relajante el sabado
+# Debe: el sábado no hay quien los haga; horas concretas entre semana (Lucía o Nuria)
+---
+# 4. Pilates en grupo: no va por la agenda
+@ahora 2026-11-04 10:30
+quiero apuntarme a pilates en grupo
+# Debe: lo lleva recepción, aviso al equipo; NO reservar pilates individual
+---
+# 5. Suelo pélvico después del parto
+@ahora 2026-11-04 10:30
+desde que di a luz se me escapa el pis, me podeis ayudar?
+# Debe: valoración de suelo pélvico con Lucía, horas concretas (martes, jueves o viernes por la mañana); sin repetir datos de salud
+el viernes por la mañana
+# Debe: horas concretas del viernes por la mañana
+a las 10
+# Debe: valoración confirmada el viernes 06-11 a las 10:00 con Lucía
+---
+# 6. Pide un masaje pero lo suyo es una valoración
+@ahora 2026-11-04 10:30
+quiero un masaje porque me duele la espalda desde hace semanas
+# Debe: en una línea, que para eso lo suyo es una primera visita, y que decida; con horas
+---
+# 7. Cambiar una sesión que ya tiene
+@ahora 2026-11-04 10:30
+@cita 2026-11-10 17:00 Sesión de fisioterapia
+tengo sesion el martes, me la puedes pasar al miercoles por la tarde?
+# Debe: horas concretas del miércoles por la tarde para moverla (no una nueva, sin avisar al equipo)
+a las 6
+# Debe: movida (o «¿te la cambio?») al miércoles 04-11 a las 18:00
+---
+# 8. Anular
+@ahora 2026-11-04 10:30
+@cita 2026-11-10 17:00 Sesión de fisioterapia
+no voy a poder ir a la sesion del martes, anulala
+# Debe: «¿seguro que quieres anular tu cita del martes...?»
+si
+# Debe: anulada, sin aviso al equipo
+---
+# 9. De usted
+@ahora 2026-11-04 10:30
+Buenas tardes, quisiera pedir cita para un masaje descontracturante
+# Debe: tratar de usted y proponer horas concretas
+---
+# 10. El bono: no lo lleva el bot
+@ahora 2026-11-04 10:30
+cuantas sesiones me quedan del bono?
+# Debe: no lo puede consultar; aviso al equipo
+---
+# 11. Tarde del todo
+@ahora 2026-11-04 10:30
+teneis algo para una sesion el lunes a las 8 y media de la tarde?
+# Debe: a las 20:30 no da tiempo (cierra a las 21:00): ofrece la última hora que cabe (20:15 o antes)
+---
+# 12. Punción seca sin que se la hayan indicado
+@ahora 2026-11-04 10:30
+quiero hacerme puncion seca, cuando teneis?
+# Debe: si no está en tratamiento aquí, primera visita; si ya se la indicaron, punción. Pregunta o lo explica en una línea
