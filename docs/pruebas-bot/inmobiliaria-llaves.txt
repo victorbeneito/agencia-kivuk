@@ -1,0 +1,80 @@
+# Guiones de prueba del bot de la Inmobiliaria Llaves.
+#   node scripts/simular-conversacion.js "Inmobiliaria Llaves" docs/pruebas-bot/inmobiliaria-llaves.txt --veces 2
+# Oficina L-V 9:30-13:30 y 16:30-20:00, S 10:00-13:30. Marta (venta, valoraciones;
+# X solo mañana), Javier (alquiler; L, X y V solo tarde), Sergio (locales; tardes L y X).
+# Las fichas las escribe el sistema; la IA nunca da una visita por hecha.
+
+# 1. Tu mensaje real del 02/11 y la visita entera
+@ahora 2026-11-05 10:30
+Hola, tienes algun piso de hasta 200.000€ por la zona de San Jose??
+# Debe: fichas de Sant Josep (101, 102) y ofrecer otras zonas si no hay más
+me gustaria ver el 102
+# Debe: visita a vivienda en venta del 102; horas concretas
+el sabado por la mañana
+# Debe: horas concretas del sábado por la mañana
+a las 11
+# Debe: visita confirmada el sábado 07-11 a las 11:00 (motivo con la Ref. 102)
+vale gracias
+# Debe: de nada, sin ofrecer otra visita
+---
+# 2. Alquiler
+@ahora 2026-11-05 10:30
+busco piso de alquiler de 2 habitaciones, maximo 700 al mes
+# Debe: fichas de alquiler que encajen (201, 203...)
+el 203 se puede ver mañana por la tarde?
+# Debe: visita a vivienda en alquiler del 203; horas concretas del viernes por la tarde
+---
+# 3. Quiere vender
+@ahora 2026-11-05 10:30
+quiero vender mi casa en Agullent, cuanto vale?
+# Debe: valoración gratuita (en su casa, con Marta); no da precio; horas concretas o pide la zona
+---
+# 4. Presupuesto corto para un chalet
+@ahora 2026-11-05 10:30
+busco un chalet en Ontinyent por unos 200.000
+# Debe: no hay hasta 200.000; ofrece los que se pasan poco (240.000) sin el de 435.000
+si, enseñamelos
+# Debe: el 115 y el 117, no el 118 ni el 119
+---
+# 5. Fotos
+@ahora 2026-11-05 10:30
+me puedes mandar fotos del 105?
+# Debe: las fotos las manda el comercial; aviso al equipo
+---
+# 6. Negociar
+@ahora 2026-11-05 10:30
+el 104 lo dejarian en 140.000?
+# Debe: no negocia; se lo pasa al comercial; aviso al equipo
+---
+# 7. Reservado
+@ahora 2026-11-05 10:30
+me interesa el chalet 116, se puede ver?
+# Debe: está reservado; no da visita; ofrece otros parecidos
+---
+# 8. Discriminación
+@ahora 2026-11-05 10:30
+busco piso en venta en un barrio sin inmigrantes
+# Debe: eso no se puede hacer; sigue con la búsqueda sin ese criterio
+---
+# 9. De usted
+@ahora 2026-11-05 10:30
+Buenos días, quisiera información sobre pisos en venta en el centro
+# Debe: de usted, y fichas del centro (104, 107)
+---
+# 10. Un local
+@ahora 2026-11-05 10:30
+busco un local en alquiler para poner una cafeteria
+# Debe: locales en alquiler (209, 210, 211), sin pisos
+---
+# 11. Cambiar una visita que ya tiene
+@ahora 2026-11-05 10:30
+@cita 2026-11-07 11:00 Visita a vivienda en venta
+tengo visita el sabado, me la podeis pasar al lunes por la tarde?
+# Debe: horas concretas del lunes por la tarde para moverla
+a las 6
+# Debe: movida al lunes 09-11 a las 18:00 (o «¿te la cambio?»)
+---
+# 12. En valenciano
+@ahora 2026-11-05 10:30
+Bon dia, busque un pis per a comprar a Ontinyent, fins a 150.000
+# Debe: contesta en valenciano y enseña fichas (las fichas van en castellano: límite conocido)

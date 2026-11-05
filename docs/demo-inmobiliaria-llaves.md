@@ -17,7 +17,7 @@ casar «casa» con cualquier saludo, la misma trampa que tuvo la fisioterapia
 | Dónde viven y cómo los busca el bot | `0025_inmuebles.sql`, `whatsapp-bot.json`, `scripts/cargar-inmuebles.js` | en producción desde el 05/10/2026 |
 | Comerciales, horario y tipos de visita | `scripts/montar-demo-inmobiliaria.js`, `docs/servicios-inmobiliaria-llaves.csv` | montado el 06/10/2026 |
 | Prompt, conocimiento (16 documentos) y batería de 67 preguntas | `docs/prompt-inmobiliaria-llaves.md`, `docs/conocimiento-inmobiliaria-llaves.md`, `docs/preguntas-inmobiliaria-llaves.txt` | cargados el 06/10/2026 |
-| Número y tarjeta en la web | eSIM **+34 623 81 04 54** (`wa.me/34623810454`), nombre visible «Agencia Kivuk Demo Inmobiliaria»; tarjeta en `app/src/lib/web/demos.ts`, QR y tarjeta A6 en `docs/material-venta/demos/` | tarjeta hecha el 06/10/2026; falta el alta en Meta |
+| Número y tarjeta en la web | eSIM **+34 623 81 04 54** (`wa.me/34623810454`), nombre visible «Agencia Kivuk Demo Inmobiliaria»; tarjeta en `app/src/lib/web/demos.ts`, QR y tarjeta A6 en `docs/material-venta/demos/` (PDF para imprimir: `tarjetas-inmobiliaria-a4.pdf`, cuatro por folio, y `tarjeta-inmobiliaria-imprenta.pdf`, con sangrado) | tarjeta hecha el 06/10/2026, PDF el 15/10/2026; falta el alta en Meta |
 
 ---
 
@@ -270,9 +270,23 @@ La misma conversación, ahora:
    te he enseñado»* y la propuesta de aflojar algo o pasarle la búsqueda a un
    comercial, sin el de 560.000.
 
+**Revisión con el simulador (05/11/2026).** 12 conversaciones en
+`docs/pruebas-bot/inmobiliaria-llaves.txt` (la visita entera, alquiler,
+valoración, chalet con poco presupuesto, fotos, negociar, el 116, el filtro
+de «sin inmigrantes», usted, un local, cambiar la visita y valenciano). Pasa a
+**gpt-5.5**, como las otras demos, y con él salieron dos cosas:
+
+- **«¿Algún piso de hasta 200.000 € por San José?» → «¿comprar o alquilar?»**,
+  y a «sí, enséñamelos», la misma pregunta. Era el mensaje real del 02/11.
+  gpt-5.5 cumplía a rajatabla «antes de buscar necesitas saber si es para
+  comprar o alquilar». Ahora el presupuesto lo dice: miles de euros es comprar;
+  cientos al mes, alquilar (`Preparar contexto` y el prompt).
+- **«Pisos en venta en el centro» enseñaba el centro de Albaida y L'Olleria.**
+  Sin pueblo, «el centro» es el de Ontinyent (prompt).
+
 **Límite conocido:** las fichas y los cierres del sistema van en castellano
 aunque la persona escriba en valenciano. El bot conversa en su idioma, pero la
-lista no.
+lista no. Y van de tú aunque la persona escriba de usted.
 
 ### Lo que falta para un cliente de verdad
 
