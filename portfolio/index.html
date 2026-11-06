@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Victor Beneito, desarrollador full-stack: tienda online a medida con panel de administración, plataforma SaaS con asistentes de IA en WhatsApp, agenda y facturación, y chat con IA para e-commerce.">
+<meta name="robots" content="noindex">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://victor.agenciakivuk.com/">
+<meta property="og:title" content="Victor Beneito · Portfolio">
+<meta property="og:description" content="Victor Beneito, desarrollador full-stack: tienda online a medida con panel de administración, plataforma SaaS con asistentes de IA en WhatsApp, agenda y facturación, y chat con IA para e-commerce.">
+<meta property="og:image" content="https://victor.agenciakivuk.com/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Victor Beneito · Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@600;700;800&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: dossier de obra, alineado a la izquierda. Cada proyecto = hoja de contactos
+   (capturas reales) + mapa de módulos + bitácora de commits reales. */
+:root {
+  --paper: #F4F6F4;
+  --surface: #FFFFFF;
+  --ink: #142429;
+  --muted: #56676C;
+  --line: #D8E0DD;
+  --accent: #0E6B66;
+  --accent-soft: #DDEEEB;
+  --mark: #E8B64A;
+  --f-display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Hanken Grotesk", "Segoe UI", Roboto, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --wrap: 1120px;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E1618; --surface: #142024; --ink: #E4ECEA; --muted: #95A6A8;
+    --line: #25363A; --accent: #55B9AF; --accent-soft: #173431; --mark: #D9A73C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E1618; --surface: #142024; --ink: #E4ECEA; --muted: #95A6A8;
+  --line: #25363A; --accent: #55B9AF; --accent-soft: #173431; --mark: #D9A73C;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: 17px; line-height: 1.6;
+  padding-inline: 20px; padding-block: 0 64px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: var(--wrap); margin-inline: auto; }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.08; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+.eyebrow {
+  font-family: var(--f-mono); font-size: 12.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Cabecera ---------- */
+.top {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+  flex-wrap: wrap; padding-block: 28px 0;
+}
+.top .who { font-family: var(--f-display); font-weight: 700; font-size: 18px; }
+.top nav { display: flex; gap: 20px; flex-wrap: wrap; font-size: 15px; }
+.top nav a { color: var(--muted); text-decoration: none; }
+.top nav a:hover { color: var(--ink); }
+
+.hero { padding-block: 72px 56px; display: grid; gap: 28px; }
+.hero h1 { font-size: clamp(38px, 6.2vw, 72px); font-weight: 800; letter-spacing: -0.02em; max-width: 15ch; }
+.hero h1 .hl { background: linear-gradient(transparent 62%, var(--mark) 62%, var(--mark) 90%, transparent 90%); }
+.hero .lede { font-size: clamp(18px, 2.1vw, 21px); color: var(--muted); max-width: 62ch; }
+.hero .lede strong { color: var(--ink); font-weight: 600; }
+
+.facts {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.facts div { padding: 20px 18px 18px 0; display: grid; gap: 4px; }
+.facts div + div { padding-left: 18px; border-left: 1px solid var(--line); }
+.facts b { font-family: var(--f-display); font-size: 30px; font-weight: 700; line-height: 1; }
+.facts span { font-size: 14.5px; color: var(--muted); line-height: 1.4; }
+@media (max-width: 760px) {
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .facts div:nth-child(3) { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+  .facts div:nth-child(4) { border-top: 1px solid var(--line); }
+}
+
+/* ---------- Qué construyo ---------- */
+section { padding-block: 64px 0; }
+.sec-head { display: grid; gap: 10px; margin-bottom: 28px; }
+.sec-head h2 { font-size: clamp(28px, 3.6vw, 40px); font-weight: 700; letter-spacing: -0.01em; }
+.sec-head p { color: var(--muted); max-width: 64ch; }
+
+.offer { border-top: 1px solid var(--line); }
+.offer-row {
+  display: grid; grid-template-columns: 260px minmax(0, 1fr) 200px; gap: 24px;
+  padding-block: 20px; border-bottom: 1px solid var(--line); align-items: baseline;
+}
+.offer-row h3 { font-size: 20px; font-weight: 700; }
+.offer-row p { color: var(--muted); font-size: 16px; }
+.offer-row .proof { font-family: var(--f-mono); font-size: 12.5px; color: var(--accent); line-height: 1.5; }
+@media (max-width: 820px) {
+  .offer-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+}
+
+/* ---------- Proyecto ---------- */
+.project { padding-block: 88px 0; }
+.p-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px 40px; align-items: end; margin-bottom: 32px; }
+.p-head h2 { font-size: clamp(32px, 4.6vw, 54px); font-weight: 800; letter-spacing: -0.02em; }
+.p-head .kind { margin-bottom: 12px; }
+.p-head .lede { color: var(--muted); max-width: 60ch; margin-top: 16px; font-size: 18px; }
+.p-head .live {
+  font-family: var(--f-mono); font-size: 13px; display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; text-decoration: none;
+  background: var(--surface); white-space: nowrap;
+}
+.p-head .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #2E9E5B; }
+@media (max-width: 760px) { .p-head { grid-template-columns: minmax(0, 1fr); } }
+
+/* Hoja de contactos */
+.sheet { display: grid; grid-template-columns: minmax(0, 1fr) 228px; gap: 20px; align-items: start; }
+.sheet .stack-shots { display: grid; gap: 20px; min-width: 0; }
+.shot { margin: 0; min-width: 0; }
+.browser {
+  border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface);
+  box-shadow: 0 1px 2px rgba(20, 36, 41, .06), 0 12px 32px -18px rgba(20, 36, 41, .35);
+}
+.browser .bar {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-bottom: 1px solid var(--line); font-family: var(--f-mono); font-size: 12px; color: var(--muted);
+}
+.browser .bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); display: inline-block; }
+.browser .bar .url { margin-left: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.browser img { display: block; width: 100%; height: auto; }
+.phone {
+  border: 1px solid var(--line); border-radius: 26px; padding: 8px; background: var(--surface);
+  box-shadow: 0 12px 32px -18px rgba(20, 36, 41, .35); max-width: 228px;
+}
+.phone img { display: block; width: 100%; height: auto; border-radius: 19px; }
+figcaption { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+.two-shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 860px) {
+  .sheet { grid-template-columns: minmax(0, 1fr); }
+  .phone { margin-inline: auto; }
+}
+@media (max-width: 560px) { .two-shots { grid-template-columns: minmax(0, 1fr); } }
+.inside { display: grid; gap: 20px; margin-top: 40px; }
+.three-shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 860px) { .three-shots { grid-template-columns: minmax(0, 1fr); } }
+
+/* Cifras del proyecto */
+.p-figs { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-block: 36px 8px; padding-block: 16px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.p-figs div { display: flex; align-items: baseline; gap: 8px; }
+.p-figs b { font-family: var(--f-display); font-weight: 700; font-size: 22px; }
+.p-figs span { color: var(--muted); font-size: 14.5px; }
+
+/* Mapa de módulos */
+.modules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 36px; border-top: 2px solid var(--ink); }
+.mod { padding: 20px 22px 22px 0; display: grid; gap: 8px; align-content: start; border-bottom: 1px solid var(--line); }
+.mod:not(:nth-child(3n+1)) { padding-left: 22px; border-left: 1px solid var(--line); }
+.mod h3 { font-size: 18px; font-weight: 700; }
+.mod ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15.5px; display: grid; gap: 4px; }
+.mod ul li::marker { color: var(--accent); }
+@media (max-width: 900px) {
+  .modules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mod:not(:nth-child(3n+1)) { padding-left: 0; border-left: 0; }
+  .mod:nth-child(2n) { padding-left: 22px; border-left: 1px solid var(--line); }
+}
+@media (max-width: 600px) {
+  .modules { grid-template-columns: minmax(0, 1fr); }
+  .mod:nth-child(2n) { padding-left: 0; border-left: 0; }
+}
+
+/* Detalle técnico + bitácora */
+.deep { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; margin-top: 44px; }
+@media (max-width: 860px) { .deep { grid-template-columns: minmax(0, 1fr); } }
+.deep h3 { font-size: 15px; font-family: var(--f-mono); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+.decisions { display: grid; gap: 14px; }
+.decisions p { font-size: 16px; }
+.decisions p strong { font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.chip { font-family: var(--f-mono); font-size: 12.5px; padding: 4px 10px; border-radius: 6px; background: var(--accent-soft); color: var(--ink); }
+
+.log { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.log ol { list-style: none; margin: 0; padding: 0; }
+.log li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.45; }
+.log li:last-child { border-bottom: 0; }
+.log time { font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); padding-top: 1px; }
+.log .msg { font-family: var(--f-mono); font-size: 13px; }
+.log .foot { padding: 10px 16px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); background: var(--paper); }
+
+/* ---------- Cómo trabajo / contacto ---------- */
+.how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+.how div { display: grid; gap: 8px; align-content: start; padding-top: 16px; border-top: 2px solid var(--ink); }
+.how h3 { font-size: 19px; font-weight: 700; }
+.how p { color: var(--muted); font-size: 16px; }
+@media (max-width: 820px) { .how { grid-template-columns: minmax(0, 1fr); } }
+
+.stack-table { width: 100%; border-collapse: collapse; font-size: 15.5px; }
+.stack-wrap { overflow-x: auto; }
+.stack-table th { text-align: left; font-weight: 600; padding: 12px 24px 12px 0; vertical-align: top; white-space: nowrap; width: 200px; }
+.stack-table td { padding: 12px 0; color: var(--muted); border-bottom: 1px solid var(--line); }
+.stack-table th { border-bottom: 1px solid var(--line); }
+
+.contact {
+  margin-top: 88px; padding: 36px; border-radius: var(--r);
+  background: var(--ink); color: var(--paper);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end;
+}
+.contact h2 { font-size: clamp(26px, 3.4vw, 38px); font-weight: 800; }
+.contact p { color: color-mix(in srgb, var(--paper) 75%, transparent); margin-top: 10px; max-width: 54ch; }
+.contact .links { display: grid; gap: 8px; font-family: var(--f-mono); font-size: 14px; }
+.contact .links a { color: var(--paper); }
+@media (max-width: 760px) { .contact { grid-template-columns: minmax(0, 1fr); padding: 26px 22px; } }
+
+footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .browser, .phone { transition: transform .25s ease; }
+  .browser:hover, .phone:hover { transform: translateY(-2px); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="who">Victor Beneito</div>
+    <nav aria-label="Secciones">
+      <a href="#tienda">E-commerce</a>
+      <a href="#kivuk">Plataforma Kivuk</a>
+      <a href="#chat">Chat con IA</a>
+      <a href="#trabajo">Cómo trabajo</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <div class="eyebrow">Desarrollador full-stack · España · en remoto</div>
+    <h1>Software de gestión que ya <span class="hl">funciona en producción</span>.</h1>
+    <p class="lede">
+      Diseño, programo y despliego aplicaciones completas para pequeños negocios:
+      <strong>tiendas online con su panel de administración, apps de gestión, portales de cliente,
+      agenda y citas, facturación y cobros, y automatizaciones con IA</strong> sobre WhatsApp.
+      Abajo están los tres sistemas que he construido de principio a fin y que hoy usan negocios reales.
+    </p>
+    <div class="facts">
+      <div><b class="num">3</b><span>sistemas completos en producción, hechos por mí</span></div>
+      <div><b class="num">690</b><span>productos vendiéndose en la tienda a medida</span></div>
+      <div><b class="num">363</b><span>commits en 2026 entre los tres proyectos</span></div>
+      <div><b class="num">6</b><span>formas de pago integradas: tarjeta, Bizum, PayPal, SEPA, transferencia y contrareembolso</span></div>
+    </div>
+  </div>
+
+  <section aria-labelledby="que">
+    <div class="sec-head">
+      <div class="eyebrow">Qué puedo construir</div>
+      <h2 id="que">Cada tipo de encargo, con su prueba</h2>
+      <p>Nada de esto es una maqueta: cada línea apunta a una parte que está funcionando.</p>
+    </div>
+    <div class="offer">
+      <div class="offer-row">
+        <h3>Apps de gestión internas</h3>
+        <p>Pedidos con estados e historial, inventario y variantes, clientes, facturas, cupones, transportes, equipo con roles. Sustituyen la hoja compartida.</p>
+        <div class="proof">→ Panel de la tienda<br>→ Panel de agencia Kivuk</div>
+      </div>
+      <div class="offer-row">
+        <h3>Portales y áreas privadas</h3>
+        <p>Cada cliente entra con su usuario y ve solo lo suyo: conversaciones, citas, facturas, contenido. Aislamiento de datos en la propia base de datos.</p>
+        <div class="proof">→ Portal del cliente Kivuk<br>→ Área de cliente de la tienda</div>
+      </div>
+      <div class="offer-row">
+        <h3>Reservas, agenda y citas</h3>
+        <p>Varios profesionales, servicios con duración, bloqueos, recordatorios automáticos y reservas por chat sin dobles reservas.</p>
+        <div class="proof">→ Agenda Kivuk</div>
+      </div>
+      <div class="offer-row">
+        <h3>Asistentes y chats con IA</h3>
+        <p>Atienden con la información real del negocio, recomiendan productos, dan citas y pasan a una persona cuando hace falta. En WhatsApp o en la propia web.</p>
+        <div class="proof">→ Asistente Kivuk (WhatsApp)<br>→ Chat de la tienda</div>
+      </div>
+      <div class="offer-row">
+        <h3>Integraciones y automatizaciones</h3>
+        <p>Pagos (Redsys, PayPal, Stripe), WhatsApp Business, Google Calendar, Odoo, correo transaccional, avisos push, webhooks y flujos en n8n.</p>
+        <div class="proof">→ Ambos proyectos</div>
+      </div>
+      <div class="offer-row">
+        <h3>E-commerce a medida</h3>
+        <p>Catálogo, ficha con variantes, carrito, checkout por pasos con invitado, área de cliente, SEO técnico y medición de conversiones.</p>
+        <div class="proof">→ elhogardetusuenos.com</div>
+      </div>
+      <div class="offer-row">
+        <h3>Webs corporativas y landings</h3>
+        <p>Rápidas, adaptadas al móvil, con una sola acción clara y conectadas al resto del sistema.</p>
+        <div class="proof">→ agenciakivuk.com</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PROYECTO 1 ================= -->
+  <article class="project" id="tienda" aria-labelledby="t-tienda">
+    <div class="p-head">
+      <div>
+        <div class="eyebrow kind">Proyecto 1 · E-commerce + panel de administración</div>
+        <h2 id="t-tienda">El Hogar de tus Sueños</h2>
+        <p class="lede">
+          Tienda online de textil para el hogar (estores enrollables, ropa de cama, fundas de sofá).
+          Funcionaba en PrestaShop; la reescribí entera como aplicación propia en Next.js, migrando
+          catálogo, clientes y pedidos sin perder ventas ni posicionamiento.
+        </p>
+      </div>
+      <a class="live" href="https://www.elhogardetusuenos.com" target="_blank" rel="noopener">elhogardetusuenos.com</a>
+    </div>
+
+    <div class="sheet">
+      <div class="stack-shots">
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">elhogardetusuenos.com</span></div>
+            <img src="img/tienda-home.webp" width="1440" height="900" alt="Portada de la tienda El Hogar de tus Sueños con menú de categorías, buscador, carrito y valoración 4,8 de 5" loading="eager">
+          </div>
+        </figure>
+        <div class="two-shots">
+          <figure class="shot">
+            <div class="browser">
+              <div class="bar"><i></i><i></i><i></i><span class="url">/productos</span></div>
+              <img src="img/tienda-listado.webp" width="1440" height="900" alt="Listado de 690 productos con ordenación, paginación y etiquetas de oferta" loading="lazy">
+            </div>
+            <figcaption>Catálogo: 690 productos, ordenación y paginación renderizados en servidor.</figcaption>
+          </figure>
+          <figure class="shot">
+            <div class="browser">
+              <div class="bar"><i></i><i></i><i></i><span class="url">/productos/9698-happystor-…</span></div>
+              <img src="img/tienda-ficha.webp" width="1440" height="900" alt="Ficha de producto con precio rebajado, selector de tamaño y de tirador" loading="lazy">
+            </div>
+            <figcaption>Ficha con variantes por combinación de atributos y precio específico.</figcaption>
+          </figure>
+        </div>
+      </div>
+      <figure class="shot">
+        <div class="phone">
+          <img src="img/tienda-home-movil.webp" width="390" height="844" alt="Portada de la tienda en el móvil" loading="lazy">
+        </div>
+        <figcaption>Adaptada al móvil, con modo claro y oscuro.</figcaption>
+      </figure>
+    </div>
+
+    <div class="inside">
+      <div class="eyebrow">El panel de administración por dentro</div>
+      <figure class="shot">
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i><span class="url">/admin</span></div>
+          <img src="img/tienda-admin-dashboard.webp" width="1600" height="797" alt="Cuadro de mando con selector de periodo, tarjetas de pedidos, clientes nuevos, productos, ventas y ticket medio, gráfico de ventas del mes y mensajes de clientes enlazados a su pedido" loading="lazy">
+        </div>
+        <figcaption>Cuadro de mando: indicadores por periodo, ventas del mes y los mensajes que los clientes dejan en sus pedidos, cada uno enlazado al pedido. Importes difuminados.</figcaption>
+      </figure>
+      <div class="two-shots">
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">/admin · Tráfico</span></div>
+            <img src="img/tienda-admin-trafico.webp" width="1600" height="780" alt="Analítica propia de la tienda: visitantes en línea, visitas del periodo, gráfico de visitas por día, fuentes de tráfico y páginas más visitadas" loading="lazy">
+          </div>
+          <figcaption>Analítica propia: en línea ahora, visitas por día, fuentes y páginas más vistas.</figcaption>
+        </figure>
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">/admin · Pedidos y productos</span></div>
+            <img src="img/tienda-admin-estados.webp" width="1600" height="800" alt="Últimos pedidos con su estado, gráfico de pedidos por estado y análisis de productos más vendidos, más vistos y más buscados" loading="lazy">
+          </div>
+          <figcaption>Pedidos por estado y productos más vendidos, más vistos y más buscados.</figcaption>
+        </figure>
+      </div>
+      <div class="two-shots">
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">/admin/pedidos/PED-2026-0097</span></div>
+            <img src="img/tienda-admin-pedido.webp" width="1600" height="759" alt="Ficha de un pedido con el historial de estados, el cambio de estado, el transporte con número de seguimiento y los datos del cliente difuminados" loading="lazy">
+          </div>
+          <figcaption>Ficha de pedido: historial de estados, transportista con seguimiento y generación de factura.</figcaption>
+        </figure>
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">/admin/pedidos/PED-2026-0097</span></div>
+            <img src="img/tienda-admin-pedido-2.webp" width="1600" height="791" alt="Segunda parte de la ficha del pedido: pago con corrección de estado, productos con sus variantes editables y mensajes del cliente con respuesta pública o privada" loading="lazy">
+          </div>
+          <figcaption>Pago, productos con sus variantes editables y mensajes con el cliente, públicos o privados.</figcaption>
+        </figure>
+      </div>
+      <div class="three-shots">
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">/admin/pedidos</span></div>
+            <img src="img/tienda-admin-pedidos.webp" width="1600" height="798" alt="Listado de pedidos con filtros, exportación, método de pago y estado de cada pedido" loading="lazy">
+          </div>
+          <figcaption>Pedidos con filtros, exportación y archivo histórico de PrestaShop.</figcaption>
+        </figure>
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">/admin/productos</span></div>
+            <img src="img/tienda-admin-productos.webp" width="1600" height="793" alt="Listado de 791 productos con imagen, referencia, categoría, precio con oferta, stock, variantes y estado" loading="lazy">
+          </div>
+          <figcaption>Catálogo con filtros por columna, variantes y acciones en bloque.</figcaption>
+        </figure>
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">/admin/productos/784 · Precio</span></div>
+            <img src="img/tienda-admin-precio.webp" width="1600" height="794" alt="Pestaña de precio de un producto con IVA, precio de coste, stock por combinaciones y precio de oferta calculado a partir de un porcentaje" loading="lazy">
+          </div>
+          <figcaption>Precio con IVA, coste y oferta calculada por porcentaje.</figcaption>
+        </figure>
+      </div>
+      <div class="two-shots">
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">/admin/productos/784 · SEO</span></div>
+            <img src="img/tienda-admin-seo.webp" width="1600" height="788" alt="Pestaña de SEO de un producto con meta título y descripción con contador, URL amigable, vista previa en Google y lista de comprobación" loading="lazy">
+          </div>
+          <figcaption>SEO por producto, con vista previa en Google y lista de comprobación.</figcaption>
+        </figure>
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">/admin/importar</span></div>
+            <img src="img/tienda-admin-importar.webp" width="1600" height="797" alt="Importador CSV con tipos de importación, plantillas descargables, presets de mapeo guardados y mapeo de columnas" loading="lazy">
+          </div>
+          <figcaption>Importador CSV con plantillas y mapeos de columnas guardados.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="p-figs">
+      <div><b class="num">35</b><span>modelos de datos</span></div>
+      <div><b class="num">96</b><span>endpoints de API</span></div>
+      <div><b class="num">40</b><span>pantallas de administración</span></div>
+      <div><b class="num">194</b><span>commits desde febrero de 2026</span></div>
+      <div><b class="num">4,8/5</b><span>de valoración de la tienda en 923 opiniones</span></div>
+    </div>
+
+    <div class="modules">
+      <div class="mod">
+        <h3>Tienda</h3>
+        <ul>
+          <li>Catálogo por categorías con búsqueda registrada</li>
+          <li>Variantes, precios específicos y ofertas</li>
+          <li>Medidas personalizadas para producto a medida</li>
+          <li>Blog con editor enriquecido y páginas CMS</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Compra y pago</h3>
+        <ul>
+          <li>Checkout por pasos, con cuenta o como invitado</li>
+          <li>Tarjeta y Bizum por Redsys, PayPal, transferencia y contrareembolso</li>
+          <li>Envío por zonas según código postal</li>
+          <li>Área de cliente: pedidos, direcciones, cupones y seguimiento</li>
+          <li>Acceso con Google y recuperación de contraseña</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Panel: ventas</h3>
+        <ul>
+          <li>Pedidos con estados, historial y cambio masivo</li>
+          <li>Alta manual de pedidos y carritos abandonados</li>
+          <li>Facturas emitidas al cambiar de estado, con regularización</li>
+          <li>Cupones y formas de pago configurables</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Panel: catálogo y clientes</h3>
+        <ul>
+          <li>Productos, atributos, combinaciones, marcas y categorías</li>
+          <li>Importación masiva por CSV</li>
+          <li>Ficha de cliente con pedidos y mensajes</li>
+          <li>Equipo con roles, incluido un rol de auditor de solo lectura</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Panel: personalización</h3>
+        <ul>
+          <li>Plantillas de correos transaccionales editables</li>
+          <li>Pop-ups y módulos de la portada</li>
+          <li>Transportistas y tarifas</li>
+          <li>Exportación de pedidos para la declaración de envases (Ecoembes)</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Analítica</h3>
+        <ul>
+          <li>Cuadro de mando: ventas, pedidos por estado, últimos clientes</li>
+          <li>Tráfico propio en tiempo real: fuentes, dispositivos, páginas</li>
+          <li>IP anonimizada con hash</li>
+          <li>Eventos de e-commerce en GA4 y Google Ads con Consent Mode</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="deep">
+      <div>
+        <h3>Decisiones técnicas</h3>
+        <div class="decisions">
+          <p><strong>Migración sin perder nada.</strong> Importador propio desde la base de datos de PrestaShop (productos, combinaciones, clientes y pedidos), redirecciones 301 de las URLs antiguas y recuperación de contraseña para los clientes migrados.</p>
+          <p><strong>SEO y velocidad.</strong> Portada y listados renderizados en servidor, datos estructurados JSON-LD con disponibilidad real, sitemap, títulos únicos, imágenes optimizadas y precarga solo de la imagen principal.</p>
+          <p><strong>Seguridad y stock.</strong> Revisión de los endpoints que quedaban sin autenticación, registro de cada notificación de pago de Redsys y descuento de existencias al confirmar el pedido.</p>
+        </div>
+        <div class="chips">
+          <span class="chip">Next.js 16</span><span class="chip">React</span><span class="chip">TypeScript</span>
+          <span class="chip">Prisma</span><span class="chip">MySQL</span><span class="chip">Tailwind</span>
+          <span class="chip">Redsys</span><span class="chip">PayPal</span><span class="chip">TipTap</span>
+          <span class="chip">Recharts</span><span class="chip">react-pdf</span><span class="chip">Docker</span>
+        </div>
+      </div>
+      <div>
+        <h3>Bitácora (commits reales)</h3>
+        <div class="log">
+          <ol>
+            <li><time>28 oct 2026</time><span class="msg">Pedidos: exportación con detalle de productos para la declaración de Ecoembes</span></li>
+            <li><time>14 oct 2026</time><span class="msg">Envíos: zona por código postal, envío gratis solo en península y cambio de método en el pedido</span></li>
+            <li><time>17 sep 2026</time><span class="msg">conectar el aviso de cookies al Consent Mode de Google</span></li>
+            <li><time>10 sep 2026</time><span class="msg">emitir facturas al cambiar de estado y completar el cambio masivo de pedidos</span></li>
+            <li><time>09 sep 2026</time><span class="msg">medir eventos de ecommerce en GA4 y Google Ads</span></li>
+            <li><time>27 ago 2026</time><span class="msg">recuperar contraseña de clientes migrados de Prestashop</span></li>
+            <li><time>12 ago 2026</time><span class="msg">recuperar 603 imagenes de producto que daban 404</span></li>
+            <li><time>11 ago 2026</time><span class="msg">SSR de la portada y el listado de productos</span></li>
+          </ol>
+          <div class="foot">8 de 194 commits · rama de desarrollo y rama de producción separadas</div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <!-- ================= PROYECTO 2 ================= -->
+  <article class="project" id="kivuk" aria-labelledby="t-kivuk">
+    <div class="p-head">
+      <div>
+        <div class="eyebrow kind">Proyecto 2 · Plataforma SaaS multi-cliente</div>
+        <h2 id="t-kivuk">Agencia Kivuk</h2>
+        <p class="lede">
+          Plataforma para dar a pequeños negocios un asistente con IA en su WhatsApp, con agenda,
+          bandeja de conversaciones y facturación. Una sola base de código para todos los clientes:
+          cada uno activa los módulos que contrata y ve solo sus datos.
+        </p>
+      </div>
+      <a class="live" href="https://agenciakivuk.com" target="_blank" rel="noopener">agenciakivuk.com</a>
+    </div>
+
+    <div class="sheet">
+      <figure class="shot">
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i><span class="url">agenciakivuk.com</span></div>
+          <img src="img/kivuk-web.webp" width="1440" height="900" alt="Web de Agencia Kivuk con una conversación de ejemplo por WhatsApp entre un cliente y el asistente de una cestería" loading="lazy">
+        </div>
+        <figcaption>Web corporativa: una sola acción, abrir conversación con el propio asistente de Kivuk.</figcaption>
+      </figure>
+      <figure class="shot">
+        <div class="phone">
+          <img src="img/kivuk-web-movil.webp" width="390" height="844" alt="Web de Agencia Kivuk en el móvil" loading="lazy">
+        </div>
+        <figcaption>El panel del cliente es una PWA instalable, pensada para el móvil.</figcaption>
+      </figure>
+    </div>
+
+    <div class="inside">
+      <div class="eyebrow">El panel por dentro</div>
+      <figure class="shot">
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i><span class="url">panel.agenciakivuk.com · Conversaciones</span></div>
+          <img src="img/kivuk-conversacion.webp" width="1600" height="768" alt="Bandeja de conversaciones de una peluquería: el asistente confirma una cita con una profesional y envía el recordatorio el mismo día; aviso de la ventana de 24 horas de WhatsApp con botón para abrir en el WhatsApp propio" loading="lazy">
+        </div>
+        <figcaption>Bandeja de una peluquería de demostración: el asistente confirma la cita con la profesional y los servicios, y el recordatorio sale solo. El botón «Responder yo» hace callar al bot, y el panel avisa cuando la ventana de 24 h de WhatsApp está cerrada.</figcaption>
+      </figure>
+      <div class="three-shots">
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">Clientes</span></div>
+            <img src="img/kivuk-clientes.webp" width="1600" height="763" alt="Listado de clientes de la agencia, cada uno con sus módulos activos y lo pendiente de revisar" loading="lazy">
+          </div>
+          <figcaption>Clientes con sus módulos activos y lo que tienen pendiente.</figcaption>
+        </figure>
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">Cliente · Resumen</span></div>
+            <img src="img/kivuk-resumen.webp" width="1600" height="764" alt="Ficha de un cliente con pestañas de contenido, conocimiento, conversaciones, agenda, facturación y configuración, y la lista de módulos activos e inactivos" loading="lazy">
+          </div>
+          <figcaption>Ficha de cliente: cada módulo se activa sin tocar código.</figcaption>
+        </figure>
+        <figure class="shot">
+          <div class="browser">
+            <div class="bar"><i></i><i></i><i></i><span class="url">Cliente · Agenda</span></div>
+            <img src="img/kivuk-agenda.webp" width="1600" height="776" alt="Vista semanal de la agenda con horario de apertura sombreado y una cita a las 16:00" loading="lazy">
+          </div>
+          <figcaption>Agenda en lista, día o semana, con el horario de apertura.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="p-figs">
+      <div><b class="num">35</b><span>migraciones SQL versionadas</span></div>
+      <div><b class="num">11</b><span>flujos de n8n</span></div>
+      <div><b class="num">2</b><span>paneles sobre la misma app: agencia y cliente</span></div>
+      <div><b class="num">144</b><span>commits desde julio de 2026</span></div>
+      <div><b class="num">4</b><span>demos por sector que se prueban desde la web</span></div>
+    </div>
+
+    <div class="modules">
+      <div class="mod">
+        <h3>Asistente de WhatsApp con IA</h3>
+        <ul>
+          <li>Responde con el conocimiento del negocio (búsqueda semántica)</li>
+          <li>Busca en catálogo con precio y stock por tamaño, sincronizado con Odoo</li>
+          <li>Busca inmuebles con filtros y alternativas</li>
+          <li>Recoge solicitudes de presupuesto</li>
+          <li>Modelo de IA configurable por cliente, con plan B si falla</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Agenda y citas</h3>
+        <ul>
+          <li>Varios profesionales, servicios y bloqueos</li>
+          <li>El bot da, cambia y anula citas por el chat</li>
+          <li>La base de datos impide dos reservas en el mismo hueco</li>
+          <li>Recordatorio por WhatsApp horas antes, nunca de noche</li>
+          <li>Google Calendar como espejo opcional</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Bandeja con relevo humano</h3>
+        <ul>
+          <li>Conversaciones en tiempo real, estilo WhatsApp</li>
+          <li>Una persona entra en el chat y el bot se calla</li>
+          <li>Aviso de «pide una persona» en pantalla, por correo y por push</li>
+          <li>Envío manual y adjuntos</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Facturación y cobro</h3>
+        <ul>
+          <li>Datos fiscales, catálogo de tarifas y servicios contratados</li>
+          <li>Numeración correlativa garantizada por la base de datos</li>
+          <li>PDF y envío por correo con adjunto</li>
+          <li>Cobro por domiciliación SEPA con Stripe y webhooks</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Portal del cliente</h3>
+        <ul>
+          <li>Acceso propio, solo con los módulos contratados</li>
+          <li>Ve sus conversaciones, citas, contenido y facturas</li>
+          <li>Firma la orden de domiciliación desde el portal</li>
+          <li>Instalable en el móvil como una app</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Infraestructura</h3>
+        <ul>
+          <li>VPS propio con Docker y Caddy (HTTPS automático)</li>
+          <li>n8n autoalojado como motor de automatizaciones</li>
+          <li>Supabase: Postgres, Auth, Storage y pgvector</li>
+          <li>DNS en Cloudflare y correo transaccional verificado</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="deep">
+      <div>
+        <h3>Decisiones técnicas</h3>
+        <div class="decisions">
+          <p><strong>Multi-cliente de verdad.</strong> Row Level Security en todas las tablas desde la migración que las crea. El cliente final tiene solo lectura; lo que puede hacer pasa por acciones del servidor que comprueban permisos.</p>
+          <p><strong>Lo crítico, en la base de datos.</strong> La exclusión de solapamientos en citas y la numeración de facturas viven en Postgres, no en el código, para que dos peticiones a la vez no puedan romperlas.</p>
+          <p><strong>Plantillas, no código por cliente.</strong> Cada módulo es un flujo reutilizable más su pantalla de configuración. Un cliente nuevo se da de alta, no se programa.</p>
+        </div>
+        <div class="chips">
+          <span class="chip">Next.js 16</span><span class="chip">React 19</span><span class="chip">TypeScript</span>
+          <span class="chip">Supabase</span><span class="chip">Postgres + RLS</span><span class="chip">pgvector</span>
+          <span class="chip">n8n</span><span class="chip">WhatsApp Cloud API</span><span class="chip">OpenRouter</span>
+          <span class="chip">Stripe</span><span class="chip">Resend</span><span class="chip">Web Push</span>
+          <span class="chip">Docker</span><span class="chip">Caddy</span>
+        </div>
+      </div>
+      <div>
+        <h3>Bitácora (commits reales)</h3>
+        <div class="log">
+          <ol>
+            <li><time>05 nov 2026</time><span class="msg">bot: una cita ya dada no se vuelve a ofrecer, y revision de la demo fisio</span></li>
+            <li><time>20 oct 2026</time><span class="msg">bot y catalogo: precio y stock por tamano desde Odoo, sinonimos por cliente, busqueda por peso, hora actual y plan B si OpenAI falla</span></li>
+            <li><time>13 oct 2026</time><span class="msg">inmuebles: alternativas cuando no hay nada y aceptar la oferta con la busqueda guardada</span></li>
+            <li><time>01 oct 2026</time><span class="msg">facturacion: cobro de las cuotas por domiciliacion SEPA con Stripe</span></li>
+            <li><time>30 sep 2026</time><span class="msg">recordatorio: elegir 3, 6 o 12 horas antes, y nunca de noche</span></li>
+            <li><time>29 sep 2026</time><span class="msg">agenda: al mover, la misma persona si esta libre; si no, otra que sepa hacerlo</span></li>
+            <li><time>28 sep 2026</time><span class="msg">agenda: el bot no da una segunda cita a quien ya tiene una</span></li>
+          </ol>
+          <div class="foot">7 de 144 commits · decisiones documentadas en el propio repositorio</div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <!-- ================= PROYECTO 3 ================= -->
+  <article class="project" id="chat" aria-labelledby="t-chat">
+    <div class="p-head">
+      <div>
+        <div class="eyebrow kind">Proyecto 3 · Agente de IA para e-commerce</div>
+        <h2 id="t-chat">Chat con IA de la tienda</h2>
+        <p class="lede">
+          Sustituye al chat de terceros que tenía la tienda por uno propio: un asistente con IA que
+          responde con la información de la tienda y enlaza a la ficha del producto, con su panel de
+          atención y toda la gestión desde el móvil por Telegram. Construido en cinco días.
+        </p>
+      </div>
+      <a class="live" href="https://www.elhogardetusuenos.com" target="_blank" rel="noopener">funcionando en la tienda</a>
+    </div>
+
+    <div class="sheet">
+      <figure class="shot">
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i><span class="url">elhogardetusuenos.com/productos</span></div>
+          <img src="img/chat-escritorio.webp" width="1440" height="900" alt="Ventana del chat abierta sobre el catálogo de la tienda, con el saludo del asistente virtual y el botón para hablar con una persona" loading="lazy">
+        </div>
+        <figcaption>Se incrusta en cualquier web con una sola línea de script.</figcaption>
+      </figure>
+      <figure class="shot">
+        <div class="phone">
+          <img src="img/chat-movil.webp" width="390" height="844" alt="El chat de la tienda abierto en el móvil" loading="lazy">
+        </div>
+        <figcaption>Ajustado al móvil, con el saludo y el acceso a una persona siempre a mano.</figcaption>
+      </figure>
+    </div>
+
+    <div class="p-figs">
+      <div><b class="num">15 KB</b><span>de widget, sin dependencias</span></div>
+      <div><b class="num">20</b><span>documentos de conocimiento</span></div>
+      <div><b class="num">6</b><span>comandos de gestión por Telegram</span></div>
+      <div><b class="num">5</b><span>días del primer commit a producción</span></div>
+    </div>
+
+    <div class="modules">
+      <div class="mod">
+        <h3>Asistente</h3>
+        <ul>
+          <li>Respuestas con búsqueda semántica sobre el conocimiento de la tienda</li>
+          <li>Una biblioteca que describe cada producto y su foto, para recomendar por lo que el cliente busca</li>
+          <li>Enlace directo a la ficha del producto</li>
+          <li>Botón «hablar con una persona» y relevo humano</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Panel de atención (PWA)</h3>
+        <ul>
+          <li>Visitantes conectados: país, dispositivo y página que ven</li>
+          <li>Conversaciones abiertas e historial</li>
+          <li>Base de conocimiento editable desde el panel</li>
+          <li>Estadísticas de visitas y chats</li>
+        </ul>
+      </div>
+      <div class="mod">
+        <h3>Telegram como app móvil</h3>
+        <ul>
+          <li>Avisos de visitante nuevo, chat iniciado y petición de persona</li>
+          <li>Responder al cliente desde Telegram</li>
+          <li>Silenciar o reactivar el bot en una conversación</li>
+          <li>Visitantes, chats y estadísticas del día con un comando</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="chips" style="margin-top: 28px;">
+      <span class="chip">Next.js 16</span><span class="chip">TypeScript</span><span class="chip">Supabase</span>
+      <span class="chip">pgvector</span><span class="chip">OpenAI</span><span class="chip">NextAuth</span>
+      <span class="chip">Telegram Bot API</span><span class="chip">JavaScript sin dependencias</span><span class="chip">PWA</span>
+    </div>
+  </article>
+
+  <!-- ================= CÓMO TRABAJO ================= -->
+  <section id="trabajo" aria-labelledby="t-trabajo">
+    <div class="sec-head">
+      <div class="eyebrow">Cómo trabajo</div>
+      <h2 id="t-trabajo">Del encargo a algo que se puede usar</h2>
+    </div>
+    <div class="how">
+      <div>
+        <h3>Alcance claro</h3>
+        <p>Parto de los criterios de aceptación y pregunto lo que falta antes de programar. Lo que queda fuera del alcance se dice, no se cuela.</p>
+      </div>
+      <div>
+        <h3>Entregas verificables</h3>
+        <p>Git con ramas de desarrollo y producción, migraciones de base de datos versionadas y entornos separados. Cada entrega va con una demo y con cómo comprobarla.</p>
+      </div>
+      <div>
+        <h3>Pensado para quien lo usa</h3>
+        <p>Paneles que entiende el dueño del negocio, primero en el móvil, y textos en el idioma del cliente final. Documentación de las decisiones para quien venga detrás.</p>
+      </div>
+    </div>
+
+    <div class="stack-wrap" style="margin-top: 48px;">
+      <table class="stack-table">
+        <tbody>
+          <tr><th scope="row">Front-end</th><td>React, Next.js (App Router), TypeScript, Tailwind, shadcn/ui, PWA</td></tr>
+          <tr><th scope="row">Back-end y datos</th><td>Supabase (Postgres, Auth, RLS, Storage, pgvector), Prisma, MySQL, APIs REST y webhooks</td></tr>
+          <tr><th scope="row">Pagos</th><td>Redsys (tarjeta y Bizum), PayPal, Stripe (SEPA)</td></tr>
+          <tr><th scope="row">Integraciones</th><td>WhatsApp Cloud API, Google Calendar, Odoo, GA4 y Google Ads, Resend, Web Push</td></tr>
+          <tr><th scope="row">IA y automatización</th><td>n8n, OpenRouter, OpenAI, búsqueda semántica con embeddings</td></tr>
+          <tr><th scope="row">Despliegue</th><td>Docker, Caddy, VPS Linux, Vercel, Cloudflare</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="contact" id="contacto" aria-labelledby="t-contacto">
+    <div>
+      <h2 id="t-contacto">¿Tienes un proyecto parecido?</h2>
+      <p>Todo lo que ves está abierto al público: la tienda se puede recorrer hasta el pago, su chat responde en la web y el asistente de Kivuk contesta por WhatsApp.</p>
+    </div>
+    <div class="links">
+      <a href="mailto:info@agenciakivuk.com">info@agenciakivuk.com</a>
+      <a href="tel:+34669863866">+34 669 86 38 66</a>
+      <a href="https://www.linkedin.com/in/victor-beneito-398689415/" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="https://www.elhogardetusuenos.com" target="_blank" rel="noopener">elhogardetusuenos.com</a>
+      <a href="https://agenciakivuk.com" target="_blank" rel="noopener">agenciakivuk.com</a>
+    </div>
+  </section>
+
+  <footer>Victor Beneito · Capturas tomadas de las webs en producción en noviembre de 2026.</footer>
+</div>
+</body>
+</html>

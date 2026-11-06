@@ -17,6 +17,15 @@ agenciakivuk.com {
     reverse_proxy panel:3000
 }
 
+# Portfolio personal de Victor: una página estática (`/portfolio` del repo,
+# montada en el contenedor de Caddy). No pasa por el panel, así que cambiarla
+# solo pide `git pull`, sin reconstruir nada.
+victor.agenciakivuk.com {
+    root * /srv/portfolio
+    encode gzip
+    file_server
+}
+
 # `www` redirige al dominio sin www y no sirve una copia: dos direcciones con el
 # mismo contenido compiten entre sí en Google. El canónico de la web ya dice
 # `https://agenciakivuk.com`, así que ese es el que gana.

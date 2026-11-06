@@ -42,6 +42,7 @@ que todo funciona aunque los mensajes los esté procesando la otra.
 | n8n + render + Caddy | VPS Contabo | `https://n8n.agenciakivuk.com` |
 | Panel Next.js | VPS Contabo (servicio `panel`) | `https://panel.agenciakivuk.com` |
 | Web corporativa | el mismo contenedor `panel`, en la raíz `/` | `https://agenciakivuk.com` |
+| Portfolio de Victor | estático en `/portfolio`, servido por Caddy | `https://victor.agenciakivuk.com` |
 | Panel en desarrollo | local | `localhost:3000` |
 | Datos, Auth, Storage | Supabase gestionado | — |
 
