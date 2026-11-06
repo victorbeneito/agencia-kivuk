@@ -229,6 +229,52 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
   .browser, .phone { transition: transform .25s ease; }
   .browser:hover, .phone:hover { transform: translateY(-2px); }
 }
+
+/* ---------- Lupa y visor ampliado ---------- */
+/* El visor es oscuro en los dos temas a propósito: la captura manda. */
+:root { --lb-bg: rgba(7, 13, 15, .985); --lb-fg: #E4ECEA; --lb-btn: rgba(255, 255, 255, .12); --lb-btn-hover: rgba(255, 255, 255, .22); }
+.browser, .phone { position: relative; }
+.zoomable { cursor: zoom-in; }
+.zoomable:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.zoom-hint {
+  position: absolute; right: 10px; bottom: 10px; width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center; pointer-events: none;
+  background: var(--ink); color: var(--paper); opacity: .78;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .25); transition: opacity .2s ease, transform .2s ease;
+}
+.phone .zoom-hint { right: 16px; bottom: 16px; }
+.browser:hover .zoom-hint, .phone:hover .zoom-hint { opacity: 1; transform: scale(1.06); }
+.zoom-hint svg { width: 18px; height: 18px; }
+
+.lb {
+  position: fixed; inset: 0; z-index: 50; background: var(--lb-bg); color: var(--lb-fg);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px;
+  padding: calc(56px + env(safe-area-inset-top, 0px)) 12px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+.lb figure { margin: 0; display: grid; gap: 12px; justify-items: center; min-width: 0; }
+.lb img {
+  max-width: 100%; max-height: calc(100vh - 150px); width: auto; height: auto;
+  object-fit: contain; border-radius: 8px; background: #fff; cursor: zoom-out;
+}
+.lb figcaption { color: var(--lb-fg); opacity: .85; font-size: 14.5px; max-width: 80ch; text-align: center; margin: 0; }
+.lb button {
+  border: 0; color: var(--lb-fg); background: var(--lb-btn); border-radius: 50%;
+  width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer; font: inherit;
+}
+.lb button:hover { background: var(--lb-btn-hover); }
+.lb button:focus-visible { outline: 2px solid var(--lb-fg); outline-offset: 2px; }
+.lb button svg { width: 22px; height: 22px; }
+.lb .lb-close { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); right: 12px; }
+.lb .lb-count { position: absolute; top: calc(22px + env(safe-area-inset-top, 0px)); left: 18px; font-family: var(--f-mono); font-size: 13px; opacity: .7; }
+@media (max-width: 600px) {
+  .lb { grid-template-columns: minmax(0, 1fr); padding-inline: 8px; }
+  .lb .lb-prev, .lb .lb-next { position: absolute; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .lb .lb-prev { left: 16px; } .lb .lb-next { right: 16px; }
+  .lb img { max-height: calc(100vh - 190px); }
+  .lb figure { padding-bottom: 56px; }
+  .lb figcaption { font-size: 14px; }
+}
 </style>
 </head>
 <body>
@@ -827,7 +873,101 @@ footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
     </div>
   </section>
 
-  <footer>Victor Beneito · Capturas tomadas de las webs en producción en noviembre de 2026.</footer>
+  <footer>Victor Beneito · Capturas tomadas de las webs en producción en noviembre de 2026. Pulsa cualquier captura para verla ampliada.</footer>
 </div>
+
+<div class="lb" id="visor" role="dialog" aria-modal="true" aria-label="Captura ampliada" hidden>
+  <span class="lb-count" id="visor-cuenta"></span>
+  <button class="lb-close" id="visor-cerrar" type="button" aria-label="Cerrar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <button class="lb-prev" id="visor-ant" type="button" aria-label="Captura anterior">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </button>
+  <figure>
+    <img id="visor-img" alt="">
+    <figcaption id="visor-pie"></figcaption>
+  </figure>
+  <button class="lb-next" id="visor-sig" type="button" aria-label="Captura siguiente">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+</div>
+
+<script>
+(() => {
+  const capturas = [...document.querySelectorAll('.browser img, .phone img')];
+  const visor = document.getElementById('visor');
+  const img = document.getElementById('visor-img');
+  const pie = document.getElementById('visor-pie');
+  const cuenta = document.getElementById('visor-cuenta');
+  const lupa = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5M11 8.5v5M8.5 11h5"/></svg>';
+  let actual = 0;
+  let volverA = null;
+
+  capturas.forEach((c, i) => {
+    c.classList.add('zoomable');
+    c.tabIndex = 0;
+    c.setAttribute('role', 'button');
+    c.setAttribute('aria-label', 'Ampliar captura: ' + c.alt);
+    const marco = c.closest('.browser, .phone');
+    const pista = document.createElement('span');
+    pista.className = 'zoom-hint';
+    pista.setAttribute('aria-hidden', 'true');
+    pista.innerHTML = lupa;
+    marco.appendChild(pista);
+    c.addEventListener('click', () => abrir(i));
+    c.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(i); }
+    });
+  });
+
+  function mostrar(i) {
+    actual = (i + capturas.length) % capturas.length;
+    const c = capturas[actual];
+    img.src = c.currentSrc || c.src;
+    img.alt = c.alt;
+    const fig = c.closest('figure');
+    const texto = fig && fig.querySelector('figcaption');
+    pie.textContent = texto ? texto.textContent : c.alt;
+    cuenta.textContent = (actual + 1) + ' / ' + capturas.length;
+  }
+
+  function abrir(i) {
+    volverA = document.activeElement;
+    mostrar(i);
+    visor.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    document.getElementById('visor-cerrar').focus();
+  }
+
+  function cerrar() {
+    visor.hidden = true;
+    document.documentElement.style.overflow = '';
+    if (volverA && volverA.focus) volverA.focus();
+  }
+
+  document.getElementById('visor-cerrar').addEventListener('click', cerrar);
+  document.getElementById('visor-ant').addEventListener('click', () => mostrar(actual - 1));
+  document.getElementById('visor-sig').addEventListener('click', () => mostrar(actual + 1));
+  img.addEventListener('click', cerrar);
+  visor.addEventListener('click', (e) => { if (e.target === visor) cerrar(); });
+  document.addEventListener('keydown', (e) => {
+    if (visor.hidden) return;
+    if (e.key === 'Escape') cerrar();
+    else if (e.key === 'ArrowLeft') mostrar(actual - 1);
+    else if (e.key === 'ArrowRight') mostrar(actual + 1);
+  });
+
+  // Deslizar en el móvil para pasar de captura.
+  let x0 = null;
+  visor.addEventListener('touchstart', (e) => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  visor.addEventListener('touchend', (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 50) mostrar(actual + (dx < 0 ? 1 : -1));
+    x0 = null;
+  });
+})();
+</script>
 </body>
 </html>
