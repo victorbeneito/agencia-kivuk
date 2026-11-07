@@ -318,7 +318,7 @@ Antes de dar ningún pedido mínimo, primero se pregunta qué producto quiere (c
 
 Si quiere 50 unidades o más: para piezas a medida o personalizadas se trabaja normalmente a partir de 50 unidades, porque cada pieza se hace a mano desde cero. Se le da el formulario de su producto para que cuente todos los detalles, y en cuanto llega, el equipo lo revisa con calma y le contacta.
 
-Si quiere menos de 50: se le dice con sinceridad que para tan pocas unidades normalmente no sale hacerlo a medida, porque cada pieza se hace a mano desde cero. Aun así, se le anima a rellenar el formulario con lo que busca: lo miran con detalle y, si hay manera, se lo dicen. Y si le encaja algo de lo que ya está hecho, se le ayuda a encontrarlo.
+Si quiere menos de 50: se le dice con sinceridad que para tan pocas unidades normalmente no sale hacerlo a medida, porque cada pieza se hace a mano desde cero. Aun así, se le anima a rellenar el formulario con lo que busca: lo miran con detalle y, si hay manera, se lo dicen. Y si le encaja algo de lo que ya está hecho, se le ayuda a encontrarlo. Esto NO vale para los capazos personalizados, que tienen un mínimo firme de 50 unidades (ver abajo), ni para los asientos de enea, que no se hacen a medida.
 
 El formulario de cada producto es este:
 - Capazos de palma personalizados: https://www.cesteriaaparici.es/capazos-personalizados
@@ -332,7 +332,7 @@ Los formularios son el camino preferido para todo lo que es a medida: así el cl
 
 Asientos de enea de repuesto: NO se hacen a medida. Solo están en las medidas estándar de la web (https://www.cesteriaaparici.es/shop/asiento-de-enea-de-repuesto-1465). A quien pide un asiento con otras medidas o con otra forma se le dice así, con amabilidad, y se le enseñan las medidas que hay; no se le manda al formulario, no se le pide presupuesto ni email y no se pasa al equipo. Lo explica el documento «Asientos de enea de repuesto: solo en las medidas de la web».
 
-Capazo con logo en pocas unidades: para personalizarlo hay que fabricar un cliché, que cuesta 220 €, así que con muy pocas unidades (por ejemplo, 5) no le sale a cuenta. Se le pregunta cuántas unidades necesita y qué tipo de asa le gusta, se le deja el formulario de capazos personalizados (https://www.cesteriaaparici.es/capazos-personalizados) y se revisa qué opción le encaja mejor.
+Capazos personalizados (con nombre, iniciales o logo): el mínimo son 50 unidades, sin excepción. Con menos no se hacen, y no se manda al formulario ni se pasa al equipo para «ver si hay manera». Lo explica el documento «Capazos personalizados: mínimo 50 unidades».
 
 Personalización en cuero: los colores son marrón oscuro, marrón claro, beige y negro, con grabado directo en la piel o bicolor. En qué productos se puede y cuánto cuesta depende de cada proyecto, que es único: se le dan los colores, se le pregunta qué producto y cuántas unidades, y se pasa a una persona del equipo.
 
@@ -823,6 +823,29 @@ Los cabeceros de cama no están en la tienda online: se hacen por encargo, y sol
 Cuando alguien pregunta por un cabecero, se le dice que se hacen en esparto y se recogen los datos como en cualquier presupuesto: la medida de la cama (1,35, 1,50, 1,80…), su email, la dirección de envío con el código postal y su nombre. Con eso se pasa al equipo, que le prepara el presupuesto y le puede mandar fotos de cabeceros hechos. Por ejemplo: «¡Sí! Los cabeceros los hacemos por encargo, en esparto. Para prepararte el presupuesto, ¿me dices la medida de la cama, tu email y la dirección de envío con el código postal?»
 
 Precio, plazo, diseño y fotos de muestras: los da el equipo con el presupuesto. No se dan de memoria.
+```
+
+---
+
+## 34. Capazos personalizados: mínimo 50 unidades
+
+- **Categoría:** Productos
+- **URL de origen:** https://www.cesteriaaparici.es/capazos-personalizados
+
+Lo confirmó Ángela a una clienta el 06/11/2026, después de que el bot la
+mandara al formulario para un capazo con su nombre: el conocimiento decía que
+con pocas unidades «no sale a cuenta, pero rellena el formulario y se revisa».
+
+```
+¿Me personalizáis un capazo con mi nombre? Quiero un capazo con mis iniciales. ¿Podéis poner un nombre en el capazo? Capazo personalizado para regalo. Quiero personalizar este modelo. Capazos con nuestro logo para la empresa. ¿Cuál es el mínimo para personalizar capazos? Capazos personalizados para una boda.
+
+Los capazos personalizados (con un nombre, unas iniciales o el logo de una marca) se hacen a partir de 50 unidades. Es un producto pensado sobre todo para empresas que quieren poner su logo, y para personalizarlos hay que fabricar un cliché, que cuesta 220 €.
+
+Con menos de 50 unidades no se personalizan: ni uno con su nombre, ni tres para regalar. Se le dice desde el primer mensaje, sin esperar a saber cuántos quiere, con amabilidad y en una frase, y se le ofrecen los capazos de la tienda tal cual. Por ejemplo: «Los capazos personalizados los hacemos a partir de 50 unidades, porque llevan un cliché hecho a propósito; para uno o unos pocos no es posible. Si quieres, te enseño los capazos de la tienda.» No se le manda al formulario ni se pasa al equipo para que «lo revisen»: la respuesta es siempre la misma.
+
+Con 50 unidades o más: se le pregunta qué tipo de asa le gusta y se le deja el formulario de capazos personalizados (https://www.cesteriaaparici.es/capazos-personalizados), para que cuente el diseño y las cantidades; el equipo lo revisa y le contacta. Si es una empresa, además se le propone darse de alta como profesional.
+
+Plazo de fabricación de los capazos personalizados: de 6 a 8 semanas, más el envío.
 ```
 
 ---

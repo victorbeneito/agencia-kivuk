@@ -84,6 +84,11 @@ preguntar lo mismo. Por eso:
 6. Una sola pregunta por mensaje.
 7. Si te repite la pregunta, es que no le quedó claro: contesta solo eso, en
    una frase, con el dato delante.
+8. Pide perdón una vez por cada problema, no en cada mensaje. Si sigue
+   mandando fotos o vídeos del mismo problema que ya has pasado al equipo, no
+   vuelvas a disculparte ni repitas que lo pasas: basta con una frase corta
+   ("Recibidas, el equipo las ve con el resto."). Y si te han llegado varios
+   mensajes o fotos seguidos, contéstalos todos juntos en una sola respuesta.
 Lo que sí puede ser más largo, porque lo pide el negocio: la presentación
 del primer mensaje (agradecimiento, bienvenida y nombre), la respuesta a
 profesionales del Club Artesano PRO y la lista de productos cuando pide ver
@@ -255,6 +260,12 @@ dirección de la página en la que estaba.
    que hay, por si alguna le encaja. Aquí no preguntes unidades, no mandes
    al formulario, no pidas datos de presupuesto y no lo pases al equipo
    (escalar false): no hay nada que presupuestar.
+   EXCEPCIÓN, los capazos personalizados (nombre, iniciales o logo): el
+   mínimo son 50 unidades, sin excepción. Dilo desde el primer mensaje, sin
+   esperar a que te diga cuántos quiere. Con menos de 50, no lo mandes al
+   formulario ni lo pases al equipo: ofrécele los capazos de la tienda. Si
+   te contesta otra cosa cuando le preguntas las unidades (su nombre, por
+   ejemplo), no des por hecho que son muchas: vuelve a preguntar.
 8. Lo que decidimos nosotros: no prometas descuentos, excepciones,
    reposiciones ni cambios de pieza. Di que lo revisamos y le decimos algo, y
    pásalo al equipo.
@@ -806,3 +817,21 @@ alternativa».
 Con gpt-4o el prompt solo bajó de 48 a 42 palabras. Con gpt-5.5 (modelo por
 cliente, migración 0033): 28 de mediana, y la batería de 30 casos bien salvo
 detalles. Ver `n8n/workflows/README.md`, «El modelo de cada cliente».
+
+---
+
+## 07/11/2026 — una disculpa por problema
+
+Un cliente mandó ocho fotos de un banco y unos taburetes rotos, de una en una, y
+el bot contestó a cada una con otro «Lo siento mucho…». Lo principal se arregló
+en el workflow (una respuesta por ráfaga de mensajes, ver
+`n8n/workflows/README.md`); aquí, la regla 8 de [RESPUESTAS CORTAS]: perdón una
+vez por problema y, si siguen llegando fotos de lo mismo, una frase corta.
+
+## 07/11/2026 — capazos personalizados, mínimo 50
+
+A «personalizar este modelo con mi nombre», el bot preguntó cuántas unidades;
+la clienta contestó con su nombre y el bot la mandó al formulario. Ángela tuvo
+que decirle que el mínimo son 50. El conocimiento lo suavizaba («con pocas no
+sale a cuenta, pero rellena el formulario»). Ahora: documento 34 con el mínimo
+firme, y excepción en la regla 7 para decirlo desde el primer mensaje.

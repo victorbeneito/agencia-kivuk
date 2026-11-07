@@ -28,6 +28,7 @@ import {
   tomarElMando,
 } from "./acciones";
 import { prepararArchivo } from "./preparar-archivo";
+import { SelectorEmojis } from "./selector-emojis";
 import {
   MAXIMO_PIE,
   enlaceWhatsApp,
@@ -176,6 +177,21 @@ export function Hilo({
   const [previa, setPrevia] = useState<string | null>(null);
   const [preparando, setPreparando] = useState(false);
   const selectorRef = useRef<HTMLInputElement>(null);
+  const textoRef = useRef<HTMLTextAreaElement>(null);
+
+  /** Mete el emoji donde está el cursor, no al final del texto. */
+  function ponerEmoji(emoji: string) {
+    const campo = textoRef.current;
+    const inicio = campo?.selectionStart ?? texto.length;
+    const fin = campo?.selectionEnd ?? texto.length;
+    setTexto((t) => t.slice(0, inicio) + emoji + t.slice(fin));
+    // Tras pintar el texto nuevo, el cursor va detrás del emoji.
+    requestAnimationFrame(() => {
+      if (!campo) return;
+      campo.focus();
+      campo.setSelectionRange(inicio + emoji.length, inicio + emoji.length);
+    });
+  }
   /** Los enlaces blob: creados aquí, para soltarlos al cerrar el hilo. */
   const enlacesLocales = useRef<string[]>([]);
 
@@ -734,7 +750,12 @@ export function Hilo({
               >
                 <Paperclip className="size-5" />
               </Button>
+              <SelectorEmojis
+                disabled={!puedeEscribir}
+                onElegir={ponerEmoji}
+              />
               <textarea
+                ref={textoRef}
                 value={texto}
                 onChange={(e) => setTexto(e.target.value)}
                 onKeyDown={(e) => {

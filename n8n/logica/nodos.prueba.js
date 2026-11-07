@@ -1342,6 +1342,61 @@ ok('"Precio y stock" va despacio y no tumba nada si falla',
   ingesta.nodes.find((x) => x.name === "Precio y stock").onError === "continueRegularOutput" &&
   ingesta.nodes.find((x) => x.name === "Precio y stock").parameters.options.batching.batch.batchSize <= 5);
 
+// === Vídeos y documentos que manda el contacto (07/11/2026) =====================
+// Se subían al bucket pero se daban por «demasiado grandes» y la bandeja no los
+// enlazaba (Cestería, 06/11/2026: un vídeo de 2,6 MB de un banco roto).
+console.log("\n=== El bot: videos y documentos del contacto ===");
+const FICHA = (tam) => ({ url: "https://lookaside.fbsbx.com/x", mime_type: "video/mp4", file_size: tam });
+const LEIDO_VIDEO = { phone_number_id: "1", from: "34600", tipo: "video", texto: "", pie: "", media_id: "218", mime: "video/mp4", ext: "mp4", nombre_archivo: null, se_lee: false, etiqueta: "un video" };
+const extraer = (leer, entrada, subida) => ejecutar(nodoBot("Extraer mensaje"), Object.assign(
+  { "Leer webhook": leer, "Buscar cliente Whatsapp": { client_id: "cli" } },
+  subida ? { "Subir a Storage": subida } : {}
+), entrada)[0].json;
+let ex = extraer(LEIDO_VIDEO, FICHA(2612275), { Key: "adjuntos/cli/218.mp4" });
+ok("un video subido queda enlazado en la bandeja", ex.media_path === "cli/218.mp4" && ex.media_type === "video/mp4", JSON.stringify(ex));
+ok("y no se dice que es demasiado grande", ex.adjunto.etiqueta === "un video" && ex.adjunto.guardado === true, JSON.stringify(ex.adjunto));
+ex = extraer(LEIDO_VIDEO, FICHA(40 * 1024 * 1024), null);
+ok("uno de mas de 25 MB no se enlaza y se dice por que", ex.media_path === null && /demasiado grande/.test(ex.adjunto.etiqueta) && ex.adjunto.guardado === false);
+ex = extraer(LEIDO_VIDEO, FICHA(2612275), { error: "fallo" });
+ok("si la subida fallo, no se enlaza un archivo que no existe", ex.media_path === null && ex.adjunto.guardado === false);
+ex = extraer(Object.assign({}, LEIDO_VIDEO, { tipo: "document", mime: "application/pdf", ext: "pdf", nombre_archivo: "factura.pdf", etiqueta: "un documento" }), FICHA(90000), { Key: "adjuntos/cli/218.pdf" });
+ok("un PDF subido queda enlazado con su nombre", ex.media_path === "cli/218.pdf" && ex.media_name === "factura.pdf");
+const ctxVideo = ejecutar(nodoBot("Preparar contexto"), {
+  "Buscar prompt del cliente": { system_prompt: "Eres la tienda.", knowledge_base: "" },
+  "Preparar búsqueda": { tiene_agenda: false },
+  "Recoger conocimiento": { fragmentos: [] },
+  "Recoger productos": { productos: [] },
+  "Extraer mensaje": { message_text: "[un video]", adjunto: { etiqueta: "un video", leido: false, guardado: true } },
+}, {})[0].json.messages.map((m) => m.content).join("\n");
+ok("al modelo se le dice que el video ha llegado y que el equipo lo puede ver", /queda guardado en la conversacion/.test(ctxVideo) && !/pidele que te lo cuente/.test(ctxVideo));
+
+// === Una respuesta por ráfaga (07/11/2026) ====================================
+// Ocho fotos seguidas daban ocho «Lo siento mucho» (Cestería, 06/11/2026).
+console.log("\n=== El bot: una respuesta por rafaga de mensajes ===");
+{
+  const cxB = bot.connections;
+  const sig = (n, i) => (((cxB[n] || {}).main || [])[i || 0] || []).map((x) => x.node);
+  const nodoB = (n) => bot.nodes.find((x) => x.name === n);
+  ok("el mensaje del cliente se guarda nada mas tener la conversacion",
+    sig("Buscar o crear conversación").join() === "Guardar mensaje entrante" && sig("Guardar mensaje entrante").join() === "¿Responde el bot?");
+  ok("si responde el bot, espera, mira si ha llegado otro y solo sigue el ultimo",
+    sig("¿Responde el bot?").join() === "Esperar la ráfaga" && sig("Esperar la ráfaga").join() === "¿Ha llegado otro después?" &&
+    sig("¿Ha llegado otro después?").join() === "¿Es el último?" && sig("¿Es el último?").join() === "Cargar historial" && sig("¿Es el último?", 1).length === 0);
+  ok("si atiende una persona, no hace nada mas (el mensaje ya esta guardado)", sig("¿Responde el bot?", 1).length === 0);
+  ok("el guardado devuelve la fila, que hace falta para comparar fechas",
+    nodoB("Guardar mensaje entrante").parameters.headerParameters.parameters.some((p) => p.name === "Prefer" && /return=representation/.test(p.value)));
+  ok("una lista vacia (no ha llegado nada) sigue adelante", nodoB("¿Ha llegado otro después?").alwaysOutputData === true);
+  const espera = (adjunto) => new Function("$", "return " + nodoB("Esperar la ráfaga").parameters.amount.replace(/^=\{\{|\}\}$/g, ""))(
+    () => ({ first: () => ({ json: { adjunto } }) }));
+  ok("espera 5 s con texto y 10 s con fotos o archivos", espera(null) === 5 && espera({ etiqueta: "una foto" }) === 10 && nodoB("Esperar la ráfaga").parameters.unit === "seconds");
+  ok("el ultimo es el que no tiene ninguno detras", /!\$json\.id/.test(nodoB("¿Es el último?").parameters.conditions.conditions[0].leftValue));
+  ok("el historial no repite el mensaje actual, que ya va al final", /id=neq\./.test(nodoB("Cargar historial").parameters.url));
+  ok("al final solo se guarda la respuesta del bot",
+    (nodoB("Guardar mensajes").parameters.jsonBody.match(/"conversation_id"/g) || []).length === 1 && /"sender": "bot"/.test(nodoB("Guardar mensajes").parameters.jsonBody));
+  ok("¿Responde el bot? mira la conversacion, no el mensaje recien guardado",
+    /\$\('Buscar o crear conversación'\)\.first\(\)\.json\.mode/.test(nodoB("¿Responde el bot?").parameters.conditions.conditions[0].leftValue));
+}
+
 // === Enviar desde el panel: fotos, vídeos y documentos (28/10/2026) ============
 console.log("\n=== Enviar desde el panel: adjuntos ===");
 const enviarWf = JSON.parse(fs.readFileSync(path.join(RAIZ, "n8n", "workflows", "enviar-whatsapp.json"), "utf8"));

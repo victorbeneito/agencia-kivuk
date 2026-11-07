@@ -891,6 +891,41 @@ documento con varios trozos parecidos se quedaba todos los huecos (a «¿qué
 garantía tienen las sillas de enea?» solo llegaban el de los asientos de enea y
 el de piezas a medida).
 
+## Una respuesta por ráfaga de mensajes
+
+Quien escribe por WhatsApp manda varios mensajes seguidos: «Gracias!» y la
+pregunta en el mismo segundo, u ocho fotos de un banco roto una tras otra. Cada
+mensaje es una ejecución, y cada una contestaba: una despedida y la respuesta, u
+ocho «Lo siento mucho» seguidos (Cestería, 28/10 y 06/11/2026).
+
+Desde el 07/11/2026:
+
+1. «Guardar mensaje entrante» guarda el mensaje del cliente nada más tener la
+   conversación (antes se guardaba al final, junto a la respuesta; y solo ahí si
+   atendía una persona). Devuelve la fila.
+2. Si responde el bot, «Esperar la ráfaga»: 5 s con texto, 10 s con fotos o
+   archivos, que llegan más espaciados.
+3. «¿Ha llegado otro después?» busca un mensaje del contacto posterior a este.
+   Si lo hay, esta ejecución se calla; contesta la del último, que ve los
+   anteriores en el historial.
+4. «Cargar historial» excluye el mensaje actual (ya va al final como `user`) y
+   «Guardar mensajes» guarda solo la respuesta.
+
+El precio: cada respuesta tarda 5 s más (10 con una foto). `Webhook1` contesta a
+Meta al recibir, así que la espera no provoca reenvíos.
+
+## Vídeos y documentos del contacto
+
+Hasta el 07/11/2026 se subían al bucket pero la bandeja no los enlazaba:
+«Extraer mensaje» deducía «demasiado grande» de que le llegara la ficha de Meta
+(`url` y `file_size`), y a un vídeo o un PDF les llega justo esa, porque se
+suben y no se convierten a texto. Ahora «demasiado grande» es pasar de 25 MB, y
+«guardado» es que «Subir a Storage» haya devuelto `Key`. Al modelo se le dice
+que el archivo ha llegado y que el equipo lo puede ver, en vez de pedir que lo
+cuente por escrito. Los que se quedaron sin enlazar (un vídeo y un PDF de
+Cestería del 06/11, un sticker de Kivuk) se enlazaron a mano por la hora de
+subida.
+
 ## Solicitudes de presupuesto por correo
 
 Un cliente puede querer que las peticiones de precio que recoge el bot le
