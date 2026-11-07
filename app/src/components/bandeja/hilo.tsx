@@ -72,6 +72,25 @@ function CopiarTelefono({ telefono }: { telefono: string }) {
   );
 }
 
+/**
+ * El texto de la burbuja, sin lo que el flujo escribe para el bot.
+ *
+ * Cuando llega un archivo, el mensaje guarda lo que el bot necesita saber de
+ * él: «[un video]» o «[un documento]» si viene sin texto, y «En la foto se ve:
+ * …» con la descripción de una foto. En el panel sobra si el archivo ya se ve:
+ * es repetir lo que hay justo encima. Si no se puede abrir, se deja, que
+ * entonces es lo único que hay.
+ */
+function textoVisible(mensaje: MensajeBandeja, url: string | null | undefined): string {
+  const texto = mensaje.contenido ?? "";
+  if (!mensaje.mediaPath || url === null) return texto;
+  if (/^\[[^\]\n]{1,40}\]$/.test(texto.trim())) return "";
+  if (mensaje.mediaType?.startsWith("image/")) {
+    return texto.replace(/\s*En la foto se ve:[\s\S]*$/, "").trim();
+  }
+  return texto;
+}
+
 /** Un mensaje suelto. El color dice quién habla sin necesidad de etiqueta. */
 function Burbuja({
   mensaje,
@@ -106,8 +125,8 @@ function Burbuja({
       >
         <Adjunto mensaje={mensaje} url={urlAdjunto} />
         {/* Una foto enviada sin pie no lleva texto: sin esto quedaba un hueco. */}
-        {mensaje.contenido && (
-          <p className="whitespace-pre-wrap break-words">{mensaje.contenido}</p>
+        {textoVisible(mensaje, urlAdjunto) && (
+          <p className="whitespace-pre-wrap break-words">{textoVisible(mensaje, urlAdjunto)}</p>
         )}
         <div
           className={cn(

@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FileText, TriangleAlert } from "lucide-react";
+import { Download, ExternalLink, FileText, TriangleAlert } from "lucide-react";
 
 import type { MensajeBandeja } from "./tipos";
 
@@ -40,13 +40,17 @@ export function Adjunto({
   }
 
   if (tipo.startsWith("image/")) {
+    // La descripción que hizo el bot de la foto ya no sale debajo (se ve la
+    // foto), pero se puede leer pasando el ratón por encima.
+    const descripcion = (mensaje.contenido ?? "").match(/En la foto se ve:\s*([\s\S]*)$/)?.[1]?.trim();
     return (
       <a href={url} target="_blank" rel="noreferrer" className="mb-1.5 block">
         {/* eslint-disable-next-line @next/next/no-img-element -- el enlace está
             firmado y caduca; el optimizador de Next necesitaría un dominio fijo */}
         <img
           src={url}
-          alt={mensaje.quien === "contact" ? "Foto enviada por el contacto" : "Foto enviada"}
+          alt={descripcion || (mensaje.quien === "contact" ? "Foto enviada por el contacto" : "Foto enviada")}
+          title={descripcion}
           className="max-h-72 w-auto max-w-full rounded-lg"
         />
       </a>
@@ -78,15 +82,54 @@ export function Adjunto({
     );
   }
 
+  // Un PDF se abre en el visor del navegador, sin descargarlo, como en
+  // WhatsApp Web. Word o Excel no tienen visor en el navegador: solo descarga.
+  const esPdf = tipo === "application/pdf";
+
   return (
-    <div className="mb-1.5 flex items-center gap-2 rounded-lg bg-black/5 px-3 py-2 dark:bg-white/10">
-      <FileText className="size-5 shrink-0 opacity-70" />
+    <div className="mb-1.5 flex min-w-56 items-center gap-3 rounded-lg bg-black/5 px-3 py-2.5 dark:bg-white/10">
+      <FileText className="size-8 shrink-0 opacity-70" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{nombre}</p>
-        <Enlace url={url} nombre={nombre} texto="Descargar" />
+        <p className="text-xs opacity-70">{etiquetaTipo(tipo, nombre)}</p>
+        <div className="mt-1 flex gap-3">
+          {esPdf && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2 opacity-90 hover:opacity-100"
+            >
+              <ExternalLink className="size-3" />
+              Abrir
+            </a>
+          )}
+          <Enlace url={url} nombre={nombre} texto="Descargar" />
+        </div>
       </div>
     </div>
   );
+}
+
+/** «PDF», «Word», «Excel»…: lo que es el archivo, en una palabra. */
+function etiquetaTipo(tipo: string, nombre: string) {
+  if (tipo === "application/pdf") return "PDF";
+  if (/word|\.docx?$/i.test(tipo + nombre)) return "Word";
+  if (/excel|spreadsheet|\.xlsx?$/i.test(tipo + nombre)) return "Excel";
+  return "Documento";
+}
+
+/**
+ * El enlace de descarga.
+ *
+ * El atributo `download` no sirve con un archivo de otro dominio (el de
+ * Supabase): el navegador lo ignora y lo abre en una pestaña. Supabase lo
+ * descarga de verdad si el enlace firmado lleva `download=<nombre>`.
+ */
+function conDescarga(url: string, nombre: string) {
+  // La vista previa local de lo que se está enviando no es de Supabase.
+  if (url.startsWith("blob:")) return url;
+  return url + (url.includes("?") ? "&" : "?") + "download=" + encodeURIComponent(nombre);
 }
 
 function Enlace({
@@ -100,7 +143,7 @@ function Enlace({
 }) {
   return (
     <a
-      href={url}
+      href={conDescarga(url, nombre)}
       download={nombre}
       target="_blank"
       rel="noreferrer"
