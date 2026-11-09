@@ -175,7 +175,7 @@ export function ServiciosContratados({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="nombre">Nombre en la factura</Label>
+              <Label htmlFor="nombre">Concepto en la factura</Label>
               <Input
                 id="nombre"
                 name="nombre"

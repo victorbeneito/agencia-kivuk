@@ -214,18 +214,23 @@ export async function generarPdfFactura({
   }
 
   if (factura.concepto) {
-    y -= 6;
-    texto(ctx, factura.concepto, MARGEN, y, { size: 9.5, negrita: true });
-    y -= 12;
+    y -= 14;
+    for (const linea of partir(factura.concepto, negrita, 9.5, ANCHO_UTIL)) {
+      texto(ctx, linea, MARGEN, y, { size: 9.5, negrita: true });
+      y -= 13;
+    }
   }
 
-  y -= 16;
+  y -= 22;
 
   // === Tabla de líneas
-  const xCantidad = MARGEN + 330;
-  const xPrecio = MARGEN + 400;
+  // Bordes derechos de cada columna numérica. El importe necesita sitio para
+  // «10.000,00 €» en negrita sin pisar el precio, y el precio lo mismo con la
+  // cantidad: con menos de ~80 puntos entre bordes, las cifras se tocan.
   const xImporte = derecha;
-  const anchoConcepto = 320;
+  const xPrecioDer = derecha - 90;
+  const xCantidadDer = derecha - 170;
+  const anchoConcepto = xCantidadDer - 40 - (MARGEN + 6);
 
   pagina.drawRectangle({
     x: MARGEN,
@@ -235,8 +240,8 @@ export async function generarPdfFactura({
     color: BANDA,
   });
   texto(ctx, "CONCEPTO", MARGEN + 6, y, { size: 8, negrita: true, color: SUAVE });
-  textoDerecha(ctx, "CANT.", xCantidad + 40, y, { size: 8, negrita: true, color: SUAVE });
-  textoDerecha(ctx, "PRECIO", xPrecio + 60, y, { size: 8, negrita: true, color: SUAVE });
+  textoDerecha(ctx, "CANT.", xCantidadDer, y, { size: 8, negrita: true, color: SUAVE });
+  textoDerecha(ctx, "PRECIO", xPrecioDer, y, { size: 8, negrita: true, color: SUAVE });
   textoDerecha(ctx, "IMPORTE", xImporte, y, { size: 8, negrita: true, color: SUAVE });
   y -= 24;
 
@@ -248,8 +253,8 @@ export async function generarPdfFactura({
       : [];
 
     texto(ctx, titulo[0] ?? "", MARGEN + 6, y, { negrita: true });
-    textoDerecha(ctx, String(num(linea.cantidad)), xCantidad + 40, y);
-    textoDerecha(ctx, euros(num(linea.precio)), xPrecio + 60, y);
+    textoDerecha(ctx, String(num(linea.cantidad)), xCantidadDer, y);
+    textoDerecha(ctx, euros(num(linea.precio)), xPrecioDer, y);
     textoDerecha(ctx, euros(importe), xImporte, y, { negrita: true });
 
     let yLinea = y - 12;
@@ -291,11 +296,15 @@ export async function generarPdfFactura({
     y -= 15;
   }
 
+  // Aire entre la última fila y la franja del total: sin él, la franja se
+  // dibujaba encima de la retención y la tapaba.
+  y -= 10;
+
   pagina.drawRectangle({
     x: xRotulo - 10,
-    y: y - 8,
+    y: y - 9,
     width: derecha - xRotulo + 10,
-    height: 26,
+    height: 25,
     color: BANDA,
   });
   texto(ctx, "TOTAL", xRotulo, y, { size: 11, negrita: true });

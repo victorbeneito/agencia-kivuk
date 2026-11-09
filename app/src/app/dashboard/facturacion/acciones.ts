@@ -374,14 +374,21 @@ export async function crearFactura(clientId: string, desdeServicios = true) {
   }
 
   if (desdeServicios) {
-    const { data: contratados } = await supabase
+    const { data: todos } = await supabase
       .from("client_services")
-      .select("id, nombre, descripcion, precio, cantidad")
+      .select("id, nombre, descripcion, precio, cantidad, recurrencia, proxima_factura")
       .eq("client_id", clientId)
       .eq("estado", "activo")
       .order("created_at");
 
-    if (contratados?.length) {
+    // Un pago único ya facturado se queda «activo» pero con proxima_factura a
+    // null (así lo deja la generación del periodo). No puede volver a salir en
+    // cada factura que se haga a mano.
+    const contratados = (todos ?? []).filter(
+      (c) => c.recurrencia !== "unico" || c.proxima_factura !== null
+    );
+
+    if (contratados.length) {
       await supabase.from("invoice_items").insert(
         contratados.map((c, i) => ({
           invoice_id: factura.id,
@@ -394,6 +401,16 @@ export async function crearFactura(clientId: string, desdeServicios = true) {
         }))
       );
       await recalcular(factura.id);
+
+      // Y al revés: el pago único que entra aquí queda facturado, para que la
+      // generación del periodo no lo meta otra vez.
+      const unicos = contratados.filter((c) => c.recurrencia === "unico").map((c) => c.id);
+      if (unicos.length) {
+        await supabase
+          .from("client_services")
+          .update({ proxima_factura: null })
+          .in("id", unicos);
+      }
     }
   }
 
