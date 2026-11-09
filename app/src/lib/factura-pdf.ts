@@ -140,11 +140,12 @@ function partir(
 
 /** Las líneas de una dirección, saltándose los campos vacíos. */
 function direccionEn(d: DatosFiscales): string[] {
-  const cp = [d.codigo_postal, d.ciudad].filter(Boolean).join(" ");
+  // «46870 - Ontinyent (Valencia) España», saltándose lo que falte.
+  const cp = [d.codigo_postal, d.ciudad].filter(Boolean).join(" - ");
+  const provincia = d.provincia ? `(${d.provincia})` : "";
   return [
     d.direccion,
-    [cp, d.provincia].filter(Boolean).join(", "),
-    d.pais,
+    [cp, provincia, d.pais].filter(Boolean).join(" "),
   ].filter((l) => l && l.trim());
 }
 
@@ -208,28 +209,87 @@ export async function generarPdfFactura({
 
   const yCabecera = A4.alto - MARGEN;
   textoDerecha(ctx, "FACTURA", derecha, yCabecera, { size: 22, negrita: true });
-  textoDerecha(ctx, factura.numero ?? "BORRADOR — sin numerar", derecha, yCabecera - 20, {
-    size: 11,
-    negrita: true,
-    color: factura.numero ? TINTA : SUAVE,
+
+  // === Receptor: recuadro a la derecha, frente a los datos del emisor. Así las
+  // dos partes se leen de un vistazo, cada una en su lado.
+  const anchoCaja = 240;
+  const relleno = 14;
+  const xCaja = derecha - anchoCaja;
+  const anchoTextoCaja = anchoCaja - relleno * 2 - 3;
+
+  // Las líneas se calculan antes de dibujar: el alto del recuadro depende de
+  // ellas, y el fondo tiene que pintarse debajo del texto.
+  const filasCaja: { cadena: string; size: number; negrita?: boolean; color?: ReturnType<typeof rgb>; salto: number }[] = [
+    { cadena: "FACTURAR A", size: 8, negrita: true, color: SUAVE, salto: 15 },
+    ...partir(receptor.razon_social || "—", negrita, 11, anchoTextoCaja).map((l) => ({
+      cadena: l,
+      size: 11,
+      negrita: true,
+      salto: 14,
+    })),
+    ...[
+      receptor.nif ? `NIF ${receptor.nif}` : "",
+      ...direccionEn(receptor),
+      receptor.email ?? "",
+    ]
+      .filter(Boolean)
+      .flatMap((l) => partir(l, normal, 9, anchoTextoCaja))
+      .map((l) => ({ cadena: l, size: 9, color: SUAVE, salto: 12 })),
+  ];
+
+  const arribaCaja = yCabecera - 26;
+  const altoCaja = relleno + 8 + filasCaja.reduce((s, f) => s + f.salto, 0) + relleno - 12;
+  pagina.drawRectangle({
+    x: xCaja,
+    y: arribaCaja - altoCaja,
+    width: anchoCaja,
+    height: altoCaja,
+    color: BANDA,
   });
-  textoDerecha(ctx, `Fecha: ${fecha(factura.fecha_emision)}`, derecha, yCabecera - 36, {
-    size: 9,
-    color: SUAVE,
+  pagina.drawRectangle({
+    x: xCaja,
+    y: arribaCaja - altoCaja,
+    width: 3,
+    height: altoCaja,
+    color: MARCA,
   });
-  if (factura.fecha_vencimiento) {
-    textoDerecha(
-      ctx,
-      `Vencimiento: ${fecha(factura.fecha_vencimiento)}`,
-      derecha,
-      yCabecera - 48,
-      { size: 9, color: SUAVE }
-    );
+
+  let yCaja = arribaCaja - relleno - 8;
+  for (const f of filasCaja) {
+    texto(ctx, f.cadena, xCaja + 3 + relleno, yCaja, {
+      size: f.size,
+      negrita: f.negrita,
+      color: f.color,
+    });
+    yCaja -= f.salto;
   }
 
-  y = Math.min(y, yCabecera - 62) - 14;
+  y = Math.min(y, arribaCaja - altoCaja) - 22;
 
-  // === Receptor
+  // === Identificación: número, fecha y, si lo hay, el periodo que cubre
+  const datos: [string, string, boolean][] = [
+    ["Nº DE FACTURA", factura.numero ?? "Borrador (sin numerar)", !!factura.numero],
+    ["FECHA", fecha(factura.fecha_emision), true],
+  ];
+  if (factura.periodo_inicio && factura.periodo_fin) {
+    datos.push([
+      "PERIODO",
+      `${fecha(factura.periodo_inicio)} – ${fecha(factura.periodo_fin)}`,
+      true,
+    ]);
+  }
+
+  datos.forEach(([rotulo, valor, fuerte], i) => {
+    const x = MARGEN + i * 150;
+    texto(ctx, rotulo, x, y, { size: 8, negrita: true, color: SUAVE });
+    texto(ctx, valor, x, y - 15, {
+      size: 11,
+      negrita: true,
+      color: fuerte ? TINTA : SUAVE,
+    });
+  });
+  y -= 30;
+
   pagina.drawRectangle({
     x: MARGEN,
     y: y - 4,
@@ -237,24 +297,7 @@ export async function generarPdfFactura({
     height: 2,
     color: MARCA,
   });
-  y -= 24;
-
-  texto(ctx, "FACTURAR A", MARGEN, y, { size: 8, negrita: true, color: SUAVE });
-  y -= 14;
-  texto(ctx, receptor.razon_social || "—", MARGEN, y, { size: 11, negrita: true });
-  y -= 13;
-  if (receptor.nif) {
-    texto(ctx, `NIF ${receptor.nif}`, MARGEN, y, { size: 9, color: SUAVE });
-    y -= 12;
-  }
-  for (const linea of direccionEn(receptor)) {
-    texto(ctx, linea, MARGEN, y, { size: 9, color: SUAVE });
-    y -= 12;
-  }
-  if (receptor.email) {
-    texto(ctx, receptor.email, MARGEN, y, { size: 9, color: SUAVE });
-    y -= 12;
-  }
+  y -= 4;
 
   if (factura.concepto) {
     y -= 14;
@@ -385,6 +428,13 @@ export async function generarPdfFactura({
     y -= 13;
   } else if (emisor.iban) {
     texto(ctx, `IBAN: ${emisor.iban}`, MARGEN, y, { size: 9.5 });
+    y -= 13;
+  }
+  if (factura.fecha_vencimiento) {
+    texto(ctx, `Vencimiento: ${fecha(factura.fecha_vencimiento)}`, MARGEN, y, {
+      size: 9.5,
+      negrita: true,
+    });
     y -= 13;
   }
   if (factura.enlace_pago) {
