@@ -1,3 +1,6 @@
+import { readFile } from "fs/promises";
+import path from "path";
+
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
 import {
@@ -34,6 +37,30 @@ const LINEA = rgb(0.85, 0.85, 0.85);
 const BANDA = rgb(0.96, 0.96, 0.95);
 // El azul de la marca (#8EB9C5), el mismo de las etiquetas del panel.
 const MARCA = rgb(0.557, 0.725, 0.773);
+
+// El logo de la cabecera es el mismo PNG que usan la web y el panel. Se lee de
+// `public/` porque el Dockerfile copia esa carpeta junto al servidor standalone
+// y el proceso arranca en ella, igual que `npm run dev` en local. Se guarda en
+// memoria tras la primera lectura: el archivo no cambia mientras el servidor vive.
+const RUTA_LOGO = path.join(process.cwd(), "public", "kivuk-logo.png");
+const ALTO_LOGO = 42;
+let logoEnMemoria: Promise<Uint8Array | null> | null = null;
+
+/**
+ * Los bytes del logo, o null si no está. Sin logo la factura sale igual: es
+ * preferible una factura sin marca que ninguna factura.
+ */
+function bytesDelLogo(): Promise<Uint8Array | null> {
+  logoEnMemoria ??= readFile(RUTA_LOGO).then(
+    (b) => new Uint8Array(b),
+    (error) => {
+      console.error(`Factura sin logo: no se pudo leer ${RUTA_LOGO}`, error);
+      logoEnMemoria = null; // que lo vuelva a intentar en la siguiente
+      return null;
+    }
+  );
+  return logoEnMemoria;
+}
 
 /** Sustituye lo que WinAnsi no sabe escribir por su equivalente más cercano. */
 function limpiar(texto: string | null | undefined): string {
@@ -145,8 +172,24 @@ export async function generarPdfFactura({
   doc.setTitle(`Factura ${factura.numero ?? "borrador"}`);
   doc.setProducer("Kivuk Agencia");
 
-  // === Cabecera: emisor a la izquierda, identificación de la factura a la derecha
+  // === Cabecera: logo y emisor a la izquierda, identificación de la factura a
+  // la derecha
   let y = A4.alto - MARGEN;
+
+  const logo = await bytesDelLogo();
+  if (logo) {
+    const imagen = await doc.embedPng(logo);
+    const ancho = (imagen.width / imagen.height) * ALTO_LOGO;
+    // El borde de arriba del logo, a la altura de las mayúsculas de «FACTURA».
+    const arriba = A4.alto - MARGEN + 16;
+    pagina.drawImage(imagen, {
+      x: MARGEN,
+      y: arriba - ALTO_LOGO,
+      width: ancho,
+      height: ALTO_LOGO,
+    });
+    y = arriba - ALTO_LOGO - 22;
+  }
 
   texto(ctx, emisor.razon_social || "—", MARGEN, y, { size: 15, negrita: true });
   y -= 16;

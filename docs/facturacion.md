@@ -89,8 +89,9 @@ Se genera con `pdf-lib` (`app/src/lib/factura-pdf.ts`), dibujando el documento a
 mano. Sin Puppeteer ni conversores de HTML: son binarios de cientos de megas que
 en Vercel hay que empaquetar aparte y que fallan de formas raras. Son cuatro
 cajas y una tabla, y así funciona igual en local, en Vercel y en el VPS sin
-instalar nada. El archivo pesa unos 5 KB porque las fuentes estándar no se
-incrustan.
+instalar nada. Las fuentes estándar no se incrustan; lo que pesa (unos 85 KB) es
+el logo de la cabecera, el mismo `public/kivuk-logo.png` de la web. Se lee de
+`public/` al generar, y si faltara la factura sale igual, sin logo.
 
 El precio de esas fuentes es su codificación, WinAnsi (Latin-1 ampliado): los
 acentos y el € entran, pero un carácter fuera de esa tabla haría reventar la
